@@ -137,7 +137,7 @@ case "$option" in
 ;;
 
 # Download the reference variant dbs for human
-"human-variants" | \ 
+"human-variants" | \
 "Vannot" )
 	dispatch $humanVariantsDirAWS $humanVariantsDir
 ;;
