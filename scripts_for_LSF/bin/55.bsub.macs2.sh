@@ -108,7 +108,7 @@ $macs2bin callpeak \
  --name $stem \
  --outdir \${outputDirectory} \
  --gsize 2.7e9 \
- --mfold 40 80 \
+ --mfold 5 80 \
  --bw 200 \
  --bdg \
  --keep-dup auto\
