@@ -1,0 +1,249 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use Getopt::Long;
+use FindBin;
+use Cwd;
+use Celgene::Utils::FileFunc;
+use Celgene::Utils::SVNversion;
+my $svnversion=Celgene::Utils::SVNversion::version( '$Date: 2015-05-01 23:25:08 -0700 (Fri, 01 May 2015) $ $Revision: 1420 $' );
+my @allArgs=@ARGV;
+
+my($help,$recursive,$usePrimaryOnly, $logLevel,$statsfile,$report_tumour_only,$report_host_only,$logFile,$version,$noHost,$noTumour,$noBoth,$inputfile,$outputfile);
+GetOptions(
+	"h|help"=>\$help,
+	"v|version"=>\$version,
+	"output|o=s"=>\$outputfile,
+	"stats|s=s"=>\$statsfile,
+	"input|i=s"=>\$inputfile,
+	"loglevel=s"=>\$logLevel,
+	"logfile=s"=>\$logFile
+);
+my $logger=setUpLog();
+
+# script that tags the reads that are coming from either the host, the tumor, or cannot be assigned
+# reads that are not mapped are reported as belonging to the tumour
+# the script works with STDIN and STDOUT
+ 
+ 
+ 
+
+
+if(defined($help)){
+	printUsage();
+	exit(0);
+}
+if(defined($version) ){
+	printVersion();
+	exit(0);
+}
+
+if(!defined($outputfile) or !defined($inputfile)){
+	$logger->logdie("Please provide input and output files or type '-' to indicate STDERR and STDIN");
+	
+}
+
+
+if( defined($noBoth ) and (  defined($report_host_only) or defined($report_tumour_only) ) ){
+	$logger->logdie("options report_host_only and report_tumour_only are not compatible with no_host");
+}
+
+
+$logger->info("filterBamAlnQuality $svnversion");
+$logger->info("Input file is $inputfile");
+$logger->info("Output file is $outputfile");
+if(defined($statsfile)){$logger->info("Statistics file is $statsfile");}
+
+
+sub printUsage{
+	printVersion();
+	print "
+filterBamAlnQuality.pl 
+Script that filters a bam file and keeps for each read only the best scoring alignment based on the AS tag
+usage:  samtools view -h <bamfile sorted by name>|  filterBamAlnQuality.pl | samtools -Sbh > output.bam
+
+ --input | -i input file in SAM format
+ --output | -o output file in SAM format
+ --stats | -s file to store statistics\n";
+
+
+}
+sub printVersion{
+	print "xenograft.pl  $svnversion \n";
+}
+my $readData=[];my $organism={};
+my $score={};
+my$currentRead="NA";
+
+my %stats;
+$stats{h}=$stats{t}=$stats{b}=$stats{u}=0;
+my $header=[]; # keep the lines of the header
+
+
+my $inFh=Celgene::Utils::FileFunc::newReadFileHandle( $inputfile );
+my $outFh=Celgene::Utils::FileFunc::newWriteFileHandle( $outputfile );
+while (my $line=<$inFh>){
+	chomp $line;
+	
+	if($line=~/^@/){
+		
+		push @$header, $line;
+		next;
+	}
+
+	if (scalar( @$header) >0){
+		printHeader( $header );
+		@$header=();
+	}
+		
+	my($read,$flag,$chr,$pos,$mapq, $cigar,$mateRef,$matePos, $isize, $seq,$qual,@opt)=split("\t", $line);
+	if($read ne $currentRead){	
+	#	print "Time to store data \n";
+		processReads($readData, $organism);
+		@$readData=();
+		$score={};
+		$currentRead=$read;
+	}
+	my $mate;
+	if( $flag & 64 ){
+			$mate='forward';
+		}
+	elsif( $flag & 128 ){
+			$mate='reverse'; 
+		}
+	else{
+			$mate='unpaired';
+		}
+	my $optstr=join("\t",@opt);
+	$optstr=~/AS\:i\:(\d+)/;
+	my $alnScore=$1;
+	if(!defined($score->{ $mate }->{mapq})){ $score->{ $mate }->{mapq}=0;  }
+	if(!defined($score->{ $mate }->{as})){ $score->{ $mate }->{as  }=0;  }
+	$score->{ $mate }->{ mapq }=$mapq if $mapq > $score->{ $mate }->{ mapq };
+	$score->{ $mate }->{ as   }=$alnScore if $alnScore > $score->{ $mate }->{ as   };
+	
+	# make the decision based on the primary alignments only 
+	# added for support of bwa
+
+	push @$readData, $line;
+	
+}
+
+processReads( $readData, $organism);
+close $inFh if $inputfile ne '-';
+close $outFh if $outputfile ne '-'; 
+
+if( defined($statsfile)){
+	$logger->info("Storing statistics in $statsfile");
+	my $wfh=Celgene::Utils::FileFunc::newWriteFileHandle( $statsfile );
+	print $wfh 
+		"FILE\t$inputfile\n";
+	print $wfh	"DROPPED_FORWARD_ALIGNMENTS\t$stats{forward}\n" if defined($stats{forward});
+	print $wfh		"DROPPED_REVERSE_ALIGNMENTS\t$stats{reverse}\n" if defined($stats{reverse});
+	print $wfh		"DROPPED_UNDIRECTIONAL_ALIGNMENTS\t$stats{unpaired}\n" if defined($stats{unpaired});
+	print $wfh	"AFFECTED READS\t$stats{reads}\n";
+	close( $wfh);
+}
+$logger->info("Program finished SUCCESSFULLY");
+
+sub processReads{
+	my($readData,$organism)=@_;
+	if(scalar(@$readData)==0){return;}
+
+	# 1. find the best score for the first read
+	# 2. find the best score for the second read
+	my $bestScore={};
+#	$logger->debug("============================================");
+#	foreach my $a(@$readData){
+#		$logger->debug($a."\n");
+#	}
+	my $dropread=0;
+	foreach my $a(@$readData){
+		my($read,$flag,$chr,$pos,$mapq, $cigar,$mateRef,$matePos, $isize, $seq,$qual,@opt)=split("\t", $a);
+		my $mate;
+		
+		if( $flag & 64 ){
+				$mate='forward';
+			}
+		elsif( $flag & 128 ){
+				$mate='reverse'; 
+			}
+		else{
+				$mate='unpaired';
+			}
+		my $optstr=join("\t",@opt);
+		$optstr=~/AS:i:(\d+)/;
+		my $alnScore=$1;
+	
+		# priority for deciding the fate of the read has the mapq score
+		# and if it is set to 0 use the alignment score reported in the sam lines
+		
+		if( $score->{$mate}->{mapq} >0){
+			if ( $mapq < $score->{$mate}->{mapq} ) {
+				$stats{$mate}++;
+				$dropread=1;
+				next;}
+		
+		}else {  
+			if ( $alnScore < $score->{$mate}->{as}){ 
+				$stats{$mate}++;
+				$dropread=1;
+				next;}
+		}
+
+	
+	
+		print $outFh $a."\n";
+
+	}
+	if($dropread==1){$stats{"reads"}++};
+}
+
+sub setUpLog{
+	
+	
+	if(!defined($logLevel)){$logLevel="INFO";}
+	my $v;
+	if(defined($ENV{NGS_LOG_DIR})){
+		$v=$ENV{NGS_LOG_DIR};
+	}else{
+		$v=$FindBin::RealBin;
+	}
+	
+	if(!defined($logFile)){$logFile=$v."/xenograft.log";}
+	my $logConf=qq{
+		log4perl.rootLogger          = $logLevel, Logfile, Screen
+	    log4perl.appender.Logfile          = Log::Log4perl::Appender::File
+	    log4perl.appender.Logfile.filename = $logFile
+	    log4perl.appender.Logfile.layout   = Log::Log4perl::Layout::PatternLayout
+	    log4perl.appender.Logfile.layout.ConversionPattern = [%p : %c - %d] - %m{chomp}%n
+	    log4perl.appender.Screen         = Log::Log4perl::Appender::Screen
+	    log4perl.appender.Screen.stderr  = 1
+	    log4perl.appender.Screen.layout = Log::Log4perl::Layout::PatternLayout
+	    log4perl.appender.Screen.layout.ConversionPattern = [%p : %c - %d] - %m{chomp}%n
+	};
+	Log::Log4perl->init(\$logConf);
+	my $logger=Log::Log4perl->get_logger("xenograft");
+	return $logger;
+}
+
+# prints the header lines
+# decides which lines to print based on user selections
+sub printHeader{
+	my ($header)=@_; 
+	
+	
+	
+	foreach my $a(@$header){
+		my($sq,$sn)=split("\t", $a);
+		$logger->debug(" SQ = [$sq], SN = [$sn]");
+		
+		
+		print $outFh $a."\n";
+		
+		
+	}
+	# add a line with the information of xenograft
+	print $outFh "\@CO\tuser command line xenograft: $0 @allArgs\n";
+}

@@ -1,0 +1,1 @@
+../bin/34.bsub.bamQC-InsertSizeMetrics.sh

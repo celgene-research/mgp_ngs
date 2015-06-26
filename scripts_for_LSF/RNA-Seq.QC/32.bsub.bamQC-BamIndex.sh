@@ -1,0 +1,1 @@
+../bin/32.bsub.bamQC-BamIndex.sh

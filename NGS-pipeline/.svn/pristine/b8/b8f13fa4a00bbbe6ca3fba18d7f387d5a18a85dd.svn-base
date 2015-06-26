@@ -1,0 +1,56 @@
+bwabin="/celgene/software/bwa/bwa-0.7.5a/bwa"
+samtoolsbin="/celgene/software/samtools/samtools-0.1.19/samtools"
+gatkbin="java -Xmx6g -jar ${GATK_HOME}/GenomeAnalysisTK.jar"
+freebayesbin="/celgene/software/freebayes/freebayes-v0.9.15-5-g0471ac0/bin/freebayes"
+
+
+# databases
+mills=${GATK_REF}/Mills_and_1000G_gold_standard.indels.celgene.vcf
+1000g_phase1=knownMuts2=${GATK_REF}/1000G_phase1.indels.celgene.vcf
+dbsnp_gatk=${GATK_REF}/dbsnp_137.celgene.vcf
+hapmap_gatk=${GATK_REF}/hapmap_3.3.celgene.vcf
+1000g_omni_gatk=${GATK_REF}/1000G_omni2.5.celgene.vcf
+1000g_snps_gatk=${GATK_REF}/1000G_phase1.snps.high_confidence.celgene.vcf
+
+
+# Human genome. These variables point to the current version of the human genome used (July 16/2013: hg19 main chromosome assembly only)
+	export humanDir=$genomeDatabase/Homo_sapiens/GRCh37.p12
+	export ratDir=$genomeDatabase/Rattus-norvegicus/Rnor_5.0
+	export erccDir=$genomeDatabase/ERCC
+		export erccDirAWS=${CELGENE_NGS_BUCKET}/data/Genomes/ERCC
+	export human_mouseDir=$genomeDatabase/Xenograft.Human+Mouse/GRCh37.p12+mm10
+# Human data
+	#export human_mouseDir=$genomeDatabase/Xenograft.Human+Mouse/CURRENT
+	export humanAnnotationDir=${humanDir}/Annotation/gencode.v18
+	export humanGenomeDir=${humanDir}/WholeGenome
+
+	export humanChromosomesDir=${humanDir}/Chromosomes
+	export humanSTARidx=$humanDir/STAR_wSJIndex
+	export humanBWAidx=$humanDir/BWAIndex
+	export humanVariantsDir=$humanDir/Variants
+# Rat data
+	export ratAnnotationDir=$ratDir/Annotation
+	export ratGenomeDir=$ratDir/WholeGenome
+	export ratSTARidx=$ratDir/STARIndex
+
+# Viral genomes (EBV) added August 4 2014 (Kostas)
+	export ebvDir=$genomeDatabase/Viral/Epstein-Barr
+	export ebvAnnotationDir=$ebvDir/Annotation
+	export ebvGenomeDir=$ebvDir/WholeGenome
+	export ebvSTARidx=$ebvDir/STARIndex
+
+# xenograft modesl data
+	export human_mouseGenomeDir=$human_mouseDir/WholeGenome
+	export human_mouseSTARidx=$human_mouseDir/STAR_wSJIndex
+	export human_mouseAnnotationDir=$human_mouseDir/Annotation
+# ERCC spike ins
+ 
+	export ercc_bowtieidx=$erccDir/Bowtie2Index
+
+# Application specific variables	
+	export PLPLOT_LIB=$NGS_APPLICATION_DIR/EMBOSS/DEFAULT/lib
+
+
+	export PICARD_BASE=$NGS_APPLICATION_DIR/picard/DEFAULT
+	export GATK_REF=$genomeDatabase/GRCh37.p12/GenomeAnalysisTK-2014.2-3.1.7-10-g867c2fb
+	export GATK_HOME=$NGS_APPLICATION_DIR/GATK

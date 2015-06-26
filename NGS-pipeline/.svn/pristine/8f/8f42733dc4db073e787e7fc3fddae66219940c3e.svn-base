@@ -1,0 +1,74 @@
+export bwabin="$NGS_APPLICATION_DIR/bwa/bwa-0.7.5a/bwa"
+export samtoolsbin="$NGS_APPLICATION_DIR/samtools/samtools-0.1.19/samtools"
+export gatkbin="java -Xmx6g -jar ${GATK_HOME}/GenomeAnalysisTK.jar"
+export freebayesbin="$NGS_APPLICATION_DIR/freebayes/freebayes-v0.9.15-5-g0471ac0/bin/freebayes"
+
+export PLPLOT_LIB=$NGS_APPLICATION_DIR/EMBOSS/EMBOSS-6.6.0/lib
+export PICARD_BASE=$NGS_APPLICATION_DIR/picard/picard-tools-1.107
+export GATK_REF=$genomeDatabase/GRCh37.p12/GenomeAnalysisTK-2014.2-3.1.7-10-g867c2fb
+export GATK_HOME=$NGS_APPLICATION_DIR/GenomeAnalysisTK-2014.4-2-g9ad6aa8
+
+export mills=${GATK_REF}/Mills_and_1000G_gold_standard.indels.celgene.vcf
+export 1000g_phase1=knownMuts2=${GATK_REF}/1000G_phase1.indels.celgene.vcf
+export dbsnp_gatk=${GATK_REF}/dbsnp_137.celgene.vcf
+export hapmap_gatk=${GATK_REF}/hapmap_3.3.celgene.vcf
+export 1000g_omni_gatk=${GATK_REF}/1000G_omni2.5.celgene.vcf
+export 1000g_snps_gatk=${GATK_REF}/1000G_phase1.snps.high_confidence.celgene.vcf
+
+# top level variables that point to genomes
+# the AWS versions point to objects in the S3 bucket which will be used for staging in the AWS environment
+	export humanDir=$genomeDatabase/Homo_sapiens/GRCh37.p12
+		export humanDirAWS=${CELGENE_NGS_BUCKET}/data/Genomes/Homo_sapiens/GRCh37.p12
+	export ratDir=$genomeDatabase/Rattus-norvegicus/Rnor_5.0
+		export ratDirAWS=${CELGENE_NGS_BUCKET}/data/Genomes//Rattus-norvegicus/Rnor_5.0
+	export erccDir=$genomeDatabase/ERCC
+		export erccDirAWS=${CELGENE_NGS_BUCKET}/data/Genomes/ERCC
+	export human_mouseDir=$genomeDatabase/Xenograft.Human+Mouse/GRCh37.p12+mm10
+		export human_mouseDirAWS=${CELGENE_NGS_BUCKET}/data/Genomes/Xenograft.Human+Mouse/GRCh37.p12+mm10
+		
+# All following data should rely on the previous assignments
+# Human data
+	#export human_mouseDir=$genomeDatabase/Xenograft.Human+Mouse/CURRENT
+	export humanAnnotationDir=${humanDir}/Annotation/gencode.v18
+	export humanGenomeDir=${humanDir}/WholeGenome
+
+	export humanChromosomesDir=${humanDir}/Chromosomes
+	export humanSTARidx=$humanDir/STAR_wSJIndex
+	export humanBWAidx=$humanDir/BWAIndex
+	export humanVariantsDir=$humanDir/Variants
+	
+	export cosmiccoding=$humanVariantsDir/CosmicCodingMuts_v70.celgene.vcf
+	export cosmicnoncoding=$humanVariantsDir/CosmicNonCodingVariants_v70.celgene.vcf
+	export dbsnp=$humanVariantsDir/dbSNP.v142.celgene.vcf
+	export dbnsfp=$humanVariantsDir/dbSNP.v142.celgene.vcf.idx
+	export exac=$humanVariantsDir/ExAC.r0.2.sites.vep.celgene.vcf
+	export uk10k=$humanVariantsDir/UK10K_COHORT.20140722.sites.celgene.vcf
+	
+	
+# Rat data
+	export ratAnnotationDir=$ratDir/Annotation
+	export ratGenomeDir=$ratDir/WholeGenome
+	export ratSTARidx=$ratDir/STARIndex
+
+# Viral genomes (EBV) added August 4 2014 (Kostas)
+	export ebvDir=$genomeDatabase/Viral/Epstein-Barr
+	export ebvAnnotationDir=$ebvDir/Annotation
+	export ebvGenomeDir=$ebvDir/WholeGenome
+	export ebvSTARidx=$ebvDir/STARIndex
+
+# xenograft modesl data
+	export human_mouseGenomeDir=$human_mouseDir/WholeGenome
+	export human_mouseSTARidx=$human_mouseDir/STAR_wSJIndex
+	export human_mouseAnnotationDir=$human_mouseDir/Annotation
+# ERCC spike ins
+ 
+	export ercc_bowtieidx=$erccDir/Bowtie2Index
+
+
+# databases
+# databases
+
+
+
+
+

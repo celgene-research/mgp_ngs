@@ -1,0 +1,1 @@
+../bin/10.bsub.STARaln.sh

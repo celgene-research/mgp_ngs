@@ -1,0 +1,1 @@
+../bin/30.bsub.freebayes.sh

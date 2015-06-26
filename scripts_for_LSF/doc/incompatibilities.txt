@@ -1,0 +1,3 @@
+===JUNE 5 2015 by Kostas Mavrommatis ===
+the older version of cutadapt v1.2 is no longer accessible as a command line. 
+It has been replaced by the newer version v1.8.1 which replaced python eggs.

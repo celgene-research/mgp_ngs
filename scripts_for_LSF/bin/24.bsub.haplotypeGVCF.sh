@@ -1,0 +1,95 @@
+#!/bin/bash
+scriptDir=$( dirname $0 ); source $scriptDir/../lib/shared.sh
+inputBAM=$1
+stem=$(fileStem $inputBAM )
+step="GATK.Haplotype_gvcf"
+analysistask=94
+NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
+mkdir -p $NGS_LOG_DIR
+
+output=${stem}.${step}.vcf
+genomeDatabase=${humanGenomeDir}/genome.fa
+genomeIndex=$(echo $genomeDatabase | sed 's%.fa%.dict%') 
+genomeIndex2=${genomeDatabase}.fai
+knownMuts1=${dbsnp_gatk}
+memory=16000
+experimentType=$(ngs-sampleInfo.pl $inputBAM experiment_type);
+cores=4
+header=$(bsubHeader $stem $step $memory $cores)
+echo \
+"$header
+
+source $scriptDir/../lib/shared.sh
+
+initiateJob $stem $step
+set -e
+
+
+
+genomeDatabase=\$( stage.pl --operation out --type file  $genomeDatabase)
+genomeIndex=\$(stage.pl --operation out --type file  $genomeIndex) 
+genomeIndex2=\$(stage.pl --operation out --type file  $genomeIndex2 )
+knownMuts1=\$( stage.pl --operation out --type file  $knownMuts1 )
+if [ \$genomeDatabase == \"FAILED\" -o \$knownMuts1 == \"FAILED\" ] ; then
+	echo \"Could not transfer \$input\"
+	exit 1
+fi
+index=\$( echo $inputBAM | sed 's/bam$/bai/' ) 
+index=\$( stage.pl --operation out  --type file \$index )
+inputBAM=\$(stage.pl --operation out --type file  $inputBAM )
+
+
+outputDirectory=\$( setOutput \$inputBAM GATK-${step} )
+
+
+
+
+if [[  \"$experimentType\" =~ ^DNA-Seq ]] ; then
+	
+celgeneExec.pl --analysistask $analysistask \"${gatkBin} \
+-T HaplotypeCaller -nct $cores \
+-R \${genomeDatabase} \
+-I \${inputBAM} \
+--dbsnp \${knownMuts1} \
+-stand_call_conf 30  \
+-stand_emit_conf 10  -o \${outputDirectory}/${output} \
+--max_alternate_alleles 6 \
+-minPruning 2  \
+--emitRefConfidence GVCF \
+--variant_index_type LINEAR \
+--variant_index_parameter 128000\"
+if [ $? != 0 ] ; then
+	echo \"Failed to run command\"
+	exit 1
+fi 
+elif [[ \"$experimentType\" =~ ^RNA-Seq ]] ; then
+celgeneExec.pl --analysistask $analysistask \"${gatkBin} \
+-T HaplotypeCaller \
+-nct $cores \
+-R \${genomeDatabase} \
+-I \${inputBAM} \
+-stand_call_conf 20  \
+-stand_emit_conf 20 \
+-recoverDanglingHeads \
+-dontUseSoftClippedBases  \
+-o \${outputDirectory}/${output} \"
+if [ $? != 0 ] ; then
+	echo \"Failed to run command\"
+	exit 1
+fi 
+fi
+
+
+ingestDirectory \$outputDirectory
+if [ $? != 0 ] ; then
+	echo \"Failed to ingest data\"
+	exit 1
+fi 
+
+
+closeJob
+"> $stem.$step.bsub
+
+bsub < $stem.$step.bsub
+#rm $$.tmp
+

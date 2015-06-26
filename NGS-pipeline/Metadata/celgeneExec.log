@@ -1,0 +1,113 @@
+[FATAL : celgeneExec - 2014/09/16 12:11:20] - Please provide the command you would like to run
+[INFO : celgeneExec - 2014/09/16 12:11:26] - Submitted command:
+**       ls -al
+[FATAL : celgeneExec - 2014/09/16 12:11:26] - There are no derived_from files, are you sure you have submitted the correct command line from the correct directory?
+[INFO : celgeneExec - 2014/09/16 12:11:31] - Submitted command:
+**       ls -al > test
+[FATAL : celgeneExec - 2014/09/16 12:11:31] - There are no derived_from files, are you sure you have submitted the correct command line from the correct directory?
+[INFO : celgeneExec - 2014/09/16 12:11:37] - Submitted command:
+**       ls -al > test
+[FATAL : celgeneExec - 2014/09/16 12:11:37] - There are no derived_from files, are you sure you have submitted the correct command line from the correct directory?
+[INFO : celgeneExec - 2014/09/16 12:11:54] - Submitted command:
+**       ls -al > test
+[FATAL : celgeneExec - 2014/09/16 12:11:54] - There are no derived_from files, are you sure you have submitted the correct command line from the correct directory?
+[FATAL : celgeneExec - 2014/09/16 12:12:31] - Please provide the command you would like to run
+[INFO : celgeneExec - 2014/09/16 12:12:37] - Submitted command:
+**       ls -al > test 
+[FATAL : celgeneExec - 2014/09/16 12:12:37] - There are no derived_from files, are you sure you have submitted the correct command line from the correct directory?
+[INFO : celgeneExec - 2014/09/16 12:35:24] - Submitted command:
+**        ls -al > test 
+[FATAL : celgeneExec - 2014/09/16 12:35:24] - There are no derived_from files, are you sure you have submitted the correct command line from the correct directory?
+[FATAL : celgeneExec - 2014/09/16 13:58:57] - Please provide the command you would like to run
+[INFO : celgeneExec - 2014/09/16 13:59:15] - Submitted command:
+**       ls -al > test
+[FATAL : celgeneExec - 2014/09/16 13:59:15] - There are no derived_from files, are you sure you have submitted the correct command line from the correct directory?
+[INFO : celgeneExec - 2014/09/16 13:59:48] - Submitted command:
+**       ls -al > test
+[FATAL : celgeneExec - 2014/09/16 13:59:48] - There are no derived_from files, are you sure you have submitted the correct command line from the correct directory?
+[INFO : celgeneExec - 2014/09/16 14:00:01] - Submitted command:
+**       ls -al > test
+[DEBUG : celgeneExecFunc - 2014/09/16 14:00:01] - The command was split to 
+**       ls -al > test
+[TRACE : celgeneExec - 2014/09/16 14:00:01] - Parsing command 'ls -al > test'
+[TRACE : celgeneExecFunc - 2014/09/16 14:00:01] - Detected binary as ls
+[TRACE : celgeneExecFunc - 2014/09/16 14:00:01] - Starting object for binary 'ls'
+[TRACE : fileObj - 2014/09/16 14:00:01] - ---------- fileObj -----------
+[TRACE : fileObj - 2014/09/16 14:00:01] - initializing object [ls] of type [binary]
+[TRACE : fileObj - 2014/09/16 14:00:01] - userFilename: Setting the user path to the filename [ls]
+[TRACE : fileObj - 2014/09/16 14:00:01] - filename: Setting the filename to [ls]
+[TRACE : fileObj - 2014/09/16 14:00:01] - type: Setting the file type
+[TRACE : fileObj - 2014/09/16 14:00:01] - _getFullBinary:Executing which ls
+[TRACE : fileObj - 2014/09/16 14:00:01] - getFullBinary: the provided binary was converted to full path /bin/ls
+[TRACE : fileObj - 2014/09/16 14:00:01] - absFilename: Setting the absolute path to the filename [/bin/ls]
+[TRACE : fileObj - 2014/09/16 14:00:01] - onlyFilename: Setting the filename-only portion [ls]
+[TRACE : fileObj - 2014/09/16 14:00:01] - type: Finished setting the file type to binary
+[TRACE : fileObj - 2014/09/16 14:00:01] - Initialization complete
+[TRACE : fileObj - 2014/09/16 14:00:01] - ------------------------------
+[TRACE : fileObj - 2014/09/16 14:00:01] - ---------- fileObj -----------
+[TRACE : fileObj - 2014/09/16 14:00:01] - initializing object [] of type []
+[TRACE : fileObj - 2014/09/16 14:00:01] - userFilename: Setting the user path to the filename []
+[TRACE : fileObj - 2014/09/16 14:00:01] - filename: Setting the filename to []
+[TRACE : fileObj - 2014/09/16 14:00:01] - type: Setting the file type
+[TRACE : fileObj - 2014/09/16 14:00:01] - onlyFilename: Setting the filename-only portion []
+[TRACE : fileObj - 2014/09/16 14:00:01] - type: Finished setting the file type to 
+[TRACE : fileObj - 2014/09/16 14:00:01] - Initialization complete
+[TRACE : fileObj - 2014/09/16 14:00:01] - ------------------------------
+[TRACE : celgeneExec - 2014/09/16 14:00:01] - Setting runcommand 
+[DEBUG : celgeneExec - 2014/09/16 14:00:01] - Seeking information for binary:  ls
+[TRACE : celgeneExecFunc - 2014/09/16 14:00:01] - getPossibleFiles: getting all the possible files from tokens of the command line
+[TRACE : fileObj - 2014/09/16 14:00:01] - ---------- fileObj -----------
+[TRACE : fileObj - 2014/09/16 14:00:01] - initializing object [test] of type [regular]
+[TRACE : fileObj - 2014/09/16 14:00:01] - userFilename: Setting the user path to the filename [test]
+[TRACE : fileObj - 2014/09/16 14:00:01] - filename: Setting the filename to [test]
+[TRACE : fileObj - 2014/09/16 14:00:01] - type: Setting the file type
+[TRACE : fileObj - 2014/09/16 14:00:01] - absFilename: Setting the absolute path to the filename [/gpfs/home/kmavrommatis/test]
+[TRACE : fileObj - 2014/09/16 14:00:01] - onlyFilename: Setting the filename-only portion [test]
+[TRACE : fileObj - 2014/09/16 14:00:01] - type: Finished setting the file type to regular
+[TRACE : fileObj - 2014/09/16 14:00:01] - Initialization complete
+[TRACE : fileObj - 2014/09/16 14:00:01] - ------------------------------
+[TRACE : celgeneExecFunc - 2014/09/16 14:00:01] - getPossibleFiles: test is a file generated from a pipe
+[TRACE : fileObj - 2014/09/16 14:00:01] - ---------- fileObj -----------
+[TRACE : fileObj - 2014/09/16 14:00:01] - initializing object [test] of type [regular]
+[TRACE : fileObj - 2014/09/16 14:00:01] - userFilename: Setting the user path to the filename [test]
+[TRACE : fileObj - 2014/09/16 14:00:01] - filename: Setting the filename to [test]
+[TRACE : fileObj - 2014/09/16 14:00:01] - type: Setting the file type
+[TRACE : fileObj - 2014/09/16 14:00:01] - absFilename: Setting the absolute path to the filename [/gpfs/home/kmavrommatis/test]
+[TRACE : fileObj - 2014/09/16 14:00:01] - onlyFilename: Setting the filename-only portion [test]
+[TRACE : fileObj - 2014/09/16 14:00:01] - type: Finished setting the file type to regular
+[TRACE : fileObj - 2014/09/16 14:00:01] - Initialization complete
+[TRACE : fileObj - 2014/09/16 14:00:01] - ------------------------------
+[TRACE : celgeneExecFunc - 2014/09/16 14:00:01] - getVersion: Looking for version of command /bin/ls
+[TRACE : celgeneExecFunc - 2014/09/16 14:00:01] - checkFileVersion: Looking for program version in /bin/ls.celgene.version
+[DEBUG : celgeneExecFunc - 2014/09/16 14:00:01] - _parseVersion: Running command /bin/ls --version 2>&1
+[DEBUG : celgeneExecFunc - 2014/09/16 14:00:01] - _parseVersion: checking line [ls (GNU coreutils) 8.4]
+[DEBUG : celgeneExecFunc - 2014/09/16 14:00:01] - _parseVersion: checking line [Copyright (C) 2010 Free Software Foundation, Inc.]
+[DEBUG : celgeneExecFunc - 2014/09/16 14:00:01] - _parseVersion: checking line [License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.]
+[DEBUG : celgeneExecFunc - 2014/09/16 14:00:01] - Decided that version is [ 3 or later <http://gnu.org/licenses/gpl.html>.]
+[TRACE : celgeneExecFunc - 2014/09/16 14:00:01] - getVersion: version is  3 or later <http://gnu.org/licenses/gpl.html>.
+[TRACE : celgeneExec - 2014/09/16 14:00:01] - =======================
+[TRACE : celgeneExec - 2014/09/16 14:00:01] - The original command is ls -al > test
+[TRACE : celgeneExec - 2014/09/16 14:00:01] - The new command became  ls -al > test
+[TRACE : celgeneExec - 2014/09/16 14:00:01] - =======================
+[TRACE : celgeneExec - 2014/09/16 14:00:01] - possible files:/gpfs/home/kmavrommatis/test]
+[TRACE : celgeneExec - 2014/09/16 14:00:01] - possible files:/gpfs/home/kmavrommatis/test]
+[FATAL : celgeneExec - 2014/09/16 14:00:01] - There are no derived_from files, are you sure you have submitted the correct command line from the correct directory?
+[FATAL : celgeneExec - 2014/09/16 14:27:56] - Please provide the command you would like to run
+[FATAL : celgeneExec - 2014/09/30 16:37:44] - Please provide the command you would like to run
+[FATAL : celgeneExec - 2014/09/30 16:38:29] - Please provide the command you would like to run
+[FATAL : celgeneExec - 2014/09/30 16:38:47] - Please provide the command you would like to run
+[FATAL : celgeneExec - 2014/09/30 16:39:19] - Please provide the command you would like to run
+[FATAL : celgeneExec - 2014/09/30 16:39:22] - Please provide the command you would like to run
+[FATAL : celgeneExec - 2014/09/30 16:39:50] - Please provide the command you would like to run
+[FATAL : celgeneExec - 2014/09/30 16:42:50] - Please provide the command you would like to run
+[FATAL : celgeneExec - 2014/09/30 16:43:17] - Please provide the command you would like to run
+[FATAL : celgeneExec - 2014/09/30 16:43:39] - Please provide the command you would like to run
+[FATAL : celgeneExec - 2014/09/30 16:44:17] - Please provide the command you would like to run
+[FATAL : celgeneExec - 2014/09/30 16:47:49] - Please provide the command you would like to run
+[INFO : celgeneExec - 2014/09/30 16:51:37] - Submitted command:
+**       cat makeGraph.R > test.out
+[INFO : celgeneExec - 2014/09/30 16:51:37] - Executing command
+**     cat makeGraph.R > test.out
+[INFO : celgeneExec - 2014/09/30 16:51:37] - Command executed successfully
+[INFO : celgeneExec - 2014/09/30 16:51:37] - Metadata stored in file /gpfs/celgene/software/controlFreec//test.out.met
+[INFO : celgeneExec - 2014/09/30 16:51:37] - Metadata stored in file /gpfs/celgene/software/controlFreec//test.out.met

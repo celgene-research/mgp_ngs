@@ -1,0 +1,236 @@
+#!/bin/bash
+
+# source file to have access to cluster setup
+# need to have the correct switch in the bashrc 
+# MEDUSSA will point to the Medussa cluster
+# NEWCLUSTER will poin to the new cluster
+# AWS will point to the AWS environment
+
+
+
+
+#############################
+#############################
+
+# NGS SERVER SETTINGS 
+export NGS_SERVER_PORT=8082
+export NGS_SERVER_IP=10.130.0.26
+export OODT_FILEMGR_PORT=9000
+export OODT_FILEMGR_IP=10.130.0.26
+export SOLR_SERVER_IP=10.130.0.26
+export SOLR_SERVER_PORT=8983
+export OODT_FILEMGR_URL=http://${OODT_FILEMGR_IP}:${OODT_FILEMGR_PORT}
+export NGS_SERVER_URL=http://${NGS_SERVER_IP}:${NGS_SERVER_PORT}
+
+##############################
+# Settings specific for each environment
+##########################
+
+if [  "$MEDUSSA" == "1" ]; then
+#echo "Setting up NGS related variables"
+#############################################
+#############################################
+# For medussa
+	export NGS_BASE_DIR=/opt/Medussa2
+	export NGS_APPLICATION_DIR=$NGS_BASE_DIR/Applications
+	export NGS_BINARIES_DIR=$NGS_BASE_DIR/usr/bin
+	export NGS_LOG_DIR=$NGS_BASE_DIR/logs/${USER}
+	export NGS_USR_DATA_DIR=$NGS_BASE_DIR/usr/data
+	
+#**********************************************************************************
+# variables used to define locations of genomes
+	export genomeDatabase=$NGS_USR_DATA_DIR/Genomes
+# Human genome. These variables point to the current version of the human genome used (July 16/2013: hg19 main chromosome assembly only)
+	export humanDir=$genomeDatabase/Homo-sapiens/CURRENT
+	export ratDir=$genomeDatabase/Rattus-norvegicus/CURRENT
+	export erccDir=$genomeDatabase/ERCC
+# Human data
+	export human_mouseDir=$genomeDatabase/Xenograft.Human+Mouse/CURRENT
+	export humanAnnotationDir=$humanDir/Annotation/CURRENT
+	export humanGenomeDir=$humanDir/WholeGenome
+	export humanChromosomesDir=$humanDir/Chromosomes
+	export humanSTARidx=$humanDir/STARIndex
+	export humanBWAidx=$humanDir/BWAIndex
+# Rat data
+	export ratAnnotationDir=$ratDir/Annotation
+	export ratGenomeDir=$ratDir/WholeGenome
+	export ratSTARidx=$ratDir/STARIndex
+# Viral genomes (EBV) added August 4 2014 (Kostas)
+	export ebvDir=$genomeDatabase/Viral/Epstein-Barr
+	export ebvAnnotationDir=$ebvDir/Annotation
+	export ebvGenomeDir=$ebvDir/WholeGenome
+	export ebvSTARidx=$ebvDir/STARIndex
+# xenograft modesl data
+	export human_mouseSTARidx=$human_mouseDir/STARIndex
+# ERCC spike ins
+	export ercc_bowtieidx=$erccDir/Bowtie2Index
+	
+	
+	export PATH=$NGS_BINARIES_DIR:$PATH
+	export PICARD_BASE=$NGS_APPLICATION_DIR/picard/DEFAULT
+	export GATK_HOME=$NGS_APPLICATION_DIR/GATK/DEFAULT
+	export GATK_REF=$NGS_APPLICATION_DIR/GATK/DEFAULT
+	
+	export NGS_TMP_DIR=/opt/scratch/${USER}
+	mkdir -p $NGS_TMP_DIR
+	export _JAVA_OPTIONS=-Djava.io.tmpdir=${NGS_TMP_DIR}
+	
+	export PERL5LIB=$PERL5LIB:/opt/Medussa2/Applications/vcftools/DEFAULT/lib/perl5/site_perl/
+	export PERL5LIB=$PERL5LIB:$NGS_APPLICATION_DIR/scripts/Perl_Lib
+	export PERL5LIB=$PERL5LIB:$NGS_BASE_DIR/usr/share/perl5
+	export PYTHONPATH=$PYTHONPATH:/opt/Medussa2/usr/lib/python2.6/site-packages/
+	export PYTHONPATH=$PYTHONPATH:/opt/Medussa2/usr/lib64/python2.6/site-packages/
+	
+	
+	export BLAS=/opt/Medussa2/usr/lib64/BLAS/libfblas.a 
+	export LAPACK=/opt/Medussa2/usr/lib64/LAPACK/liblapack.a 
+	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/Medussa2/Applications/sailfish/CURRENT/lib:/usr/local/MATLAB/MATLAB_Compiler_Runtime/v81/runtime/glnxa64:/usr/local/MATLAB/MATLAB_Compiler_Runtime/v81/bin/glnxa64:/usr/local/MATLAB/MATLAB_Compiler_Runtime/v81/sys/os/glnxa64:/usr/local/MATLAB/MATLAB_Compiler_Runtime/v81/sys/java/jre/glnxa64/jre/lib/amd64/native_threads:/usr/local/MATLAB/MATLAB_Compiler_Runtime/v81/sys/java/jre/glnxa64/jre/lib/amd64/server:/usr/local/MATLAB/MATLAB_Compiler_Runtime/v81/sys/java/jre/glnxa64/jre/lib/amd64
+	export XAPPLRESDIR=/usr/local/MATLAB/MATLAB_Compiler_Runtime/v81/X11/app-defaults
+	export PERL5LIB=$PERL5LIB:/opt/Medussa2/usr/lib/perl5/x86_64-linux-thread-multi/
+	
+elif [ "$NEWCLUSTER" == "1" ] ; then
+	#export STAGE_WITH_LINK=1
+	mkdir -p ~/oodt-logs/
+	
+	export NGS_BASE_DIR=/celgene/
+	export NGS_APPLICATION_DIR=$NGS_BASE_DIR/software
+	export NGS_BINARIES_DIR=$NGS_BASE_DIR/software/bin
+	export NGS_LOG_DIR=$NGS_BASE_DIR/scratch/RED/LOGS/${USER}
+	export NGS_USR_DATA_DIR=$NGS_BASE_DIR/reference
+
+
+# variables used to define locations of genomes
+	export genomeDatabase=$NGS_USR_DATA_DIR/genomes
+# Human genome. These variables point to the current version of the human genome used (July 16/2013: hg19 main chromosome assembly only)
+	export humanDir=$genomeDatabase/Homo-sapiens/CURRENT
+	export ratDir=$genomeDatabase/Rattus-norvegicus/CURRENT
+	export erccDir=$genomeDatabase/ERCC
+# Human data
+	
+	export humanAnnotationDir=$humanDir/Annotation/CURRENT
+	export humanGenomeDir=$humanDir/WholeGenome
+	export humanChromosomesDir=$humanDir/Chromosomes
+	export humanSTARidx=$humanDir/STAR_wSJIndex
+	export humanBWAidx=$humanDir/BWAIndex
+	export humanVariantsDir=$humanDir/Variants
+# Rat data
+	export ratAnnotationDir=$ratDir/Annotation
+	export ratGenomeDir=$ratDir/WholeGenome
+	export ratSTARidx=$ratDir/STARIndex
+# Viral genomes (EBV) added August 4 2014 (Kostas)
+	export ebvDir=$genomeDatabase/Viral/Epstein-Barr
+	export ebvAnnotationDir=$ebvDir/Annotation
+	export ebvGenomeDir=$ebvDir/WholeGenome
+	export ebvSTARidx=$ebvDir/STARIndex
+# xenograft modesl data
+	export human_mouseDir=$genomeDatabase/Xenograft.Human+Mouse/CURRENT
+	export human_mouseGenomeDir=$human_mouseDir/WholeGenome
+	export human_mouseAnnotationDir=$human_mouseDir/Annotation
+	export human_mouseSTARidx=$human_mouseDir/STAR_wSJIndex
+	
+# ERCC spike ins
+	export ercc_bowtieidx=$erccDir/Bowtie2Index
+	
+	export PLPLOT_LIB=/celgene/software/EMBOSS/DEFAULT/lib
+	export PATH=$NGS_BINARIES_DIR:$PATH
+	export PICARD_BASE=$NGS_APPLICATION_DIR/picard/DEFAULT
+	export GATK_HOME=$NGS_APPLICATION_DIR/GATK/DEFAULT
+	export GATK_REF=$NGS_APPLICATION_DIR/GATK/GenomeAnalysisTK-2014.2-3.1.7-10-g867c2fb/reference
+	
+	#if [ -d /lscratch ] ;then
+		#	export NGS_TMP_DIR=/lscratch/${USER}
+	#else
+		export NGS_TMP_DIR=/celgene/scratch/RED/tmp/${USER}
+	#fi
+	mkdir -p $NGS_TMP_DIR
+	export _JAVA_OPTIONS=-Djava.io.tmpdir=${NGS_TMP_DIR}
+	
+	export PERL5LIB=""
+	export PERL5LIB=$PERL5LIB:$NGS_APPLICATION_DIR/perl/lib/perl5/
+	export PERL5LIB=$PERL5LIB:$NGS_APPLICATION_DIR/perl/lib64/perl5/
+	export PERL5LIB=$PERL5LIB:$NGS_APPLICATION_DIR/perl/share/perl5/
+	export PERL5LIB=$PERL5LIB:$NGS_APPLICATION_DIR/vcftools/DEFAULT/lib/perl5/site_perl/
+	
+	export PYTHONPATH=""
+	export PYTHONPATH=$PYTHONPATH:$NGS_APPLICATION_DIR/python/lib/python2.6/site-packages/
+	export PYTHONPATH=$PYTHONPATH:$NGS_APPLICATION_DIR/python/lib64/python2.6/site-packages/
+	
+	export JAVA_HOME=/celgene/software/java/latest/
+
+elif [ "$CELGENE_AWS" == "true" ]; then
+	export CELGENE_NGS_BUCKET=s3://celgene-ngs-data
+	
+	export NGS_BINARIES_DIR=/ngs/tools/bin
+	export NGS_APPLICATION_DIR=/ngs/tools/bin
+	
+# variables used to define locations of genomes
+
+
+
+# Human genome. These variables point to the current version of the human genome used (July 16/2013: hg19 main chromosome assembly only)
+	export humanDir=${CELGENE_NGS_BUCKET}/data/Genomes/Homo_sapiens/GRCh37.p12
+	export ratDir=${CELGENE_NGS_BUCKET}/data/Genomes/Rattus-norvegicus/Rnor_5.0
+	export erccDir=${CELGENE_NGS_BUCKET}/data/Genomes/ERCC
+	export human_mouseDir=${CELGENE_NGS_BUCKET}/data/Genomes/Xenograft.Human+Mouse/GRCh37.p12+mm10
+# Human data
+	#export human_mouseDir=$genomeDatabase/Xenograft.Human+Mouse/CURRENT
+	export humanAnnotationDir=${humanDir}/Annotation/gencode.v18
+	export humanGenomeDir=${humanDir}/WholeGenome
+
+	export humanChromosomesDir=${humanDir}/Chromosomes
+	export humanSTARidx=$humanDir/STAR_wSJIndex
+	export humanBWAidx=$humanDir/BWAIndex
+	export humanVariantsDir=$humanDir/Variants
+# Rat data
+	export ratAnnotationDir=$ratDir/Annotation
+	export ratGenomeDir=$ratDir/WholeGenome
+	export ratSTARidx=$ratDir/STARIndex
+# Viral genomes (EBV) added August 4 2014 (Kostas)
+
+	#export ebvDir=$genomeDatabase/Viral/Epstein-Barr
+	#export ebvAnnotationDir=$ebvDir/Annotation
+	#export ebvGenomeDir=$ebvDir/WholeGenome
+	#export ebvSTARidx=$ebvDir/STARIndex
+# xenograft modesl data
+	export human_mouseGenomeDir=$human_mouseDir/WholeGenome
+	export human_mouseSTARidx=$human_mouseDir/STAR_wSJIndex
+	export human_mouseAnnotationDir=$human_mouseDir/Annotation
+# ERCC spike ins
+	export ercc_bowtieidx=$erccDir/Bowtie2Index
+	
+	export PLPLOT_LIB=/ngs/tools/EMBOSS/DEFAULT/lib
+	export PATH=$NGS_BINARIES_DIR:$PATH
+	export PATH=/ngs/tools/bin:$PATH
+	export PICARD_BASE=/ngs/tools/picard/DEFAULT
+	export GATK_REF=s3://celgene-ngs-data/data/Genomes/Homo_sapiens/GRCh37.p12/GenomeAnalysisTK-2014.2-3.1.7-10-g867c2fb
+	export GATK_HOME=/ngs/tools/GATK
+	export PYTHONPATH=$PYTHONPATH:/ngs/tools/lib/python2.6/site-packages
+	export PERL5LIB=$PERL5LIB:/ngs/tools/vcftools/DEFAULT/perl
+	export PERL5LIB=$PERL5LIB:/ngs/tools/
+	
+	export JAVA_HOME=/usr/
+
+	
+	if [ -d /scratch ];then
+		export NGS_TMP_DIR=/scratch
+	else
+		export NGS_TMP_DIR=/ngs/tmp
+	fi
+	export _JAVA_OPTIONS=-Djava.io.tmpdir=${NGS_TMP_DIR}
+	
+	if [ -d /ngs ];then
+		export NGS_LOG_DIR=/ngs/LOGS
+	else
+		export NGS_LOG_DIR=$HOME/LOGS
+	fi
+	mkdir -p $NGS_LOG_DIR
+	
+	
+	#export BLAS=/opt/Medussa2/usr/lib64/BLAS/libfblas.a 
+	#export LAPACK=/opt/Medussa2/usr/lib64/LAPACK/liblapack.a 
+	#export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/Medussa2/Applications/sailfish/CURRENT/lib:/usr/local/MATLAB/MATLAB_Compiler_Runtime/v81/runtime/glnxa64:/usr/local/MATLAB/MATLAB_Compiler_Runtime/v81/bin/glnxa64:/usr/local/MATLAB/MATLAB_Compiler_Runtime/v81/sys/os/glnxa64:/usr/local/MATLAB/MATLAB_Compiler_Runtime/v81/sys/java/jre/glnxa64/jre/lib/amd64/native_threads:/usr/local/MATLAB/MATLAB_Compiler_Runtime/v81/sys/java/jre/glnxa64/jre/lib/amd64/server:/usr/local/MATLAB/MATLAB_Compiler_Runtime/v81/sys/java/jre/glnxa64/jre/lib/amd64
+	#export XAPPLRESDIR=/usr/local/MATLAB/MATLAB_Compiler_Runtime/v81/X11/app-defaults
+	#export PERL5LIB=$PERL5LIB:/opt/Medussa2/usr/lib/perl5/x86_64-linux-thread-multi/
+	
+	
+fi

@@ -1,0 +1,145 @@
+# Explicit declaration of binaries and application specific
+# directories
+# for each binary the convention is to use lowercase only
+# for java applications and other applicatiosn that need to know their
+# directory use the <APP>_BASE variable (uppercase)
+
+#$Date: 2014-10-29 15:58:29 -0700 (Wed, 29 Oct 2014) $ $Revision: 1269 $ by $Author: kmavrommatis $
+
+export bwabin="/celgene/software/bwa/bwa-0.7.12/bwa"
+export samtoolsbin="/celgene/software/samtools/samtools-1.2/bin/samtools"
+export gatkbin="java -Xmx6g -jar ${GATK_HOME}/GenomeAnalysisTK.jar"
+export freebayesbin="$NGS_APPLICATION_DIR/freebayes/freebayes-v0.9.15-5-g0471ac0/bin/freebayes"
+
+export filterBin=${NGS_BINARIES_DIR}/filter4cuffmerge.pl
+export makepairedreadsbin=${NGS_BINARIES_DIR}/makePairedReads.pl
+export checkqualityencodingbin=${NGS_BINARIES_DIR}/checkQualityEncoding.pl
+
+export PLPLOT_LIB=$NGS_APPLICATION_DIR/EMBOSS/EMBOSS-6.6.0/lib
+export PICARD_BASE="/celgene/software/picard-tools/picard-tools-1.130"
+export GATK_REF=$genomeDatabase/GRCh37.p12/GenomeAnalysisTK-2014.2-3.1.7-10-g867c2fb
+        export GATK_REF_AWS=${CELGENE_NGS_BUCKET}/data/Genomes/Homo_sapiens/GRCh37.p12/GenomeAnalysisTK-2014.2-3.1.7-10-g867c2fb
+export GATK_HOME=$NGS_APPLICATION_DIR/GenomeAnalysisTK-2014.4-2-g9ad6aa8
+export SNPEFF_BASE="/celgene/software/snpEff/snpEff-4.1c/"
+
+# top level variables that point to genomes 
+# the AWS versions point to objects in the S3 bucket which will be used for staging in the AWS environment
+        export humanDir=$genomeDatabase/Homo-sapiens/GRCh37.p12
+                export humanDirAWS=${CELGENE_NGS_BUCKET}/data/Genomes/Homo_sapiens/GRCh37.p12
+        export ratDir=$genomeDatabase/Rattus-norvegicus/Rnor_5.0
+                export ratDirAWS=${CELGENE_NGS_BUCKET}/data/Genomes//Rattus_norvegicus/Rnor_5.0
+        export erccDir=$genomeDatabase/ERCC
+                export erccDirAWS=${CELGENE_NGS_BUCKET}/data/Genomes/ERCC
+        export human_mouseDir=$genomeDatabase/Xenograft.Human+Mouse/GRCh37.p12+mm10
+                export human_mouseDirAWS=${CELGENE_NGS_BUCKET}/data/Genomes/Xenograft.Human+Mouse/GRCh37.p12+mm10
+
+# All following data should rely on the previous assignments
+# Human data
+        #export human_mouseDir=$genomeDatabase/Xenograft.Human+Mouse/CURRENT
+        export humanAnnotationDir=${humanDir}/Annotation/gencode.v18
+                export humanAnnotationDirAWS=${humanDirAWS}/Annotation/gencode.v18
+        export humanGenomeDir=${humanDir}/WholeGenome
+                export humanGenomeDirAWS=${humanDirAWS}/WholeGenome
+        export humanChromosomesDir=${humanDir}/Chromosomes
+                export humanChromosomesDirAWS=${humanDirAWS}/Chromosomes
+        export humanSTARidx=$humanDir/STAR_wSJIndex
+                export humanSTARidxAWS=$humanDirAWS/STAR_wSJIndex
+        export humanBWAidx=$humanDir/BWAIndex
+                export humanBWAidxAWS=$humanDirAWS/BWAIndex
+        export humanBowtie2idx=$humanDir/Bowtie2Index
+                export humanBowtie2idxAWS=$humanDirAWS/Bowtie2Index
+        export humanBowtieidx=$humanDir/BowtieIndex
+                export humanBowtieidxAWS=$humanDirAWS/BowtieIndex
+        export humanrsemidx=$humanDir/rsemIndex
+                export humanrsemidxAWS=$humanDirAWS/rsemIndex
+        export humanVariantsDir=$humanDir/Variants
+                export humanVariantsDirAWS=$humanDirAWS/Variants
+
+# Rat data
+        export ratAnnotationDir=$ratDir/Annotation
+                export ratAnnotationDirAWS=$ratDirAWS/Annotation
+        export ratGenomeDir=$ratDir/WholeGenome
+                export ratGenomeDirAWS=$ratDirAWS/WholeGenome
+        export ratSTARidx=$ratDir/STARIndex
+                export ratSTARidxAWS=$ratDirAWs/STARIndex
+
+# Viral genomes (EBV) added August 4 2014 (Kostas)
+        export ebvDir=$genomeDatabase/Viral/Epstein-Barr
+        export ebvAnnotationDir=$ebvDir/Annotation
+        export ebvGenomeDir=$ebvDir/WholeGenome
+        export ebvSTARidx=$ebvDir/STARIndex
+
+# xenograft modesl data
+        export human_mouseGenomeDir=$human_mouseDir/WholeGenome
+                        export human_mouseGenomeDirAWS=$human_mouseDirAWS/WholeGenome
+        export human_mouseSTARidx=$human_mouseDir/STAR_wSJIndex
+                export human_mouseSTARidxAWS=$human_mouseDirAWS/STAR_wSJIndex
+        export human_mouseAnnotationDir=$human_mouseDir/Annotation
+                export human_mouseAnnotationDirAWS=$human_mouseDirAWS/Annotation
+
+# ERCC spike ins
+
+        export ercc_bowtieidx=$erccDir/Bowtie2Index
+                export ercc_bowtieidxAWS=$erccDirAWS/Bowtie2Index
+
+
+
+# Explicit declaration of databases used in the NGS toolkit
+export mills=${GATK_REF}/Mills_and_1000G_gold_standard.indels.celgene.vcf
+export f1000g_phase1=knownMuts2=${GATK_REF}/1000G_phase1.indels.celgene.vcf
+export dbsnp_gatk=${GATK_REF}/dbsnp_137.celgene.vcf
+export hapmap_gatk=${GATK_REF}/hapmap_3.3.celgene.vcf
+export f1000g_omni_gatk=${GATK_REF}/1000G_omni2.5.celgene.vcf
+export f1000g_snps_gatk=${GATK_REF}/1000G_phase1.snps.high_confidence.celgene.vcf
+export cosmiccoding=$humanVariantsDir/CosmicCodingMuts_v70.celgene.vcf
+export cosmicnoncoding=$humanVariantsDir/CosmicNonCodingVariants_v70.celgene.vcf
+export dbsnp=$humanVariantsDir/dbSNP.v142.celgene.vcf
+export dbnsfp=$humanVariantsDir/dbSNP.v142.celgene.vcf.idx
+export exac=$humanVariantsDir/ExAC.r0.2.sites.vep.celgene.vcf
+export uk10k=$humanVariantsDir/UK10K_COHORT.20140722.sites.celgene.vcf
+
+
+
+export NGS_PYTHONPATH="\
+/celgene/software/python/lib64/python2.7/site-packages:\
+/celgene/software/python/lib64/python2.6/site-packages:\
+/celgene/software/python/lib64/python2.6/dist-packages:\
+/celgene/software/python/lib64/python2.7/dist-packages:\
+/celgene/software/python/lib/python2.7/site-packages:\
+/celgene/software/python/lib/python2.6/site-packages:\
+/celgene/software/python/lib/python2.6/dist-packages:\
+/celgene/software/python/lib/python2.7/dist-packages"
+export htseqbin="/celgene/software/python/bin/htseq-count-0.6.1p2"
+export cutadaptbin="/celgene/software/cutadapt/cutadapt-1.8/bin/cutadapt"
+export bcftoolsbin="/celgene/software/bcftools/bcftools-1.2/bin/bcftools"
+export pigzbin="/celgene/software/pigz/pigz-2.3.3/pigz"
+export cufflinks="/celgene/software/cufflinks/cufflinks-2.2.1/cufflinks"
+export cuffnorm="/celgene/software/cufflinks/cufflinks-2.2.1/cuffnorm"
+export cuffquant="/celgene/software/cufflinks/cufflinks-2.2.1/cuffquant"
+export bedToBambin="/celgene/software/bedtools/bedtools-2.23.0/bin/bedToBam"
+export bamtofastqbin="/celgene/software/bedtools/bedtools-2.23.0/bin/bamToFastq"
+export bamtobedbin="/celgene/software/bedtools/bedtools-2.23.0/bin/bamToBed"
+export bedtoigvbin="/celgene/software/bedtools/bedtools-2.23.0/bin/bedToIgv"
+export bedtoolsbin="/celgene/software/bedtools/bedtools-2.23.0/bin/bedtools"
+export starbin="/celgene/software/STAR/STAR-STAR_2.4.0k/bin/Linux_x86_64_static/STAR"
+export gtf_to_sambin="/celgene/software/cufflinks/cufflinks-2.2.1/gtf_to_sam"
+export bed12tobed6bin="/celgene/software/bedtools/bedtools-2.23.0/bin/bed12ToBed6"
+export cuffcompare="/celgene/software/cufflinks/cufflinks-2.2.1/cuffcompare"
+export cuffmerge="/celgene/software/cufflinks/cufflinks-2.2.1/cuffmerge"
+export macsbin="/celgene/software/macs/macs-1.4.2/bin/macs14"
+export snpeffbin="java -Xmx4g -jar /celgene/software/snpEff/snpEff-4.1c/snpEff.jar"
+export snpeffconfig="/celgene/software/snpEff/snpEff-4.1c/snpEff.config"
+export snpeffgenomeversion="/celgene/software/snpEff/snpEff-4.1c/data/GRCh37.75"
+export gwascatalog="/celgene/software/snpEff/snpEff-4.1c/data/gwasCatalog.txt"
+export snpsiftbin="java -Xmx2g -jar /celgene/software/snpEff/snpEff-4.1c/SnpSift.jar"
+export gffread="/celgene/software/cufflinks/cufflinks-2.2.1/gffread"
+export bedpetobambin="/celgene/software/bedtools/bedtools-2.23.0/bin/bedpeToBam"
+export fastqcbin="/celgene/software/FastQC/FastQC-0.11.3/fastqc"
+export sailfishbin="/celgene/software/sailfish/Sailfish-0.6.3-Linux_x86-64/bin/sailfish"
+export tabixbin="/celgene/software/htslib/htslib-1.2.1/bin/tabix"
+export htsfilebin="/celgene/software/htslib/htslib-1.2.1/bin/htsfile"
+export bgzipbin="/celgene/software/htslib/htslib-1.2.1/bin/bgzip"
+export bowtie2bin="/celgene/software/bowtie2/bowtie2-2.2.5/bowtie2"
+export cuffdiff="/celgene/software/cufflinks/cufflinks-2.2.1/cuffdiff"
+export expressbin="/celgene/software/express/express-1.5.1-linux_x86_64/express"
+export rsemcalculateexpressionbin="/celgene/software/rsem/rsem-1.2.20/rsem-calculate-expression"

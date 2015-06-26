@@ -1,0 +1,180 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use Getopt::Long;
+use FindBin;
+use Cwd;
+use Celgene::Utils::FileFunc;
+
+
+my($help,$recursive,$logLevel,$statsfile,$report_tumour_only,$report_host_only,$logFile,$version,$noHost,$noTumour,$noBoth,$inputfile,$outputfile);
+GetOptions(
+	"r|recursive"=>\$recursive,
+	"h|help"=>\$help,
+	"v|version"=>\$version,
+	"no_host!"=>\$noHost,
+	"no_tumour|no_tumor!"=>\$noTumour,
+	"no_both!"=>\$noBoth,
+	"report_host_only!"=>\$report_host_only,
+	"report_tumour_only|report_tumor_only!"=>\$report_tumour_only,
+	"output|o=s"=>\$outputfile,
+	"stats|s=s"=>\$statsfile,
+	"input|i=s"=>\$inputfile,
+	"loglevel"=>\$logLevel,
+	"logfile"=>\$logFile
+);
+my $logger=setUpLog();
+
+# script that tags the reads that are coming from either the host, the tumor, or cannot be assigned
+# reads that are not mapped are reported as belonging to the tumour
+# the script works with STDIN and STDOUT
+ 
+ 
+ 
+
+
+if(defined($help)){
+	printUsage();
+	exit(0);
+}
+if(defined($version) ){
+	printVersion();
+	exit(0);
+}
+
+if(!defined($outputfile) or !defined($inputfile)){
+	$logger->logdie("Please provide input and output files or type '-' to indicate STDERR and STDIN");
+}
+
+my %stats;
+sub printUsage{
+	printVersion();
+	print "
+xenograft.pl 
+Script that flags reads that come from a xenograft sample according to their origin
+usage:  samtools view -h <bamfile sorted by name>|  xenograft.pl | samtools -Sbh > output.bam
+will tag reads with the tag XX:A:h(ost), XX:A:t(umour), XX:A:b(oth)
+for reads that belong to the host, the tumour or both respectively
+ --input | -i input file in SAM format
+ --output | -o output file in SAM format
+ --stats | -s file to store statistics
+ --no_host  will not output  host reads in the output bam
+ --no_tumour will not output  tumour reads
+ --no_both will not output  reads mapped to both.
+ --report_host_only will output only the reads that map to host chromosomes even if they have alignment to the tumour
+ --report_tumour_only will output only the reads that map to host chromosomes even if they have alignment to the tumour
+ The above options can be combined.
+ The default behaviour is to output all reads\n";
+
+}
+sub printVersion{
+	print "xenograft.pl version 0.2a\n";
+}
+my $readData=[];my $organism={};
+my$currentRead="NA";
+
+my $inFh=Celgene::Utils::FileFunc::newReadFileHandle( $inputfile );
+my $outFh=Celgene::Utils::FileFunc::newWriteFileHandle( $outputfile );
+while (my $line=<$inFh>){
+	chomp $line;
+	if($line=~/^@/){print $line."\n";next;} # this will print the header if it exists
+	my($read,$flag,$chr)=split("\t", $line);
+	if($read ne $currentRead){	
+	#	print "Time to store data \n";
+		processReads($readData, $organism);
+		$organism->{host}=0;
+		$organism->{tumour}=0;
+		@$readData=();
+		$currentRead=$read;
+	}
+	if($chr =~/mm10/){ 
+		$organism->{host}=1;
+	}elsif($chr eq '*'){ 
+		# this is not mapped
+	}else{ 
+		$organism->{tumour}=1;
+	}
+
+	push @$readData, $line;
+	
+}
+
+processReads( $readData, $organism);
+close $inFh;
+close $outFh;
+
+if( defined($statsfile)){
+	my $wfh=Celgene::Utils::FileFunc::newWriteFileHandle( $statsfile );
+	print $wfh 
+		"FILE\t$inputfile\n".
+		"HOST_READS\t$stats{h}\n".
+		"TUMOUR_READS\t$stats{t}\n".
+		"AMBIGUOUS_READS\t$stats{b}\n".
+		"UNMAPPED_READS\t$stats{u}\n";
+	close $wfh;
+}
+
+
+sub processReads{
+	my($readData,$organism)=@_;
+	if(scalar(@$readData)==0){return;}
+	my $flag='u';
+	if($organism->{host}==1 and $organism->{tumour}==1){
+		$flag='b';
+	}
+	if($organism->{host}==1 and $organism->{tumour}==0){
+		$flag='h';
+	}	
+	if($organism->{host}==0 and $organism->{tumour}==1){
+		$flag='t';
+	}
+	$stats{ $flag } ++ ;
+	if(defined($noBoth) and $flag eq 'b'){return ;}
+	if(defined($noHost) and $flag eq 'h'){return ;}
+	if(defined($noTumour) and $flag eq 't'){return ;}
+	
+	
+	foreach my $a(@$readData){
+		my($read,$f,$chr)=split("\t", $a);
+		if($chr =~/mm10/ and defined($report_tumour_only) ){next};		
+		if($chr !~/mm10/ and defined($report_host_only) ){next};
+		
+		if($flag eq 'u'){
+			print $outFh $a."\n";
+		}else{
+			print $outFh  $a . "\tXX:A:$flag\n" ;
+		}
+	}
+	
+
+}
+
+sub setUpLog{
+	
+	
+	if(!defined($logLevel)){$logLevel="INFO";}
+	my $v;
+	if(defined($ENV{NGS_LOG_DIR})){
+		$v=$ENV{NGS_LOG_DIR};
+	}else{
+		$v=$FindBin::RealBin;
+	}
+	
+	if(!defined($logFile)){$logFile=$v."/xenograft.log";}
+	my $logConf=qq{
+		log4perl.rootLogger          = $logLevel, Logfile, Screen
+	    log4perl.appender.Logfile          = Log::Log4perl::Appender::File
+	    log4perl.appender.Logfile.filename = $logFile
+	    log4perl.appender.Logfile.layout   = Log::Log4perl::Layout::PatternLayout
+	    log4perl.appender.Logfile.layout.ConversionPattern = [%p : %c - %d] - %m{chomp}%n
+	    log4perl.appender.Screen         = Log::Log4perl::Appender::Screen
+	    log4perl.appender.Screen.stderr  = 0
+	    log4perl.appender.Screen.layout = Log::Log4perl::Layout::PatternLayout
+	    log4perl.appender.Screen.layout.ConversionPattern = [%p : %c - %d] - %m{chomp}%n
+	};
+	Log::Log4perl->init(\$logConf);
+	my $logger=Log::Log4perl->get_logger("xenograft");
+	return $logger;
+}
+

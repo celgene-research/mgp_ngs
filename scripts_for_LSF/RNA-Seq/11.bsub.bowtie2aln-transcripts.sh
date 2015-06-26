@@ -1,0 +1,1 @@
+../bin/11.bsub.bowtie2aln-transcripts.sh

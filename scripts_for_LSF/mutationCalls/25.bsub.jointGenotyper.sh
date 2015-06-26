@@ -1,0 +1,1 @@
+../bin/25.bsub.jointGenotyper.sh

@@ -1,0 +1,290 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use Getopt::Long;
+use FindBin;
+use Cwd;
+use Celgene::Utils::FileFunc;
+use Celgene::Utils::SVNversion;
+my $svnversion=Celgene::Utils::SVNversion::version( '$Date: 2015-05-22 12:22:28 -0700 (Fri, 22 May 2015) $ $Revision: 1472 $' );
+my @allArgs=@ARGV;
+
+my($help,$recursive,$usePrimaryOnly, $logLevel,$statsfile,$report_tumour_only,$report_host_only,$logFile,$version,$noHost,$noTumour,$noBoth,$inputfile,$outputfile);
+GetOptions(
+	"h|help"=>\$help,
+	"v|version"=>\$version,
+	"no_host!"=>\$noHost,
+	"no_tumour|no_tumor!"=>\$noTumour,
+	"no_both!"=>\$noBoth,
+	"primary_only!"=>\$usePrimaryOnly,
+	"report_host_only!"=>\$report_host_only,
+	"report_tumour_only|report_tumor_only!"=>\$report_tumour_only,
+	"output|o=s"=>\$outputfile,
+	"stats|s=s"=>\$statsfile,
+	"input|i=s"=>\$inputfile,
+	"loglevel=s"=>\$logLevel,
+	"logfile=s"=>\$logFile
+);
+my $logger=setUpLog();
+
+# script that tags the reads that are coming from either the host, the tumor, or cannot be assigned
+# reads that are not mapped are reported as belonging to the tumour
+# the script works with STDIN and STDOUT
+ 
+ 
+ 
+
+
+if(defined($help)){
+	printUsage();
+	exit(0);
+}
+if(defined($version) ){
+	printVersion();
+	exit(0);
+}
+
+if(!defined($outputfile) or !defined($inputfile)){
+	$logger->logdie("Please provide input and output files or type '-' to indicate STDERR and STDIN");
+	
+}
+
+
+if( defined($noBoth ) and (  defined($report_host_only) or defined($report_tumour_only) ) ){
+	$logger->logdie("options report_host_only and report_tumour_only are not compatible with no_host");
+}
+
+
+$logger->info("Xenograft $svnversion");
+if(defined($noTumour)){	$logger->info("Reads aligned uniquely to tumour will not be reported");}
+if(defined($noHost  )){	$logger->info("Reads aligned uniquely to host will not be reported");}
+if(defined($noBoth  )){	$logger->info("Reads aligned to both the host and the tumour will not be reported");}
+if(defined($usePrimaryOnly )){ $logger->info("Decisions will be based on primary alignments only");}
+if(defined($report_host_only)){	$logger->info("Reads aligned to both the host and the tumour will be reported, but only the host alignment");}
+if(defined($report_tumour_only)){	$logger->info("Reads aligned to both the host and the tumour will be reported, but only the tumour alignment");}
+$logger->info("Input file is $inputfile");
+$logger->info("Output file is $outputfile");
+if(defined($statsfile)){$logger->info("Statistics file is $statsfile");}
+
+
+sub printUsage{
+	printVersion();
+	print "
+xenograft.pl 
+Script that flags reads that come from a xenograft sample according to their origin
+usage:  samtools view -h <bamfile sorted by name>|  xenograft.pl | samtools -Sbh > output.bam
+will tag reads with the tag XX:A:h(ost), XX:A:t(umour), XX:A:b(oth)
+for reads that belong to the host, the tumour or both respectively
+ --input | -i input file in SAM format
+ --output | -o output file in SAM format
+ --stats | -s file to store statistics
+ --no_host  will not output  host reads in the output bam. But reads that map to both host and graft will be reported
+ --no_tumour will not output  tumour reads. But reads that map to both host and graft will be reported
+ --no_both will not output  reads mapped to both the host and graft.
+ --report_host_only will output only the reads that map to host chromosomes when they have alignment to both  (not compatible with no_host)
+ --report_tumour_only will output only the reads that map to tumour chromosomes when they have alignment to both (not compatible with no_host)
+ --primary_only will make a decision on the bucket of the read based on the primary alignment only. All other reporting arguments are still active
+ The above options can be combined.
+ The default behaviour is to output all reads\n";
+
+print "
+Description of the algorithm:
+$0 finds all the alignments that belong to a read 
+(In fact it finds all the consecutive lines that have alignment to the same read name – 
+which means that the bam files need to be sorted by read name). 
+During that time it also keeps track of the genome that the read was aligned to (host or tumour)
+Subsequently, depending on what the user has requested, prints the corresponding lines in SAM format. 
+It also adds the flag XX:A:<organism> to indicate its findings.
+ 
+This algorithm assumes that all the alignments that are presented to the script are equally good. 
+In other words the script does not bother sorting and selecting which alignments are good. 
+It only decides if the alignments are to one, or the other, or both genomes. 
+When using STAR this requirment is satisfied:
+STAR is used with the flag –outFilterMultiMapNmax which decides how many alignments 
+of a read should be outputted in the bam file (the default is 20 and this arugment is not 
+included in the command line). If  a read is more has more than 20 alignments it is considered 
+unmapped.
+From the STAR manual: “For multi-mappers, all alignments except one are marked with 0x100 (secondary alignment) in
+the FLAG (column 2 of the SAM). The unmarked alignment is either the best one (i.e. highest scoring), 
+or is randomly selected from the alignments of equal quality. “
+Note that what is ‘equal’ quality does not always correspond to the same alignment
+eg. One read may have an alignment such as 80M10I20M (i.e. there is a gap in the alignment after 80 mached nucleotides) but
+this can be equal to 60M10I40M. In both cases the number of gaps and aligned reads is the same.
+ 
+In the case of bwa non primarly alignments are also reported and may have lower quality. This script assumes that the primary alignment is the best alignment (as defined by the criteria of the aligner)
+ 
+Keep in mind other aligners such as bowtie or bwa (or pipelines that use thme such as Tophat or RSEM) have not been tested. 
+If you want to use those for xenografts we need to investigate how to call them."
+
+
+}
+sub printVersion{
+	print "xenograft.pl  $svnversion \n";
+}
+my $readData=[];my $organism={};
+my$currentRead="NA";
+
+my %stats;
+$stats{h}=$stats{t}=$stats{b}=$stats{u}=0;
+my $header=[]; # keep the lines of the header
+
+
+my $inFh=Celgene::Utils::FileFunc::newReadFileHandle( $inputfile );
+my $outFh=Celgene::Utils::FileFunc::newWriteFileHandle( $outputfile );
+while (my $line=<$inFh>){
+	chomp $line;
+	
+	if($line=~/^@/){
+		
+		push @$header, $line;
+		next;
+	}
+
+	if (scalar( @$header) >0){
+		printHeader( $header );
+		@$header=();
+	}
+		
+	my($read,$flag,$chr)=split("\t", $line);
+	if($read ne $currentRead){	
+	#	print "Time to store data \n";
+		processReads($readData, $organism);
+		$organism->{host}=0;
+		$organism->{tumour}=0;
+		@$readData=();
+		$currentRead=$read;
+	}
+	
+	# check if this is the primary alignment
+	my $is_primary='yes';
+	if( $flag & 256 ){ $is_primary="no";}
+	
+	# make the decision based on the primary alignments only 
+	# added for support of bwa
+	if(defined($usePrimaryOnly)  and $is_primary eq 'no'){ next; }
+	if($chr =~/mm10/){ 
+		$organism->{host}=1;
+	}elsif($chr eq '*'){ 
+		# this is not mapped
+	}else{ 
+		$organism->{tumour}=1;
+	}
+
+	push @$readData, $line;
+	
+}
+
+processReads( $readData, $organism);
+close $inFh if $inputfile ne '-';
+close $outFh if $outputfile ne '-'; 
+
+if( defined($statsfile)){
+	$logger->info("Storing statistics in $statsfile");
+	my $wfh=Celgene::Utils::FileFunc::newWriteFileHandle( $statsfile );
+	print $wfh 
+		"FILE\t$inputfile\n".
+		"HOST_READS\t$stats{h}\n".
+		"TUMOUR_READS\t$stats{t}\n".
+		"AMBIGUOUS_READS\t$stats{b}\n".
+		"UNMAPPED_READS\t$stats{u}\n";
+	close( $wfh);
+}
+$logger->info("Program finished SUCCESSFULLY");
+
+sub processReads{
+	my($readData,$organism)=@_;
+	if(scalar(@$readData)==0){return;}
+	my $flag='u';
+	if($organism->{host}==1 and $organism->{tumour}==1){
+		$flag='b';
+	}
+	if($organism->{host}==1 and $organism->{tumour}==0){
+		$flag='h';
+	}	
+	if($organism->{host}==0 and $organism->{tumour}==1){
+		$flag='t';
+	}
+	$stats{ $flag } ++ ;
+	if(defined($noBoth) and $flag eq 'b'){return ;}
+	if(defined($noHost) and $flag eq 'h'){return ;}
+	if(defined($noTumour) and $flag eq 't'){return ;}
+	
+	
+	foreach my $a(@$readData){
+		my($read,$f,$chr,$pos,$mapq, $cigar,$mateRef,$matePos, $isize, $seq,$qual,@opt)=split("\t", $a);
+		if($chr =~/mm10/ and defined($report_tumour_only) ){next};	
+		if($mateRef =~/mm10/ and defined($report_tumour_only)){next;} # the mate read maps to the host	
+		if($chr !~/mm10/ and defined($report_host_only) ){next};
+		if($mateRef !~/mm10/ and defined($report_host_only) ){next};# the mate read maps to the graft
+		
+		if($flag eq 'u'){
+			print $outFh $a."\n";
+		}else{
+			print $outFh  $a . "\tXX:A:$flag\n" ;
+		}
+	}
+	
+
+}
+
+sub setUpLog{
+	
+	
+	if(!defined($logLevel)){$logLevel="INFO";}
+	my $v;
+	if(defined($ENV{NGS_LOG_DIR})){
+		$v=$ENV{NGS_LOG_DIR};
+	}else{
+		$v=$FindBin::RealBin;
+	}
+	
+	if(!defined($logFile)){$logFile=$v."/xenograft.log";}
+	my $logConf=qq{
+		log4perl.rootLogger          = $logLevel, Logfile, Screen
+	    log4perl.appender.Logfile          = Log::Log4perl::Appender::File
+	    log4perl.appender.Logfile.filename = $logFile
+	    log4perl.appender.Logfile.layout   = Log::Log4perl::Layout::PatternLayout
+	    log4perl.appender.Logfile.layout.ConversionPattern = [%p : %c - %d] - %m{chomp}%n
+	    log4perl.appender.Screen         = Log::Log4perl::Appender::Screen
+	    log4perl.appender.Screen.stderr  = 1
+	    log4perl.appender.Screen.layout = Log::Log4perl::Layout::PatternLayout
+	    log4perl.appender.Screen.layout.ConversionPattern = [%p : %c - %d] - %m{chomp}%n
+	};
+	Log::Log4perl->init(\$logConf);
+	my $logger=Log::Log4perl->get_logger("xenograft");
+	return $logger;
+}
+
+# prints the header lines
+# decides which lines to print based on user selections
+sub printHeader{
+	my ($header)=@_; 
+	
+	
+	
+	foreach my $a(@$header){
+		my($sq,$sn)=split("\t", $a);
+		$logger->debug(" SQ = [$sq], SN = [$sn]");
+		
+		if($sq eq '@SQ'){
+			if(		defined($noHost) 
+				and defined($noBoth) 
+				and  $sn =~/mm10/){next ;}
+			if(		defined($noTumour) 
+				and defined($noBoth) 
+				and $sn !~/mm10/){next ;}
+			if(		defined($noHost) 
+				and defined($report_tumour_only) 
+				and  $sn =~/mm10/){next ;}
+			if(		defined($noTumour) 
+				and defined($report_host_only) 
+				and  $sn !~/mm10/){next ;}	
+		}
+		print $outFh $a."\n";
+		
+		
+	}
+	# add a line with the information of xenograft
+	print $outFh "\@CO\tuser command line xenograft: $0 @allArgs\n";
+}
