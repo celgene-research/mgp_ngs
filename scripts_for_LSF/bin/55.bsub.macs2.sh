@@ -86,7 +86,7 @@ set -e
 initiateJob $stem $step
 
 
-chromInfo=chromInfo.txt
+
 
 
 inputTag=\$( stage.pl --operation out --type file  ${inputTag} )
@@ -103,7 +103,8 @@ if [ \$inputTag == \"FAILED\" -o \$inputControl == \"FAILED\"  ] ; then
 fi
 
 outputDirectory=\$( setOutput \$inputTag ${step}-peaks )
-$samtoolsbin view -H \$inputTag | grep '^@SQ' | cut -f2,3 | sed 's%SN:%%' | sed 's%LN:%%' > \${outputDirectory}/${stem}/\$chromInfo
+chromInfo=\${outputDirectory}/chromInfo.txt
+$samtoolsbin view -H \$inputTag | grep '^@SQ' | cut -f2,3 | sed 's%SN:%%' | sed 's%LN:%%' > \$chromInfo
 
 celgeneExec.pl --analysistask ${analysistask} \"\
 $macs2bin callpeak \
@@ -116,16 +117,15 @@ $macs2bin callpeak \
  --bw 200 \
  --bdg \
  --keep-dup auto\
-$commandArguments ;\
-$bedtoolsbin slop -i \${outputDirectory}/${stem}/${stem}_treat_pileup.bdg -g \${outputDirectory}/${stem}/\${chromInfo} -b 0 | \
-$bedClipbin stdin \${outputDirectory}/${stem}/\${chromInfo} stdout | \
+$commandArguments ; \
+$bedtoolsbin slop -i \${outputDirectory}/${stem}/${stem}_treat_pileup.bdg -g \${chromInfo} -b 0 | \
+$bedClipbin stdin /\${chromInfo} stdout | \
 $bedtoolsbin sort -i - > \${outputDirectory}/${stem}/${stem}_treat_pileup.bdg.clip ; \
-$bedGraphToBigWigbin \${outputDirectory}/${stem}/${stem}_treat_pileup.bdg.clip \${outputDirectory}/${stem}/\${chromInfo} \${outputDirectory}/${stem}/${stem}_treat_pileup.bw.clip ; \
-$bedtoolsbin slop -i \${outputDirectory}/${stem}/${stem}_control_lambda.bdg -g \${outputDirectory}/${stem}/\${chromInfo} -b 0 | \
-$bedClipbin stdin \${outputDirectory}/${stem}/\${chromInfo} stdout | \
+$bedGraphToBigWigbin \${outputDirectory}/${stem}/${stem}_treat_pileup.bdg.clip \${chromInfo} \${outputDirectory}/${stem}/${stem}_treat_pileup.bw.clip ; \
+$bedtoolsbin slop -i \${outputDirectory}/${stem}/${stem}_control_lambda.bdg -g \${chromInfo} -b 0 | \
+$bedClipbin stdin \${chromInfo} stdout | \
 $bedtoolsbin sort -i - > \${outputDirectory}/${stem}/${stem}_control_lambda.bdg.clip ; \
-$bedGraphToBigWigbin \${outputDirectory}/${stem}/${stem}_control_lambda.bdg.clip \${outputDirectory}/${stem}/\${chromInfo} \${outputDirectory}/${stem}/${stem}_control_lambda.bw.clip
-  \"
+$bedGraphToBigWigbin \${outputDirectory}/${stem}/${stem}_control_lambda.bdg.clip \${chromInfo} \${outputDirectory}/${stem}/${stem}_control_lambda.bw.clip\"
 
 
 ingestDirectory \$outputDirectory yes
