@@ -119,11 +119,11 @@ $macs2bin callpeak \
 $commandArguments ;\
 $bedtoolsbin slop -i \${outputDirectory}/${stem}/${stem}_treat_pileup.bdg -g \${outputDirectory}/${stem}/\${chromInfo} -b 0 | \
 $bedClipbin stdin \${outputDirectory}/${stem}/\${chromInfo} stdout | \
-$bedtools sort -i - > \${outputDirectory}/${stem}/${stem}_treat_pileup.bdg.clip ; \
+$bedtoolsbin sort -i - > \${outputDirectory}/${stem}/${stem}_treat_pileup.bdg.clip ; \
 $bedGraphToBigWigbin \${outputDirectory}/${stem}/${stem}_treat_pileup.bdg.clip \${outputDirectory}/${stem}/\${chromInfo} \${outputDirectory}/${stem}/${stem}_treat_pileup.bw.clip ; \
 $bedtoolsbin slop -i \${outputDirectory}/${stem}/${stem}_control_lambda.bdg -g \${outputDirectory}/${stem}/\${chromInfo} -b 0 | \
 $bedClipbin stdin \${outputDirectory}/${stem}/\${chromInfo} stdout | \
-$bedtools sort -i - > \${outputDirectory}/${stem}/${stem}_control_lambda.bdg.clip ; \
+$bedtoolsbin sort -i - > \${outputDirectory}/${stem}/${stem}_control_lambda.bdg.clip ; \
 $bedGraphToBigWigbin \${outputDirectory}/${stem}/${stem}_control_lambda.bdg.clip \${outputDirectory}/${stem}/\${chromInfo} \${outputDirectory}/${stem}/${stem}_control_lambda.bw.clip
   \"
 
