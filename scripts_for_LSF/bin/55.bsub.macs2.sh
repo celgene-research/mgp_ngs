@@ -118,11 +118,11 @@ $macs2bin callpeak \
  --keep-dup auto\
 $commandArguments ;\
 $bedtoolsbin slop -i \${outputDirectory}/${stem}/${stem}_treat_pileup.bdg -g \${chromInfo} -b 0 | \
-$bedClipbin stdin \${chromInfo} | \
+$bedClipbin stdin \${chromInfo} stdout | \
 $bedtools sort -i - > \${outputDirectory}/${stem}/${stem}_treat_pileup.bdg.clip ; \
 $bedGraphToBigWigbin \${outputDirectory}/${stem}/${stem}_treat_pileup.bdg.clip \${chromInfo} \${outputDirectory}/${stem}/${stem}_treat_pileup.bw.clip ; \
 $bedtoolsbin slop -i \${outputDirectory}/${stem}/${stem}_control_lambda.bdg -g \${chromInfo} -b 0 | \
-$bedClipbin stdin \${chromInfo} | \
+$bedClipbin stdin \${chromInfo} stdout | \
 $bedtools sort -i - > \${outputDirectory}/${stem}/${stem}_control_lambda.bdg.clip ; \
 $bedGraphToBigWigbin \${outputDirectory}/${stem}/${stem}_control_lambda.bdg.clip \${chromInfo} \${outputDirectory}/${stem}/${stem}_control_lambda.bw.clip
   \"
