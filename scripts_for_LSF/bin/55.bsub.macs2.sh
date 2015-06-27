@@ -94,7 +94,7 @@ inputTagIndex=\$( stage.pl --operation out --type file  $inputTagIndex )
 inputControl=\$( stage.pl --operation out --type file  ${inputControl} )
 inputControlIndex=\$( stage.pl --operation out --type file  $inputControlIndex )
 
-$samtoolsbin view -H \$inputTag | grep '^@SQ' | cut -f2,3 | sed \'s%SN:%%\' | sed \'s%LN:%%\' > \$chromInfo
+$samtoolsbin view -H \$inputTag | grep '^@SQ' | cut -f2,3 | sed 's%SN:%%' | sed 's%LN:%%' > \$chromInfo
 
 ####################
 if [ \$inputTag == \"FAILED\" -o \$inputControl == \"FAILED\"  ] ; then
