@@ -151,6 +151,11 @@ After updating this file make sure that is copied in the
 		<sub-class-of type="text/plain"/>
 	</mime-type>
 
+	<mime-type type="text/chipseq-peakcalls">
+                <glob pattern="*MACS2-peaks"/>
+                <sub-class-of type="text/plain"/>
+        </mime-type>
+
 	<mime-type type="text/transcriptcounts">
 		<glob pattern="*.sfish"/>
 		<glob pattern="*.sf"/>
