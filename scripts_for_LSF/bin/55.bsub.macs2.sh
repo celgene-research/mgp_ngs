@@ -110,7 +110,7 @@ $macs2bin callpeak \
  --treatment \${inputTag} \
  --control \${inputControl} \
  --name $stem \
- --outdir \${outputDirectory}/${stem} \
+ --outdir \${outputDirectory}/${stem}.macs2 \
  --gsize 2.7e9 \
  --mfold 5 80 \
  --bw 200 \
@@ -118,7 +118,7 @@ $macs2bin callpeak \
  --keep-dup auto\
 $commandArguments \"
 
-chromInfo=\${outputDirectory}/${stem}/chromInfo.txt
+chromInfo=\${outputDirectory}/${stem}.macs2/chromInfo.txt
 $samtoolsbin view -H \$inputTag | grep '^@SQ' | cut -f2,3 | sed 's%SN:%%' | sed 's%LN:%%' > \$chromInfo
 
 ingestDirectory \$outputDirectory yes
