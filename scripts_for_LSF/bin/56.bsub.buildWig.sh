@@ -54,7 +54,7 @@ export LC_COLLATE=C
 celgeneExec.pl --analysistask ${analysistask} \"\
 $bedtoolsbin slop -i \${inputBedGraph} -g \${chromInfo} -b 0 | \
 $bedClipbin stdin /\${chromInfo} stdout | \
-sort -T ${outputDirectory}  -k1,1 -k2,2n  > \${outputDirectory}/${stem}.bdg.clip ; \
+sort -T \${outputDirectory}  -k1,1 -k2,2n  > \${outputDirectory}/${stem}.bdg.clip ; \
 $bedGraphToBigWigbin \${outputDirectory}/${stem}.bdg.clip \${chromInfo} \${outputDirectory}/${stem}.bigwig \
 \"
 
