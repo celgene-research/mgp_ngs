@@ -146,13 +146,13 @@ After updating this file make sure that is copied in the
 	</mime-type>
 
 	<mime-type type="text/transcriptassembly">
-		<glob pattern="*.cufflinks*"/>
-		<glob pattern="*.cuffmerge*"/>
+		<glob pattern="*.cufflinks"/>
+		<glob pattern="*.cuffmerge"/>
 		<sub-class-of type="text/plain"/>
 	</mime-type>
 
 	<mime-type type="text/chipseq-peakcalls">
-                <glob pattern="*MACS2-peaks*"/>
+                <glob pattern="*macs2"/>
                 <sub-class-of type="text/plain"/>
         </mime-type>
 
@@ -163,7 +163,7 @@ After updating this file make sure that is copied in the
 		<glob pattern="*.fpkm_tracking"/>
 		<glob pattern="*.express*"/>
 		<glob pattern="*.xprs"/>
-		<glob pattern="*.results*"/>
+		<glob pattern="*.results"/>
 		<glob pattern="*.stats"/>
 		<glob pattern="*.rsem*"/>
 		<sub-class-of type="text/plain"/>
