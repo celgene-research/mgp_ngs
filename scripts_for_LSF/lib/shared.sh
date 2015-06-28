@@ -251,7 +251,7 @@ function fileStem(){
 
 # remove known extensions
 	
-	
+	stem=$(echo $stem| sed 's%\.bdg%%'| sed 's%\.wig%%' | sed 's%\.bed%%' | sed 's%\.bigwig%%' )
 	stem=$(echo $stem| sed 's%\.fq%%'| sed 's%\.fastq%%')
 	stem=$(echo $stem| sed 's%\.sam$%%' | sed 's%\.bam$%%')
 	stem=$(echo $stem| sed 's%\.fa$%%'| sed 's%\.fai$%%'| sed 's%\.fna$%%' | sed 's%\.faa$%%')

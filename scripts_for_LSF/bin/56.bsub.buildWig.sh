@@ -54,7 +54,7 @@ outputDirectory=\$( setOutput \$inputBedGraph ${step} )
 celgeneExec.pl --analysistask ${analysistask} \"\
 $bedtoolsbin slop -i \${inputBedGraph} -g \${chromInfo} -b 0 | \
 $bedClipbin stdin /\${chromInfo} stdout | \
-sort -k1,1 -k2,2n  > \${outputDirectory}/${stem}.bdg.clip ; \
+LC_COLLATE=C sort -k1,1 -k2,2n  > \${outputDirectory}/${stem}.bdg.clip ; \
 $bedGraphToBigWigbin \${outputDirectory}/${stem}.bdg.clip \${chromInfo} \${outputDirectory}/${stem}.bigwig \
 \"
 
