@@ -1,0 +1,44 @@
+#!/bin/bash
+#BSUB -e /celgene/software/LOGS//peak-wig/L1_ACTTGA_L001_001_control_lambda.bdg.peak-wig.bsub.stderr
+#BSUB -o /celgene/software/LOGS//peak-wig/L1_ACTTGA_L001_001_control_lambda.bdg.peak-wig.bsub.stdout
+#BSUB -J L1_ACTTGA_L001_001_control_lambda.bdg.peak-wig.bsub
+#BSUB -r
+#BSUB -E "/celgene/software/scripts_for_LSF/bin/../lib/stageReference.sh peak-wig"
+#BSUB -n 2
+#BSUB -R "span[ptile=2] rusage[mem=1500]" 
+export suffix=1435472546
+
+#: 2015-06-01 18:02:35 -0700 (Mon, 01 Jun 2015) $ : 1524 $
+
+source /celgene/software/scripts_for_LSF/bin/../lib/shared.sh 
+set -e
+initiateJob L1_ACTTGA_L001_001_control_lambda.bdg peak-wig
+
+
+
+
+
+inputBedGraph=$( stage.pl --operation out --type file  s3://celgene-ngs-data/Processed/DA0000096/ChIP-Seq.1/MACS2-peaks_1435463991/L1_ACTTGA_L001_001.macs2/L1_ACTTGA_L001_001_control_lambda.bdg )
+chromInfo=$( stage.pl --operation out --type file s3://celgene-ngs-data/Processed/DA0000096/ChIP-Seq.1/MACS2-peaks_1435463991/L1_ACTTGA_L001_001.macs2/chromInfo.txt )
+
+####################
+if [ $inputBedGraph == "FAILED"  ] ; then
+	echo "Could not transfer $inputBedGraph  "
+	exit 1
+fi
+
+outputDirectory=$( setOutput $inputBedGraph peak-wig )
+
+
+celgeneExec.pl --analysistask 38 "/celgene/software/bedtools/bedtools-2.23.0/bin/bedtools slop -i ${inputBedGraph} -g ${chromInfo} -b 0 | /celgene/software/UCSC/bedClip stdin /${chromInfo} stdout | /celgene/software/bedtools/bedtools-2.23.0/bin/bedtools sort -i - > ${outputDirectory}/L1_ACTTGA_L001_001_control_lambda.bdg/L1_ACTTGA_L001_001_control_lambda.bdg.bdg.clip ; /celgene/software/UCSC/bedGraphToBigWig ${outputDirectory}/L1_ACTTGA_L001_001_control_lambda.bdg/L1_ACTTGA_L001_001_control_lambda.bdg.bdg.clip ${chromInfo} ${outputDirectory}/L1_ACTTGA_L001_001_control_lambda.bdg/L1_ACTTGA_L001_001_control_lambda.bdg_treat_pileup.bigwig ; "
+
+
+ingestDirectory $outputDirectory yes
+if [ $? -ne 0 ] ; then
+	echo "Failed to ingest data"
+	exit 1
+fi 
+
+
+closeJob
+

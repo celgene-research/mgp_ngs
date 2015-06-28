@@ -11,7 +11,7 @@ scriptDir=$( dirname $0 ); source $scriptDir/../lib/shared.sh
 inputBedGraph=$1
 checkfile $inputBedGraph
 chromInfo=$(dirname $inputBedGraph)/chromInfo.txt
-stem=$(fileStem $inputBedGrapha)
+stem=$(fileStem $inputBedGraph)
 
 step="peak-wig"
 
@@ -40,6 +40,7 @@ initiateJob $stem $step
 
 
 inputBedGraph=\$( stage.pl --operation out --type file  ${inputBedGraph} )
+chromInfo=\$( stage.pl --operation out --type file $chromInfo )
 
 ####################
 if [ \$inputBedGraph == \"FAILED\"  ] ; then
@@ -47,14 +48,14 @@ if [ \$inputBedGraph == \"FAILED\"  ] ; then
 	exit 1
 fi
 
-outputDirectory=\$( setOutput \$inputTag ${step} )
+outputDirectory=\$( setOutput \$inputBedGraph ${step} )
 
 
 celgeneExec.pl --analysistask ${analysistask} \"\
 $bedtoolsbin slop -i \${inputBedGraph} -g \${chromInfo} -b 0 | \
 $bedClipbin stdin /\${chromInfo} stdout | \
-$bedtoolsbin sort -i - > \${outputDirectory}/${stem}/${stem}.bdg.clip ; \
-$bedGraphToBigWigbin \${outputDirectory}/${stem}/${stem}.bdg.clip \${chromInfo} \${outputDirectory}/${stem}/${stem}_treat_pileup.bigwig ; \
+sort -k1,1 -k2,2n  > \${outputDirectory}/${stem}.bdg.clip ; \
+$bedGraphToBigWigbin \${outputDirectory}/${stem}.bdg.clip \${chromInfo} \${outputDirectory}/${stem}.bigwig \
 \"
 
 
