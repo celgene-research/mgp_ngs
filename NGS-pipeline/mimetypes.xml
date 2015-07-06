@@ -151,16 +151,21 @@ After updating this file make sure that is copied in the
 		<sub-class-of type="text/plain"/>
 	</mime-type>
 
+	<mime-type type="text/chipseq-peakcalls">
+                <glob pattern="*macs2"/>
+                <sub-class-of type="text/plain"/>
+        </mime-type>
+
 	<mime-type type="text/transcriptcounts">
 		<glob pattern="*.sfish"/>
 		<glob pattern="*.sf"/>
 		<glob pattern="*.sfc"/>
 		<glob pattern="*.fpkm_tracking"/>
-		<glob pattern="*.express"/>
+		<glob pattern="*.express*"/>
 		<glob pattern="*.xprs"/>
 		<glob pattern="*.results"/>
 		<glob pattern="*.stats"/>
-		<glob pattern="*.rsem"/>
+		<glob pattern="*.rsem*"/>
 		<sub-class-of type="text/plain"/>
 		
 	</mime-type>

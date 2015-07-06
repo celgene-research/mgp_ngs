@@ -176,6 +176,7 @@ $starbin \
  --chimScoreDropMax 20 \
  --chimScoreSeparation 10 \
  --chimScoreJunctionNonGTAG -1 \
+ --quantMode TranscriptomeSAM --quantTranscriptomeBan Singleend \
  --outTmpDir \${outputDirectory}/TMP/ |\
 $samtoolsbin view -bSh - > \${outputDirectory}/${stem}Aligned.out.bam ; \
 $samtoolsbin sort -@ $cores -m 1G \${outputDirectory}/${stem}Aligned.out.bam  \${outputDirectory}/${stem}.coord ; \

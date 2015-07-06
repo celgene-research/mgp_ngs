@@ -23,7 +23,7 @@ analysistask=38
  
 export NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
 mkdir -p $NGS_LOG_DIR
-cores=2
+cores=$(fullcores) #MACS does not need many cores, but when run many instances on the same machine there are crashes.
 memory=3000
 header=$(bsubHeader $stem $step $memory $cores)
 
@@ -87,10 +87,14 @@ initiateJob $stem $step
 
 
 
+
+
 inputTag=\$( stage.pl --operation out --type file  ${inputTag} )
 inputTagIndex=\$( stage.pl --operation out --type file  $inputTagIndex )
 inputControl=\$( stage.pl --operation out --type file  ${inputControl} )
 inputControlIndex=\$( stage.pl --operation out --type file  $inputControlIndex )
+
+
 
 ####################
 if [ \$inputTag == \"FAILED\" -o \$inputControl == \"FAILED\"  ] ; then
@@ -106,17 +110,18 @@ $macs2bin callpeak \
  --treatment \${inputTag} \
  --control \${inputControl} \
  --name $stem \
- --outdir \${outputDirectory} \
+ --outdir \${outputDirectory}/${stem}.macs2 \
  --gsize 2.7e9 \
- --mfold 40 80 \
+ --mfold 5 80 \
  --bw 200 \
  --bdg \
  --keep-dup auto\
-$commandArguments \
-  \"
+$commandArguments \"
 
+chromInfo=\${outputDirectory}/${stem}.macs2/chromInfo.txt
+$samtoolsbin view -H \$inputTag | grep '^@SQ' | cut -f2,3 | sed 's%SN:%%' | sed 's%LN:%%' > \$chromInfo
 
-ingestDirectory \$outputDirectory
+ingestDirectory \$outputDirectory yes
 if [ \$? -ne 0 ] ; then
 	echo \"Failed to ingest data\"
 	exit 1

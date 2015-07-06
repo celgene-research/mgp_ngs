@@ -47,6 +47,7 @@ export NGS_LOG_DIR=$NGS_BASE_DIR/scratch/RED/LOGS/${USER}
 export NGS_USR_DATA_DIR=$NGS_BASE_DIR/reference
 export genomeDatabase=$NGS_USR_DATA_DIR/genomes
 export NGS_TMP_DIR=/celgene/scratch/RED/tmp/${USER}
+
 export JAVA_HOME=/celgene/software/java/latest/
 
 ###############################
@@ -65,6 +66,10 @@ fi
 ###############################
 
 mkdir -p $NGS_TMP_DIR
+export TMPDIR=$NGS_TMP_DIR/tmp
+mkdir -p $TMPDIR
+chmod 1777 $TMPDIR
+
 export _JAVA_OPTIONS=-Djava.io.tmpdir=${NGS_TMP_DIR}
 	
 
