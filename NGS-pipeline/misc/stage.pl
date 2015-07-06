@@ -295,7 +295,7 @@ sub syncFilesCloud{
 #                        print $wfh "\t\tFile has already been copied by a different process\n"
                 }else{
                         #$CMD="s3-mp-download.py -f -np 4 -f -t 3 $source $destination 1>&2 " if $type eq 'file'; # use this to take advandage of parallel transers
-                        $CMD="s3cmd get $source $destination 1>&2" if $type eq 'file'; # use s3cmd because s3-mp-download gives error ERROR:s3-mp-download:do_part_download() takes exactly 1 argument (9 given) which I have not managed to figure out
+                        $CMD="s3cmd --force get $source $destination 1>&2" if $type eq 'file'; # use s3cmd because s3-mp-download gives error ERROR:s3-mp-download:do_part_download() takes exactly 1 argument (9 given) which I have not managed to figure out
                         
                         $ret=runCmd($CMD);
                 }
@@ -306,7 +306,7 @@ sub syncFilesCloud{
 #                    print $wfh "\t\tFile has already been copied by a different process\n";
              	}else{
 					my $res=mkpath( $destination );
-	                $CMD="s3cmd sync --exclude '__AWS-EMPTY-OBJECT-NAME__' $source/ $destination/  1>&2" ;
+	                $CMD="s3cmd sync $source/ $destination/  1>&2" ;
 	                $ret=runCmd($CMD);
              	}
              }

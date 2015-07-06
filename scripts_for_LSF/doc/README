@@ -28,3 +28,5 @@ $ puppet apply --parser future --modulepath ~/puppet/modules/ ~/puppet/manifests
 During the intallation software is installed, the binaries are soft linked to 
 /celgene/software/bin and the explicit location of the installed binary is referenced in the file
 /celgene/software/scripts_for_LSF/config/config.sh
+
+K
