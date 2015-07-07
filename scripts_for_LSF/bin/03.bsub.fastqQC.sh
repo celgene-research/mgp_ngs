@@ -42,14 +42,14 @@ mv \${outputDirectory}/tmp \${output} \"
 
 
 runQC-fastq.pl --logfile \$MASTER_LOGFILE --inputfq \${input},\${input2} --outputfile \${output} --reuse --qcStep FastQC
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to update database"
 	exit 1
 fi 
 rm \${output}/*.zip # remove the zipped files fastqc creates since they are also extracted
 
 ingestDirectory \${outputDirectory} yes
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to ingest data"
 	exit 1
 fi 
