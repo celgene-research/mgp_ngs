@@ -64,11 +64,11 @@ output1=\${outputDirectory}/${stem}.${step}.qcstats
 if [ \"$storeOutput\" == \"yes\" ] ; then
 	outputDirectory2=\$( setOutput \$input FastqFiles-${step} )
 	outputfq1=\$(basename \$input   )
-
 	outputfq1=\${outputDirectory2}/\${outputfq1}
+	
 	if [ \"${readPE}\" == \"1\" ]; then
-		outputfq2=\${outputDirectory2}/\${outputfq2}
 		outputfq2=\$(basename \$input2  )
+		outputfq2=\${outputDirectory2}/\${outputfq2}	
 	fi
 else
 	outputfq1=\"/dev/null\"
