@@ -105,20 +105,20 @@ fi
 
 
 runQC-fastq.pl --logfile \$MASTER_LOGFILE --inputfq \${input},\${input2} --outputfile \${output1} --reuse --qcStep Adapter
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to update database"
 	exit 1
 fi 
 
 ingestDirectory \${outputDirectory}
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to ingest data"
 	exit 1
 fi 
 rm -rf \${outputDirectory} 
 
 ingestDirectory \${outputDirectory2}
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to ingest data"
 	exit 1
 fi 
