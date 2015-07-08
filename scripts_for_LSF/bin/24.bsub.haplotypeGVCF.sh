@@ -58,7 +58,7 @@ celgeneExec.pl --analysistask $analysistask \"${gatkBin} \
 --emitRefConfidence GVCF \
 --variant_index_type LINEAR \
 --variant_index_parameter 128000\"
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo \"Failed to run command\"
 	exit 1
 fi 
@@ -73,7 +73,7 @@ celgeneExec.pl --analysistask $analysistask \"${gatkBin} \
 -recoverDanglingHeads \
 -dontUseSoftClippedBases  \
 -o \${outputDirectory}/${output} \"
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo \"Failed to run command\"
 	exit 1
 fi 
@@ -81,7 +81,7 @@ fi
 
 
 ingestDirectory \$outputDirectory
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo \"Failed to ingest data\"
 	exit 1
 fi 

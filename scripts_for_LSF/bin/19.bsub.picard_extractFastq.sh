@@ -40,13 +40,13 @@ $makepairedreads --input \${outputDirectory}/${stem}_unpaired.fastq  \
   --output1 \${outputDirectory}/${stem}_R1.fastq \
   --output2 \${outputDirectory}/${output2}; rm \${outputDirectory}/${stem}_R2.fastq ; \
 gzip \${outputDirectory}/${stem}_R1.fastq ; gzip \${outputDirectory}/${stem}_R2.fastq \" 
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo \"Failed to execute command\"
 	exit 1
 fi 
 
 ingestDirectory \$outputDirectory
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo \"Failed to ingest data\"
 	exit 1
 fi 

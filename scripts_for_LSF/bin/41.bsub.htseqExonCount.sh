@@ -70,12 +70,12 @@ celgeneExec.pl --analysistask ${analysistask} \"\
 $samtoolsbin view -F 4 \${input} | \
 cut -f 1-14 | \
 $dexseqcountbin $strandoption -p yes \${reference} -  \${outputDirectory}/${stem}.htXseq-count \"
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to run command"
 	exit 1
 fi 
 ingestDirectory \$outputDirectory
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to ingest data"
 	exit 1
 fi 

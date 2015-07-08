@@ -72,7 +72,7 @@ $rsemcalculateexpressionbin  \
 
 
 ingestDirectory \$outputDirectory yes
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to ingest data"
 	exit 1
 fi 

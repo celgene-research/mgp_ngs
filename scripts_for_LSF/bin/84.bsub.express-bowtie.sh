@@ -43,13 +43,13 @@ celgeneExec.pl --analysistask ${analysistask} \"\
 $expressbin --output-dir \${outputDirectory}/${stem}.express \
    --rf-stranded \$transcripts \${inputBAM} \
 \"
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to run command"
 	exit 1
 fi 
 
 ingestDirectory \$outputDirectory yes
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to ingest data"
 	exit 1
 fi 

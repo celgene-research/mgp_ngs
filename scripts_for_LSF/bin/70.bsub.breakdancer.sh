@@ -57,7 +57,7 @@ dir
 celgeneExec.pl --analysistask ${analysistask} \"$binarycfg -q -1 -g -h -v 2 \${input} > \${outputDirectory}/${stem}.cfg ; $binarybrk -q 10 -d $stem.ctx \${outputDirectory}/${stem}.cfg > \${outputDirectory}/$stem.ctx \" 
 
 ingestDirectory \${outputDirectory} yes
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo \"Failed to ingest data\"
 	exit 1
 fi 

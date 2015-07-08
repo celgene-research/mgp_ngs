@@ -92,13 +92,13 @@ ${gatkbin} \
    -tranchesFile \${outputDirectory}/${stem}.tranches \
    -recalFile \${outputDirectory}/${stem}.vqsr-indel.recal  \
    --out \${outputDirectory}/${stem}.indel.vcf  \"  
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to run command"
 	exit 1
 fi 
 
 ingestDirectory \$outputDirectory
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo \"Failed to ingest data\"
 	exit 1
 fi 

@@ -37,17 +37,17 @@ outputDirectory=\$( setOutput \$input \$newDir/${step} )
 
 
 celgeneExec.pl --analysistask ${analysistask} \"java -Xmx${memory}m -jar ${PICARD_BASE}/picard.jar EstimateLibraryComplexity VERBOSITY=WARNING INPUT=\$input TMP_DIR=\${NGS_TMP_DIR}  VALIDATION_STRINGENCY=SILENT OUTPUT=\${outputDirectory}/$stem.${step}.qcstats \"
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to execute command"
 	exit 1
 fi  
 runQC-bam.pl --logfile \$MASTER_LOGFILE --inputbam \$input --outputfile \${outputDirectory}/$stem.${step}.qcstats --reuse --qcStep LibraryComplexity
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to update database"
 	exit 1
 fi 
 ingestDirectory \$outputDirectory
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to ingest data"
 	exit 1
 fi 

@@ -60,12 +60,12 @@ celgeneExec.pl --analysistask ${analysistask} \"$fusioncatcherbin \
 -i \${input1},\${input2} \
 -o \${outputDirectory}\"
 
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to run command"
 	exit 1
 fi 
 ingestDirectory \$outputDirectory
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to ingest data"
 	exit 1
 fi 

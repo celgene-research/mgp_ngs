@@ -64,13 +64,13 @@ ${gatkbin} -T PrintReads \
 
 
 
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to run command"
 	exit 1
 fi 
 
 ingestDirectory \$outputDirectory
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo \"Failed to ingest data\"
 	exit 1
 fi 

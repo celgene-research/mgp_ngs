@@ -42,12 +42,12 @@ celgeneExec.pl derivedfromlist=$inputList,analysistask=$analysistask \"\
 $samtoolsBin mpileup -r $stem -BQ0 -m 3 -F0.01 -C50 -DSuf $ref -R -b $inputList |\
 $bcftoolsBin view -cgv - > \${outputDirectory}/${stem}-${stem2}.vcf\"
 
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to update database"
 	exit 1
 fi 
 ingestDirectory \$outputDirectory
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to ingest data"
 	exit 1
 fi 

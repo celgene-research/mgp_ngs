@@ -90,7 +90,7 @@ rm \${outputDirectory}/${stem}.tmp.bam
 
 
 ingestDirectory \$outputDirectory 
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to ingest data"
 	exit 1
 fi 

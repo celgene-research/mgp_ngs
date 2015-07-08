@@ -104,13 +104,13 @@ celgeneExec.pl --analysistask ${analysistask} \" \
  $htseqCountBin -t exon  ${strandoption} -i $geneFeature - \${reference} >\
   \${outputDirectory}/${stem}.htseq-count \"
 
- if [ $? != 0 ] ; then
+ if [ \$? != 0 ] ; then
 	echo "Failed to run command"
 	exit 1
 fi 
 
 ingestDirectory \$outputDirectory
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to ingest data"
 	exit 1
 fi 

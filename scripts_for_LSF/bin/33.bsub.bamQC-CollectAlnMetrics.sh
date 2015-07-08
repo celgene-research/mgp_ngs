@@ -82,17 +82,17 @@ java -Xmx${memory}m -jar ${PICARD_BASE}/picard.jar CollectAlignmentSummaryMetric
  O=\${outputDirectory}/$stem.${step}.qcstats \
  VALIDATION_STRINGENCY=SILENT \"
 
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to run command"
 	exit 1
 fi 
 runQC-bam.pl --logfile \$MASTER_LOGFILE  --inputbam \$input --outputfile \${outputDirectory}/$stem.${step}.qcstats --reuse --qcStep CollectAlnSummary
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to update database"
 	exit 1
 fi 
 ingestDirectory \$outputDirectory
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to ingest data"
 	exit 1
 fi 

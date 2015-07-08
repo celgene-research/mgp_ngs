@@ -69,7 +69,7 @@ celgeneExec.pl --analysistask $analysistask \"${gatkbin} \
 --dbsnp \${knownMuts1} \
 -stand_call_conf 30  -stand_emit_conf 10  \
 -o \${outputDirectory}/${output} --max_alternate_alleles 2 -minPruning 2\"
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to run command"
 	exit 1
 fi 
@@ -81,7 +81,7 @@ celgeneExec.pl --analysistask $analysistask \"${gatkbin} \
 -stand_emit_conf 20 \
 -recoverDanglingHeads \
 -dontUseSoftClippedBases  -o \${outputDirectory}/${output} \"
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to run command"
 	exit 1
 fi 
@@ -89,7 +89,7 @@ fi
 
 
 ingestDirectory \$outputDirectory
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo \"Failed to ingest data\"
 	exit 1
 fi 

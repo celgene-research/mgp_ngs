@@ -42,14 +42,14 @@ outputDirectory=\$( setOutput \$input AddReadGroup )
 celgeneExec.pl --analysistask ${analysistask} \"\
 java -Xmx${memory}m -jar ${PICARD_BASE}/picard.jar AddOrReplaceReadGroups VERBOSITY=WARNING INPUT=\$input \
   TMP_DIR=\${NGS_TMP_DIR} O=\${outputDirectory}/$stem.bam VALIDATION_STRINGENCY=SILENT RGID=$prefix RGLB=$prefix RGPL=ILLUMINA RGPU=$prefix RGSM=$prefix \"
- if [ $? != 0 ] ; then
+ if [ \$? != 0 ] ; then
 	echo "Failed to run command"
 	exit 1
 fi 
 
 
 ingestDirectory  \$outputDirectory
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to ingest data"
 	exit 1
 fi 

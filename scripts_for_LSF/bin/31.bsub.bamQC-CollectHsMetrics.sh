@@ -84,7 +84,7 @@ java -Xmx${memory}m -jar ${PICARD_BASE}/picard.jar CalculateHsMetrics \
   PER_TARGET_COVERAGE=\${outputDirectory}/${stem}.${step}.trgcov.qstats \
   O=\${outputDirectory}/$stem.${step}.qcstats \
   VALIDATION_STRINGENCY=SILENT \"
- if [ $? != 0 ] ; then
+ if [ \$? != 0 ] ; then
 	echo "Failed to execute command"
 	exit 1
 fi 
@@ -93,12 +93,12 @@ runQC-bam.pl --logfile \$MASTER_LOGFILE \
  --outputfile \${outputDirectory}/$stem.${step}.qcstats \
  --reuse --qcStep CaptureHsMetrics \
  --captureKit $captureKit
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to update database"
 	exit 1
 fi 
 ingestDirectory \$outputDirectory
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to ingest data"
 	exit 1
 fi 

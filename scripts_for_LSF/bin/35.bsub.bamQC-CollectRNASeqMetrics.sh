@@ -106,17 +106,17 @@ java -Xmx${memory}m -jar ${PICARD_BASE}/picard.jar CollectRnaSeqMetrics \
  O=\${outputDirectory}/$stem.${step}.qcstats \
  STRAND_SPECIFICITY=$strand \
  VALIDATION_STRINGENCY=SILENT \"
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to execute command"
 	exit 1
 fi  
 runQC-bam.pl --logfile \$MASTER_LOGFILE --inputbam \$input --outputfile \${outputDirectory}/$stem.${step}.qcstats --reuse --qcStep CollectRNASeqMetrics
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to update database"
 	exit 1
 fi 
 ingestDirectory \$outputDirectory
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to ingest data"
 	exit 1
 fi 

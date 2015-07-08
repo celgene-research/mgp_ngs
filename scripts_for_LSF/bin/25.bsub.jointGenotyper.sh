@@ -57,13 +57,13 @@ celgeneExec.pl --analysistask $analysistask \"${gatkbin} \
 -T GenotypeGVCFs \
 -R \${genomeDatabase} \$variantString \
 -o \${outputDirectory}/$stem.combined.vcf\"
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo \"Failed to run command\"
 	exit 1
 fi 
 
 ingestDirectory \$outputDirectory
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo \"Failed to ingest data\"
 	exit 1
 fi 

@@ -41,24 +41,24 @@ outputDirectoryBam=\$( setOutput \$input \$newDir )
 
 
 celgeneExec.pl --analysistask ${analysistask} \"java -Xmx${memory}m -jar ${PICARD_BASE}/picard.jar MarkDuplicates VERBOSITY=WARNING INPUT=\$input TMP_DIR=\${NGS_TMP_DIR} M=\${outputDirectory}/${stem}.${step}.qcstats CREATE_INDEX=TRUE AS=TRUE O=\${outputDirectoryBam}/${stem}.${step}.mdup.bam VALIDATION_STRINGENCY=SILENT \"
- if [ $? != 0 ] ; then
+ if [ \$? != 0 ] ; then
 	echo "Failed to execute command"
 	exit 1
 fi 
 runQC-bam.pl --logfile \$MASTER_LOGFILE --inputbam \$input --outputfile \${outputDirectory}/${stem}.${step}.qcstats --reuse --qcStep MarkDuplicates
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to update database"
 	exit 1
 fi 
 ingestDirectory \$outputDirectory
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to ingest data"
 	exit 1
 fi 
 rm -rf \${outputDirectory} 
 
 ingestDirectory \${outputDirectoryBam}
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to ingest data"
 	exit 1
 fi 

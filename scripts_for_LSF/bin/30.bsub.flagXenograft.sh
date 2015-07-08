@@ -47,7 +47,7 @@ $samtoolsbin view -bhS - > \${outputDirectoryBam}/${stem}.bam ; \
 $samtoolsbin sort -@ $cores -m 3800M  \${outputDirectoryBam}/${stem}.bam  \${outputDirectoryBam}/${stem}.coord ; \
 $samtoolsbin index \${outputDirectoryBam}/${stem}.coord.bam ; mv \${outputDirectoryBam}/${stem}.coord.bam.bai \${outputDirectoryBam}/${stem}.coord.bai ; \
 $samtoolsbin sort -@ $cores -n -m 3800M  \${outputDirectoryBam}/${stem}.bam  \${outputDirectoryBam}/${stem}.name \"
- if [ $? != 0 ] ; then
+ if [ \$? != 0 ] ; then
 	echo "Failed to run command"
 	exit 1
 fi 
@@ -56,19 +56,19 @@ runQC-bam.pl --logfile \$MASTER_LOGFILE \
 --inputbam $input \
 --outputfile \${outputDirectory}/$stem.${step}.qcstats \
 --reuse --qcStep Xenograft
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to update database"
 	exit 1
 fi 
 
 
 ingestDirectory  \$outputDirectory
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to ingest data"
 	exit 1
 fi 
 ingestDirectory  \$outputDirectoryBam
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to ingest data"
 	exit 1
 fi 

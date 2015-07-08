@@ -52,13 +52,13 @@ $samtoolsbin view -bh \$inputBAM $chromosome > \$bamfile ; \
 $cufflinksbin -p $cores \
    --output-dir ${outputDirectory}/$chromosome --mask-file \$maskFile \
    --library-type $libraryType --min-isoform-fraction 0.05  --multi-read-correct  \$bamfile\"
-	if [ $? != 0 ] ; then
+	if [ \$? != 0 ] ; then
 	echo "Failed to run command"
 	exit 1
 fi 
 
 ingestDirectory \$outputDirectory
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to ingest data"
 	exit 1
 fi 
