@@ -38,17 +38,17 @@ output2=\${outputDirectory}/${stem}.${step}_R2.qcstats
 celgeneExec.pl --analysistask ${analysistask} \"$binary \${input} \${output1} \" 
 
 runQC-fastq.pl --logfile \$MASTER_LOGFILE  --inputfq \${input},\${input2} --outputfile \${output1} --reuse --qcStep LaneDistribution
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to update database"
 	exit 1
 fi 
 
 ingestDirectory \$outputDirectory
-if [ $? != 0 ] ; then
+if [ \$? != 0 ] ; then
 	echo "Failed to ingest data"
 	exit 1
 fi 
-rm -rf $outputDirectory
+rm -rf \$outputDirectory
 
 closeJob
 " > ${stem}.${step}.bsub
