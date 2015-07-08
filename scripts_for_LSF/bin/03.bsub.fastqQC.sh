@@ -40,6 +40,8 @@ $fastqcbin \
   --format fastq \${input} \${input2} ;\
 mv \${outputDirectory}/tmp \${output} \" 
 
+cd \${output}
+for z in *.zip; do unzip -o $z; done
 
 runQC-fastq.pl --logfile \$MASTER_LOGFILE --inputfq \${input},\${input2} --outputfile \${output} --reuse --qcStep FastQC
 if [ \$? != 0 ] ; then
