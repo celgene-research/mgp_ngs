@@ -495,6 +495,8 @@ sub parseDuplicates{
 			$self->{read_pair_optical_duplicates}=0;
 			while(my $l2=<$rfh>){
 				chomp $l2;
+				if($l2 eq ""){last;}
+				$self->{logger}->debug("Parsing line:\n\t$l2");
 				my 
 				(
 					$library,
@@ -504,14 +506,15 @@ sub parseDuplicates{
 					$unpaired_read_duplicates,
 					$read_pair_duplicates,
 					$read_pair_optical_duplicates
-				)=split("\t", $l);
+				)=split("\t", $l2);
 				$self->{unpaired_reads_examined}+=$unpaired_reads_examined;
 				$self->{read_pairs_examined}+=$read_pairs_examined;
 				$self->{umapped_reads}+=$umapped_reads;
 				$self->{unpaired_read_duplicates}+=$unpaired_read_duplicates;
 				$self->{read_pair_duplicates}+=$read_pair_duplicates;
 				$self->{read_pair_optical_duplicates}+=$read_pair_optical_duplicates;
-				if($l2 eq ""){last;}
+				$self->{logger}->debug("Found Library:$library\n\tUnpaired Reads: $unpaired_reads_examined");
+				
 			}
 			last;
 			

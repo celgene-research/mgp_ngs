@@ -13,6 +13,7 @@ use File::Basename;
 use picardQCsteps;
 use Celgene::Utils::SVNversion;
 use Celgene::Utils::ArrayFunc;
+use Celgene::Metadata::FileConversion;
 use Frontier::Client;
 use Sys::Hostname;
 use Data::Dumper;
@@ -20,7 +21,7 @@ my $host=hostname;
 my $arguments=join(" ",@ARGV);
 #my $annotationFile="/opt/reference/Homo_sapiens/GENCODE/hg19/Annotation/gencode.v14.refFlat"; # for ENSEMBL
 
-my ($logLevel,$logFile,$manifest,$help,$inputFQ,$inputBAM,$samplename,$nocommit,$reuse, $mapper,$baitsFile,$captureKit)=('INFO',undef,undef);
+my ($logLevel,$logFile,$manifest,$help,$inputFQ,$inputBAM,$samplename,$nocommit,$reuse, $nofilecheck, $mapper,$baitsFile,$captureKit)=('INFO',undef,undef);
 my($ribosomal_intervals,$annotationFile,$strand,$genomeFile,$outputFile,$programVersion);
 my $qcStep;
 GetOptions(
@@ -37,6 +38,7 @@ GetOptions(
 	"qcStep=s"=>\$qcStep,
 	"nocommit"=>\$nocommit,
 	"reuse"=>\$reuse,
+	"nofilecheck"=>\$nofilecheck,
 	"version"=>\$programVersion,
 	"help"=>\$help
 );
@@ -60,6 +62,7 @@ sub printHelp{
 	" --reuse will search for existing output files before it runs any QC module\n".
 	" --qcStep define QC module to run ('MarkDuplicates','CollectAlnSummary','CollectInsertSize','CollectRNASeqMetrics','BamIndex','LibraryComplexity','CaptureHsMetrics','Xenograft')\n".
 	" --nocommit will not update the database\n".
+	" --nofilecheck will not check if input files (bam) exists.\n".
 	" --version will return the version(s) of the QC programs\n".
 	" --logLevel/--logFile standard logger arguments\n".
 	" --help this screen\n".
@@ -115,7 +118,7 @@ require File::Spec;
 require Cwd;
 $inputBAM=File::Spec->rel2abs( $inputBAM );
 $inputBAM=Cwd::abs_path( $inputBAM );
-if(!-e $inputBAM){
+if(!-e $inputBAM and !defined($nofilecheck)){
 	$logger->logdie("Cannot find file $inputBAM");
 }
 
@@ -219,6 +222,7 @@ sub getsampleid{
 
 	my @bam=split(",",$bamfile);
 	foreach my $bam(@bam){
+		$bam=Celgene::Metadata::FileConversion::cf( $bam ));
 		$bam=File::Spec->rel2abs( $bam );
 		my $t=getFromXMLserver('metadataInfo.getSampleIDByFilename',$bam);
 		@t2=(@t2, @$t);
