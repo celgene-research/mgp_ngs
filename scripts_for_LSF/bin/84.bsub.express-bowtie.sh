@@ -16,7 +16,7 @@ mkdir -p $NGS_LOG_DIR
 
 
 
-transcripts=${humanrsemidx}/transcripts.fa
+transcripts=${humanrsemidx}/genome.fa.idx.fa
 # for bwa: database=${humanAnnotationDir}/bwaIndex
 
 cores=4
