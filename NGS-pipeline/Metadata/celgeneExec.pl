@@ -22,7 +22,7 @@ use Getopt::Long;
 
 my $version=Celgene::Utils::SVNversion::version( '$Date: 2015-06-08 15:01:26 -0700 (Mon, 08 Jun 2015) $ $Revision: 1590 $ by $Author: kmavrommatis $' );
 
-my($help,$log_level,$log_file,$analysis_task,$derived_from,$showversion,@output_file,$norun);
+my($help,$log_level,$log_file,$analysis_task,$derived_from,$derived_from_file,$showversion,@output_file,$norun);
 GetOptions(
 	"analysis_task|analysistask|a=i"=>\$analysis_task,
 	"h|help!"=>\$help,
@@ -30,6 +30,7 @@ GetOptions(
 	"loglevel=s"=>\$log_level,
 	"logfile=s"=>\$log_file,
 	"derivedfrom|derived_from|d=s"=>\$derived_from,
+	"derivedfromfile|derived_from_file|D=s"=>\$derived_from_file,
 	"outputfile|output|output_file|o=s"=>\@output_file,
 	"version!"=>\$showversion
 );
@@ -208,6 +209,16 @@ foreach my $outputfileObj( @{$hash->{output}} ){
 	my ( $outputFilename, $outputDirectory,$suffix)=fileparse($outputfileObj->absFilename() );
 	$logger->debug("directory: $outputDirectory, file: $outputFilename");
 	my $metadataStore=MetadataPrepare->new();
+	# add the derived from files that the user has explicitly provided
+	if(defined($derived_from_file)){
+		my @tmpfiles=split(",", $derived_from_file);
+		foreach my $tmpfile( @tmpfiles ){
+			$logger->debug("Adding in the list of derived from files file : $tmpfile");
+			push  @{$hash->{derived_from}}, $tmpfile;	
+		}
+		
+	}
+	
 	# FilePath is added by the MetExtractor itself
 	#$metadataStore->addMetadata("FilePath", $outputfileObj->absFilename());
 	#$metadataStore->addMetadata("FilePath", $outputfileObj->userFileName()) if ($outputfileObj->userFileName() ne $outputfileObj->absFilename());
@@ -294,6 +305,8 @@ Optional arguments include:
 		This option has priority over other methods
 	--derivedfrom --derived_from -d a file with a list of input files. 
 		Typically used when the command line reads the input from a list file.
+	--derivedfromfiles --derived_from_files -D a comma separated list of derived from files. The script does not
+		check if these file exist. This is an option suitable for adding s3 objects in the derived_from list.
 	--outputfile --output --output_file -o output_file (can be used multiple times)
 		Used in cases where output file is not mentioned in the command line.
 	--version show the version of the script and exit
