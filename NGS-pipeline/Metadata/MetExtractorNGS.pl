@@ -115,6 +115,7 @@ if(defined($ngsServerURL)){
 sub getAbsPath{
 	my($fn)=@_;
 	my $retval=[];
+	if($fn =~/^s3/){ push @{$retval}, $fn; return $retval; }
 	my $retval1=Cwd::realpath( $fn );
 	push @{$retval}, $retval1;
 	my $retval2=File::Spec->rel2abs($fn);
