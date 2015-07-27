@@ -30,13 +30,14 @@ fi
 outputDirectory=\$( setOutput \$input fastq )
 
 
-celgeneExec.pl --analysistask $analysistask \"java -Xmx6g -jar ${PICARD_BASE}/picard.jar SamToFastq INPUT=\${input} \
+celgeneExec.pl --analysistask $analysistask \"\
+java -Xmx6g -jar ${PICARD_BASE}/picard.jar SamToFastq INPUT=\${input} \
   FASTQ=\${outputDirectory}/${stem}_R1.fastq \
   SECOND_END_FASTQ=\${outputDirectory}/${stem}_R2.fastq \
   UNPAIRED_FASTQ=\${outputDirectory}/${stem}_unpaired.fastq  \
   INCLUDE_NON_PF_READS=TRUE TMP_DIR=\${NGS_TMP_DIR} VERBOSITY=WARNING  \
   VALIDATION_STRINGENCY=SILENT ; \
-$makepairedreads --input \${outputDirectory}/${stem}_unpaired.fastq  \
+$makepairedreadsbin --input \${outputDirectory}/${stem}_unpaired.fastq  \
   --output1 \${outputDirectory}/${stem}_R1.fastq \
   --output2 \${outputDirectory}/${output2}; rm \${outputDirectory}/${stem}_R2.fastq ; \
 gzip \${outputDirectory}/${stem}_R1.fastq ; gzip \${outputDirectory}/${stem}_R2.fastq \" 
