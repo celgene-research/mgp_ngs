@@ -92,7 +92,7 @@ sub getBinary{
 	my ($binary)=split(/\s+/, $cmd);
 	#special case for calling explicit interpreters. Binary is becoming the java class or the script.
 	if($binary =~/java$/){ 
-		$cmd=~/(.+) -jar (\S+)/; 
+		$cmd=~/(.+) -jar (\S+) (\S+)/; 
 		$binary = $2;
 		
 		# for picard tools which are called in the form 'picard.jar TOOL' 
