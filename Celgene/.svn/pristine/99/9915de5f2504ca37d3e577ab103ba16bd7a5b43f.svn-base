@@ -1,0 +1,11 @@
+package DatabaseFunc;
+use DBI;
+
+sub connectDB{
+	my $hostIP=$ENV{ NGS_SERVER_IP }	;
+	my $dbh = DBI->connect("DBI:Pg:dbname=genomics;host=$hostIP", "kostas", "kostas", {'RaiseError' => 1}  );
+	
+	return $dbh;
+}
+
+1;

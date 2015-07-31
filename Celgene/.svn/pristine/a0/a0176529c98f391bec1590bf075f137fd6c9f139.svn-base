@@ -1,0 +1,84 @@
+package CommonFunc;
+use strict;
+use warnings;
+use Log::Log4perl;
+
+my $logger=Log::Log4perl->get_logger("CommonFunc");
+
+
+sub runCmd{
+	my ($cmd)=@_;
+	my $logger=Log::Log4perl->get_logger("CommonFunc::runCmd");
+	$logger->trace("Executing command $cmd");
+	my $returnCode;
+	system($cmd);
+	
+	if ($? == -1) {
+	    $logger->logdie( "failed to execute: $!\n" );
+	}
+	elsif ($? & 127) {
+	    $logger->logdie(sprintf( "child died with signal %d, %s coredump\n",
+	    ($? & 127),  ($? & 128) ? 'with' : 'without' ));
+	}
+	else {
+		$returnCode=$?>>8;
+	    $logger->trace(sprintf( "child exited with value %d\n", $returnCode));
+	}
+	return($returnCode);
+}
+
+# command to queue a job to the LSF
+sub queueLSF{
+	my($cmd, $cores, $jobName)=@_;
+	$logger->debug("queueLSF: received command $cmd");
+	# check if LSF is available
+	my $bsub=`which bsub`;chomp $bsub;
+	if($bsub eq "" or $bsub =~/no bsub/){
+		$logger->fatal("This computer does not have access to the LSF scheduler");
+	}
+	# create a bsub submission script
+	if(!defined($cores)){$cores=1;}
+	if(!defined($jobName)){
+		$jobName="un". time(). rand(100000) ;
+	}
+	$logger->debug("queueLSF: number of cores set to $cores");
+	$logger->debug("queueLSF: jobname set to $jobName");
+	my $TEMP="$$.$jobName.bsub";	
+	my $script= qq{#BSUB -L /bin/bash
+#BSUB -J $jobName    # name of the job
+#BSUB -M }. 8000 * $cores. qq{ # Memory limits in Mb (8,000 = 8GB)
+#BSUB -n $cores
+#BSUB -o $TEMP.stdout
+#BSUB -e $TEMP.stderr
+#BSUB -R \"span[ptile=$cores]\"
+$cmd};
+	my $wfh=FileFunc::newWriteFileHandle($TEMP);
+	print $wfh $script;
+	runCmd( "bsub <  $TEMP");
+	#unlink($TEMP);
+
+}
+
+# decide if two sets of coordinates overlap
+sub overlap{
+	my ($s1,$e1,$s2,$e2)=@_;
+	my $overlap=0;
+	if ($e1< $s1){ ($s1,$e1)= swap($s1,$e1);}
+	if ($e2< $s2){ ($s2,$e2)= swap($s2,$e2);}
+	if($s2<= $s1 and $e2>= $e1){ $overlap= $e1-$s1 +1;}
+	if($s2>= $s1 and $e2<= $e1){ $overlap= $e2-$s2 +1;}
+	if($s1<= $s2 and $e1>= $s2 and $e1<= $e2){$overlap= $e1-$s2+1;}
+	if($s1>= $s2 and $s1<= $e2 and $e1>= $e2){$overlap= $e2-$s1+1;}
+	
+ 	$logger->debug("isOverlapping:  $s1 - $e1 with $s2 - $e2 overlap $overlap\n");
+	return $overlap;
+}
+
+# get teh current time in a format that is human readable
+# this function returns a string with the date/time
+sub getCurrentTime{
+	use POSIX qw(strftime);
+	return strftime("%Y-%m-%d %H:%M:%S\n", localtime(time));
+	
+}
+1;

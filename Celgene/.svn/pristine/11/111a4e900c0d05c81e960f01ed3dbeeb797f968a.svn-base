@@ -1,0 +1,263 @@
+package Celgene::parsers::gtfparser;
+use strict;
+use warnings;
+use Log::Log4perl;
+use Celgene::Utils::ArrayFunc;
+use Celgene::Utils::FileFunc;
+
+# my $gff=new gtfparser( -gtf => $filename )
+#while( my $rec=$gff->nextRecord()){
+#	$anyvalue= getValue( $key );
+#	
+#	$source=$rec->source();
+#	$score=$rec->score();
+#	$frame=$rec->frame();
+#	$type=$rec->type();
+#	$getType=$rec->getType();
+#	$start=$rec->start();
+#	$getStart=$rec->getStart();
+#	$end=$rec->end();
+#	$getEnd=$rec->getEnd();
+#	$strand=$rec->strand();
+#	$chromosome=$rec->chromosome();
+#	$getChromosome=$rec->getChromosome();
+#}
+
+sub new{
+	my($class,@arguments)=@_;
+	my $self={};
+	bless($self,$class);
+	$self->{logger}=Log::Log4perl->get_logger('gtfparser');
+	my $filename;
+	for(my $i=0;$i<scalar(@arguments);$i++){
+		$self->{logger}->debug("Processing argument ", $arguments[$i]);
+		if( $arguments[$i] eq '-gtf'){
+			$filename=$arguments[++$i];
+			$self->openFile($filename);
+		}
+	}
+	
+	
+	return($self);
+}
+
+sub openFile{
+	my($self, $filename)=@_;
+	my $rfh=Celgene::Utils::FileFunc::newReadFileHandle( $filename );
+	$self->{logger}->debug("Accessing file $filename");	
+	$self->{inputGTF}=$rfh;
+}
+
+sub DESTROY{
+	my($self)=@_;
+	my $rfh=$self->{ inputGTF};
+	close($rfh);
+}
+sub nextRecord{
+	my($self)=@_;
+	
+	my $rfh=$self->{ inputGTF };
+	while(my $line=<$rfh>) {
+		chomp $line;
+		next if($line=~/^#/);
+		my $gtfRecord=gtfRecord->new( $line );
+		$self->{record}=$gtfRecord;
+		
+		return $self->{record};		
+	}
+	return undef;
+	
+}
+		
+sub debug{
+	my ($self)=@_;
+	
+	foreach my $k( keys %{$self}){
+		print $k ."\t". $self->{$k}."\n";
+	}
+}
+		
+		
+
+
+
+
+1;
+
+
+
+package gtfRecord;
+#use this package to process one line in the gtf file at a time
+sub new{
+	my($class,$record)=@_;
+	my $self={};
+	bless($self,$class);
+	
+	$self->{logger}=Log::Log4perl->get_logger('gtfRecord');
+	$self->{gtfLine}=$record;
+	$self->{parent}=[];
+	$self->{children}=[];
+	$self->parseRecord();
+	return($self);
+}
+
+sub parent{
+	my($self,$parentID)=@_;
+	if(defined($parentID)){
+		push @{$self->{parent} }, $parentID;
+	}
+	return($self->{parent});
+}
+sub children{
+	my($self,$childrenID)=@_;
+	if(defined($childrenID)){
+		push @{$self->{children} }, $childrenID;
+	}
+	return($self->{children});
+}
+
+sub parseRecord{
+	my($self)=@_;
+	my $annotation;
+	$self->{logger}->trace("Processing line :" . $self->{gtfLine});
+
+	(
+	$self->{chromosome},
+	$self->{source},
+	$self->{type},
+	$self->{start},
+	$self->{end},
+	$self->{score},
+	$self->{strand},
+	$self->{frame},
+	$annotation	
+	)= split(/\t/, $self->{gtfLine});
+	
+	if( $self->{strand} ne '+' and $self->{strand} ne '-'){
+		$self->{strand}='*';
+	}
+	
+	if($self->{score} eq  '.'){
+		$self->{score}=0;
+	}
+	$self->parseAnnotation( $annotation );
+}
+
+sub getGTFline{
+	my($self)=@_;
+	return $self->{gtfLine};
+}
+sub parseAnnotation{
+	my($self,$annotation)=@_;
+	
+	my @elements=split("\;", $annotation);
+	foreach my $e(@elements){
+		my ($key,$value)=split(" ", $e);
+		$value=~s/\"//g;
+		if($key eq 'tag'){
+			push @{ $self->{$key} }, $value;
+			$self->{logger}->debug("adding tag $value array now becomes ",
+					join(",", @{$self->{ $key }}  )) ;
+		}else{
+			$self->{$key}=$value;
+		}
+	}
+	
+	
+	# check if all the fields are present
+	foreach my $f ( "gene_id","transcript_id",
+				"gene_type","gene_status","gene_name",
+				"transcript_type","transcript_status","transcript_name",
+				"level"){
+		my $r=$self->checkField($annotation, $f);
+		if(!defined($f)){
+			$self->{logger}->logdie("Cannot continue without finding $r. Fix error");
+		}
+	}
+}
+
+
+
+sub getValue{
+	my($self,$key)=@_;
+	if(defined($self->{$key})){
+		return $self->{$key};
+	}else{
+		$self->{logger}->debug("Requested information for '$key' but this record does not have it");
+		return undef;
+	}
+}
+sub source{
+	my ($self)=@_;
+	return $self->getValue('source');
+}
+sub score{
+	my ($self)=@_;
+	return $self->getValue('score');
+}
+sub frame{
+	my ($self)=@_;
+	return $self->getValue('frame');
+}
+sub type{
+	my ($self)=@_;
+	return $self->getType();
+}
+sub getType{
+	my ($self)=@_;
+	return $self->getValue('type');
+}
+
+sub start{
+	my ($self)=@_;
+	return $self->getStart();
+}
+sub getStart{
+	my ($self)=@_;
+	return $self->getValue('start');
+}
+sub end{
+	my ($self)=@_;
+	return $self->getEnd();
+}
+sub getEnd{
+	my ($self)=@_;
+	return $self->getValue('end');
+}
+sub strand{
+	my ($self)=@_;
+	return $self->getValue('strand');
+}
+
+sub chromosome{
+	my ($self)=@_;
+	return $self->getChromosome();
+}
+sub getChromosome{
+	my ($self)=@_;
+	return $self->getValue('chromosome');
+}
+
+
+
+sub printRecord_debug{
+	my($self)=@_;
+	my $string="";
+	foreach my $key(keys %{$self}){
+		$string.= $key ."=>". $self->{$key} . "\n";
+	}
+	return $string;
+	
+}
+
+sub checkField{
+	my($self,$annotation,$field)=@_;
+	if(!defined($self->{gene_id})){
+		$self->{logger}->fatal("Cannot parse $annotation. It does not contain the $field field");
+		return undef
+	}else{return 1;}
+}
+
+
+
+1;
