@@ -1,14 +1,14 @@
 #!/bin/bash
-
+# This script runs Varscan2 on a single bam file
 # input to the script is a bam file 
-# 4 Mar 2015: Kostas: the script detects the quality coding of the file and adjusts the command line to fix it or not   (--fix_misencoded_quality_scores)
+# The script runs varscan for snp and indels and then produces a concatenated and sorted vcf file.
 
 
 scriptDir=$( dirname $0 ); source $scriptDir/../lib/shared.sh
 input=$1
 index=$(echo $input|sed 's/bam$/bai/');
 analysistask=92
-step="GATK.Realign"
+step="Varscan2"
 
 NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
 mkdir -p $NGS_LOG_DIR
@@ -19,15 +19,14 @@ genomeDatabase=${humanGenomeDir}/genome.fa
 genomeIndex=$(echo $genomeDatabase | sed 's%.fa%.dict%')
 genomeIndex2=${genomeDatabase}.fai
 
-knownMuts1=${mills}
-knownMuts2=${f1000g_phase1}
+
 memory=6000
 header=$(bsubHeader $stem $step $memory $cores)
 echo \
 "$header
 
 #BSUB -E \"$scriptDir/../lib/stageReference.sh $step\"
-#$Date: 2015-10-15 17:44:21 -0700 (Thu, 15 Oct 2015) $ $Revision: 1719 $
+#$Date: 2015-09-25 08:56:09 -0700 (Fri, 25 Sep 2015) $ $Revision: 1656 $
 source $scriptDir/../lib/shared.sh
 
 initiateJob $stem $step
@@ -35,8 +34,7 @@ set -e
 
 input=\$( stage.pl --operation out --type file  $input )
 index=\$( stage.pl --operation out --type file  $index )
-knownMuts1=$knownMuts1
-knownMuts2=$knownMuts2
+
 
 genomeDatabase=$genomeDatabase
 genomeIndex=${genomeIndex} 
@@ -49,12 +47,6 @@ fi
 outputDirectory=\$( setOutput \$input ${step} )
 
 # check the baseline for quality and append the command --fix_misencoded_quality_scores
-base=\$( $samtoolsbin view \${input} | head -1000 | checkQualityEncoding.pl)
-if [ \"\${base}\" == \"64\" ] ; then
-fixQual=\" --fix_misencoded_quality_scores \"
-else
-fixQual=\"\"
-fi
 
 
 
@@ -63,24 +55,14 @@ fi
 # IndelRealigner
 
 celgeneExec.pl --analysistask $analysistask \" \
-java -Xmx${memory}m -jar ${gatkbin} \
--T RealignerTargetCreator \
-$fixQual \
--R \${genomeDatabase} \
--known \${knownMuts1} \
--known \${knownMuts2} \
--I \${input} \
---filter_bases_not_stored --filter_bases_not_stored \
--o \${outputDirectory}/${stem}.intervals ; \
-java -Xmx${memory}m -jar ${gatkbin} \
--T IndelRealigner -R \${genomeDatabase} \
--known \${knownMuts1} \
--known \${knownMuts2} \
--I \${input}  \
---filter_bases_not_stored --filter_bases_not_stored \
--targetIntervals \${outputDirectory}/${stem}.intervals \
--o \${outputDirectory}/${stem}.${step}.bam \
-$fixQual \"
+samtools mpileup -B -f \${genomeDatabase}  \${input} | \
+java -Xmx${memory}m -jar ${varscan2bin} mpileup2snp -v --output-vcf 1 > \${outputDirectory}/${stem}.snp.vcf ; \
+samtools mpileup -B -f \${genomeDatabase}  \${input} | \
+java -Xmx${memory}m -jar ${varscan2bin} mpileup2indel -v --output-vcf 1 > \${outputDirectory}/${stem}.indel.vcf ; \
+vcf-concat \${outputDirectory}/${stem}.snp.vcf  \${outputDirectory}/${stem}.indel.vcf | \
+vcf-sort -c >  \${outputDirectory}/${stem}.vcf ; \
+rm  \${outputDirectory}/${stem}.indel.vcf ; \
+rm  \${outputDirectory}/${stem}.snp.vcf  \"
  if [ \$? != 0 ] ; then
 	echo "Failed to run command"
 	exit 1

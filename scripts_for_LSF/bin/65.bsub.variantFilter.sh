@@ -1,15 +1,10 @@
 #!/bin/bash
 inputVCF=$1
+filterFile=$2
 scriptDir=$( dirname $0 ); source $scriptDir/../lib/shared.sh
 analysistask=59
 step="VariantFilter"
-
-#snpeffGenomeVersion=GRCh37.64
-
-
-snpsiftBin=$snpsiftbin
-filterFile=$2
-
+stem=$(fileStem $inputVCF)
 
 if [ ! -e $filterFile -a "$filterFile" != "tranche" ] ;then
 	echo "Cannot find filter file $filterFile "
@@ -19,38 +14,64 @@ fi
 memory=4000
 cores=1
 NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
-stem=$(fileStem $input)
+
 
 mkdir -p $NGS_LOG_DIR
 header=$(bsubHeader $stem $step $memory $cores)
 echo \
 "$header
 
-#BSUB -E \"$scriptDir/../lib/stageReference.sh $step\"
-#$Date: 2015-06-02 14:40:34 -0700 (Tue, 02 Jun 2015) $ $Revision: 1552 $
+#$Date: 2015-10-01 15:43:49 -0700 (Thu, 01 Oct 2015) $ $Revision: 1676 $
 source $scriptDir/../lib/shared.sh 
 set -e
 initiateJob $stem $step
 
-"> $output.$step.bsub
+inputVCF=\$( stage.pl --operation out --type file  $inputVCF )
+
+if [ \$inputVCF == \"FAILED\" ]; then
+	echo \"Could not transfer \$inputVCF\"
+	exit 1
+fi
+outputDirectory=\$( setOutput \$inputVCF ${step} )
+
+
+"> $stem.$step.bsub
 
 if [ $filterFile == "tranche" ] ;then
 echo \
 "
 trancheThresh=\$( $scriptDirectory/tranche.sh $inputVCF)
-celgeneExec.pl --analysistask $analysistask \"cat ${inputVCF} | $snpsiftBin filter \\\"(VQSLOD> \$trancheThresh)\\\"  > ${output}\"
+celgeneExec.pl --analysistask $analysistask \"\
+zcat \${inputVCF} | \
+java -Xmx${memory}m -jar $snpsiftbin filter \\\"(VQSLOD> \$trancheThresh)\\\"  \
+> \${outputDirectory}/${stem}.${step}.vcf ; \
+bgzip \${outputDirectory}/${stem}.${step}.vcf  ; \
+tabix -p vcf \${outputDirectory}/${stem}.${step}.vcf.gz \
+\"
 	
-">> $output.$step.bsub
+">> $stem.$step.bsub
 else
 echo \
 " 
-celgeneExec.pl --analysistask $analysistask \"cat ${inputVCF} | $snpsiftBin filter -e $filterFile > ${output}\"
+celgeneExec.pl --analysistask $analysistask \"\
+zcat \${inputVCF} | \
+java -Xmx${memory}m -jar $snpsiftbin filter -e $filterFile \
+> \${outputDirectory}/${stem}.${step}.vcf ; \
+bgzip \${outputDirectory}/${stem}.${step}.vcf  ; \
+tabix -p vcf \${outputDirectory}/${stem}.${step}.vcf.gz \
+\"
 
-" >> $output.$step.bsub
+" >> $stem.$step.bsub
 fi
 
 echo \
 "
+if [ \$? != 0 ] ; then
+	echo "Failed to run command"
+	exit 1
+fi 
+
+ingestDirectory \$outputDirectory
 if [ \$? != 0 ] ; then
 	echo "Failed to ingest data"
 	exit 1
@@ -58,6 +79,5 @@ fi
 
 closeJob
 
-" >> $output.$step.bsub
-bsub < $output.$step.bsub
-
+" >> $stem.$step.bsub
+bsub < $stem.$step.bsub

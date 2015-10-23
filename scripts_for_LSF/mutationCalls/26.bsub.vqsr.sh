@@ -1,0 +1,1 @@
+../bin/26.bsub.vqsr.sh

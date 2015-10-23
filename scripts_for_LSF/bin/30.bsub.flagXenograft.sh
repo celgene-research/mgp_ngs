@@ -21,7 +21,7 @@ mkdir -p $NGS_LOG_DIR
 echo \
 "$header
 
-#$Date: 2015-06-01 18:28:31 -0700 (Mon, 01 Jun 2015) $ $Revision: 1541 $
+#$Date: 2015-08-14 13:02:55 -0700 (Fri, 14 Aug 2015) $ $Revision: 1624 $
 source $scriptDir/../lib/shared.sh
 
 initiateJob $stem $step

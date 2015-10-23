@@ -14,9 +14,9 @@ genomeDatabase=${humanGenomeDir}/genome.fa
 genomeIndex=$(echo $genomeDatabase | sed 's%.fa%.dict%') 
 genomeIndex2=${genomeDatabase}.fai
 resource1=${hapmap_gatk}
-resource2=${1000g_omni_gatk}
-resource3=${1000g_snps_gatk}
-resource4=${dbsnp_gakt}
+resource2=${f1000g_omni_gatk}
+resource3=${f1000g_snps_gatk}
+resource4=${dbsnp}
 resource5=${mills}
 memory=6000
 
@@ -24,8 +24,7 @@ header=$(bsubHeader $stem $step $memory $cores)
 echo \
 "$header
 
-#BSUB -E \"$scriptDir/../lib/stageReference.sh $step\"
-#$Date: 2015-06-01 18:02:35 -0700 (Mon, 01 Jun 2015) $ $Revision: 1524 $
+#$Date: 2015-10-12 17:58:48 -0700 (Mon, 12 Oct 2015) $ $Revision: 1697 $
 source $scriptDir/../lib/shared.sh
 
 initiateJob $stem $step
@@ -45,53 +44,59 @@ if [ \$inputVCF == \"FAILED\" -o \$genomeDatabase == \"FAILED\" -o \$resource1 =
 	exit 1
 fi
 
-outputDirectory=\$( setOutput \$inputVCF GATK-${step} )
+outputDirectory=\$( setOutput \$inputVCF ${step} )
 
 
+## -an InbreedingCoeff is an option suggested by GATK best practices but in all cases I have tried
+#  it gives me the error:
+# Bad input: Values for InbreedingCoeff annotation not detected for ANY training variant in the input callset.
 
-
-celgeneExec.pl --analysistask $analysistask \"${gatkbin} \
+celgeneExec.pl --analysistask $analysistask \"\
+java -Xmx${memory}m -jar ${gatkbin} \
    -T VariantRecalibrator \
    -R \${genomeDatabase} \
    -input \${inputVCF} \
    -recalFile \${outputDirectory}/${stem}.vqsr-snp.recal \
+	-tranche 100.0 -tranche 99.9 -tranche 99.0 -tranche 90.0 \
    -tranchesFile \${outputDirectory}/${stem}.tranches \
    -rscriptFile \${outputDirectory}/$stem.snp.R \
    -resource:hapmap,known=false,training=true,truth=true,prior=15.0 \${resource1} \
    -resource:omni,known=false,training=true,truth=true,prior=12.0 \${resource2} \
    -resource:1000G,known=false,training=true,truth=false,prior=10.0 \${resource3} \
    -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 \${resource4} \
-   -an MQRankSum -an ReadPosRankSum -an FS -an MQ -an DP -an QD -mode SNP ;\
-${gatkbin} \
-   -T VariantRecalibrator \
-   -R \${genomeDatabase} \
-   -input \${inputVCF} \
-   -recalFile \${outputDirectory}/${stem}.vqsr-indel.recal \
-   -tranchesFile \${outputDirectory}/${stem}.tranches \
-   -rscriptFile \${outputDirectory}/$stem.snp.R \
-   -resource:mills,known=false,training=true,truth=true,prior=12.0 \${resource5} \
-   -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 \${resource4} \
-   -an MQRankSum -an ReadPosRankSum -an FS -an DP -an QD \
-   --maxGaussians 4 \
-   -mode INDEL ; \
-${gatkbin} \
+   -an MQRankSum -an ReadPosRankSum -an FS -an MQ -an DP -an QD -an SOR  \
+   -mode SNP ;\
+java -Xmx${memory}m -jar ${gatkbin} \
    -T ApplyRecalibration \
    -R \${genomeDatabase} \
    -input \${inputVCF} \
    -mode SNP \
-   -ts_filter_level 99.5 \
+   -ts_filter_level 99.0 \
    -tranchesFile \${outputDirectory}/${stem}.tranches \
    -recalFile \${outputDirectory}/${stem}.vqsr-snp.recal \
    --out \${outputDirectory}/${stem}.snp.vcf ; \
-${gatkbin} \
+java -Xmx${memory}m -jar ${gatkbin} \
+   -T VariantRecalibrator \
+   -R \${genomeDatabase} \
+   -input \${outputDirectory}/${stem}.snp.vcf \
+   -recalFile \${outputDirectory}/${stem}.vqsr-indel.recal \
+   -tranche 100.0 -tranche 99.9 -tranche 99.0 -tranche 90.0 \
+   -tranchesFile \${outputDirectory}/${stem}.tranches \
+   -rscriptFile \${outputDirectory}/$stem.snp.R \
+   -resource:mills,known=false,training=true,truth=true,prior=12.0 \${resource5} \
+   -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 \${resource4} \
+   -an MQRankSum -an ReadPosRankSum -an FS -an DP -an QD -an SOR -an ReadPosRankSum \
+   --maxGaussians 4 \
+   -mode INDEL ; \
+java -Xmx${memory}m -jar ${gatkbin} \
    -T ApplyRecalibration \
    -R \${genomeDatabase} \
    -ts_filter_level 99.0 \
-   -input \${inputVCF} \
+-input \${outputDirectory}/${stem}.snp.vcf \
    -mode INDEL \
    -tranchesFile \${outputDirectory}/${stem}.tranches \
    -recalFile \${outputDirectory}/${stem}.vqsr-indel.recal  \
-   --out \${outputDirectory}/${stem}.indel.vcf  \"  
+	--out \${outputDirectory}/${stem}.vqsr.vcf  \"  
 if [ \$? != 0 ] ; then
 	echo "Failed to run command"
 	exit 1

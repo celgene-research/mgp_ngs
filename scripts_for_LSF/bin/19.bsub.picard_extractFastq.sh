@@ -15,7 +15,8 @@ header=$(bsubHeader $stem $step $memory $cores)
 echo \
 "$header
 
-#$Date: 2015-06-01 18:05:45 -0700 (Mon, 01 Jun 2015) $ $Revision: 1529 $
+#$Date: 2015-09-15 17:31:31 -0700 (Tue, 15 Sep 2015) $ $Revision: 1644 $
+source $scriptDir/../lib/shared.sh
 initiateJob $stem $step
 set -e
 

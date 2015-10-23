@@ -7,12 +7,12 @@ analysistask=94
 NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
 mkdir -p $NGS_LOG_DIR
 
-output=${stem}.${step}.vcf
+output=${stem}.g.vcf
 genomeDatabase=${humanGenomeDir}/genome.fa
 genomeIndex=$(echo $genomeDatabase | sed 's%.fa%.dict%') 
 genomeIndex2=${genomeDatabase}.fai
-knownMuts1=${dbsnp_gatk}
-memory=16000
+knownMuts1=${dbsnp}
+memory=28000
 experimentType=$(ngs-sampleInfo.pl $inputBAM experiment_type);
 cores=4
 header=$(bsubHeader $stem $step $memory $cores)
@@ -26,10 +26,10 @@ set -e
 
 
 
-genomeDatabase=\$( stage.pl --operation out --type file  $genomeDatabase)
-genomeIndex=\$(stage.pl --operation out --type file  $genomeIndex) 
-genomeIndex2=\$(stage.pl --operation out --type file  $genomeIndex2 )
-knownMuts1=\$( stage.pl --operation out --type file  $knownMuts1 )
+genomeDatabase=$genomeDatabase
+genomeIndex=$genomeIndex 
+genomeIndex2=$genomeIndex2
+knownMuts1=$knownMuts1
 if [ \$genomeDatabase == \"FAILED\" -o \$knownMuts1 == \"FAILED\" ] ; then
 	echo \"Could not transfer \$input\"
 	exit 1
@@ -39,21 +39,22 @@ index=\$( stage.pl --operation out  --type file \$index )
 inputBAM=\$(stage.pl --operation out --type file  $inputBAM )
 
 
-outputDirectory=\$( setOutput \$inputBAM GATK-${step} )
+outputDirectory=\$( setOutput \$inputBAM ${step} )
 
 
 
 
 if [[  \"$experimentType\" =~ ^DNA-Seq ]] ; then
 	
-celgeneExec.pl --analysistask $analysistask \"${gatkBin} \
+celgeneExec.pl --analysistask $analysistask \"\
+java -Xmx${memory}m -jar ${gatkbin} \
 -T HaplotypeCaller -nct $cores \
 -R \${genomeDatabase} \
 -I \${inputBAM} \
 --dbsnp \${knownMuts1} \
 -stand_call_conf 30  \
 -stand_emit_conf 10  -o \${outputDirectory}/${output} \
---max_alternate_alleles 6 \
+--max_alternate_alleles 20 \
 -minPruning 2  \
 --emitRefConfidence GVCF \
 --variant_index_type LINEAR \
@@ -63,11 +64,13 @@ if [ \$? != 0 ] ; then
 	exit 1
 fi 
 elif [[ \"$experimentType\" =~ ^RNA-Seq ]] ; then
-celgeneExec.pl --analysistask $analysistask \"${gatkBin} \
+celgeneExec.pl --analysistask $analysistask \"\
+java -Xmx${memory}m -jar ${gatkbin} \
 -T HaplotypeCaller \
 -nct $cores \
 -R \${genomeDatabase} \
 -I \${inputBAM} \
+--max_alternate_alleles 20 \
 -stand_call_conf 20  \
 -stand_emit_conf 20 \
 -recoverDanglingHeads \

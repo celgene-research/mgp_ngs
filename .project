@@ -8,4 +8,17 @@
 	</buildSpec>
 	<natures>
 	</natures>
+	<linkedResources>
+		<link>
+			<name>scripts_for_LSF/mutationCalls/65.bsub.variantFilter.sh</name>
+			<type>1</type>
+			<locationURI>copy_PROJECT_LOC/bin/65.bsub.variantFilter.sh</locationURI>
+		</link>
+	</linkedResources>
+	<variableList>
+		<variable>
+			<name>copy_PROJECT_LOC</name>
+			<value>$%7BPARENT-1-PROJECT_LOC%7D/scripts_for_LSF</value>
+		</variable>
+	</variableList>
 </projectDescription>

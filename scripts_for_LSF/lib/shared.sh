@@ -57,6 +57,12 @@ fi
 function res_memory(){
 	memory=$1
 	cores=$2
+	
+	maxMem=$( fullmemory )
+	if [ ${memory} -gt ${maxMem} ]; then
+		memory=$maxMem
+	fi
+	
 	scheduler=$( getScheduler )
 	if [ "$scheduler" == "LSF" ]; then
 		echo $memory
@@ -79,9 +85,21 @@ function bsubHeader(){
 		cores=1
 	fi
 	
+	#if the requested cores are more than the cores the system can provide
+	# then downsize to as many cores the node has
+	fc=$(nproc)
+	if [ "$cores" -gt "$fc" ] ; then
+		cores=$fc
+	fi 
+	
+	
 	if [ -z "$memory" ]; then 
 		memory=$(( 4000*$cores))
 	fi
+	
+	
+	
+	
 echo "#!/bin/bash"
 echo "#BSUB -e ${NGS_LOG_DIR}/${stem}.${step}.bsub.stderr"
 echo "#BSUB -o ${NGS_LOG_DIR}/${stem}.${step}.bsub.stdout"
@@ -100,7 +118,7 @@ function getStdSuffix(){
 	
 	if [ -n "$NGS_SUFFIX" ] ; then
 		suffix="$NGS_SUFFIX"
-		
+		echo "User has provided a directory suffix ${NGS_SUFFIX} for this run"
 	else
 	# create a file with a predermined filename and use its date as the suffix for 
 	# all directories
@@ -117,6 +135,14 @@ function getStdSuffix(){
 			touch ${step}_suffixer
 			suffix=$( stat -c %Y ${step}_suffixer )
 		fi
+	fi
+	
+	
+	if [ -z "${NGS_OUTPUT_DIRECTORY}" ]; then
+		echo -n
+	else
+		suffix=${$NGS_OUTPUT_DIRECTORY}_${suffix}
+		echo "User has provided an additional component (${NGS_OUTPUT_DIRECTORY}) of the suffix. The directory suffix is now ${suffix}"
 	fi
 	
 echo $suffix
@@ -147,6 +173,15 @@ function fullcores(){
 	fi
 	echo $fc				
 							
+}
+
+function fullmemory(){
+	
+	var=$(free | awk '/^Mem:/{print $2}')
+	var=$(( $var - 4000 ))
+	
+	echo $var
+	
 }
 
 function initiateJob(){
@@ -180,11 +215,14 @@ function closeJob(){
 	echo "######################"
 }
 
+
+#return the dirname of a directory (i.e. everything except the last part)
 function workDir(){
 	input=$1
 	local workDir=$( dirname $input )
 	echo $workDir
 }
+#return the basename of a directory (i.e. only the last part)
 function lastDir(){
 	input=$1
 	local workDir=$( workDir $input )
@@ -194,7 +232,10 @@ function lastDir(){
 
 function replaceDirNames(){
 	directoryName=$1
+	# for data that is on the cloud
+	
 	local newDirectoryName=$(  echo ${directoryName}  | sed 's%SRC%Processed%'| sed 's%src%Processed%'| sed 's%RawData%Processed%' | sed 's%Raw_Data%Processed%'| sed 's%rawdata%Processed%' | sed 's%raw_data%Processed%' )
+	
 	echo $newDirectoryName
 }
 
@@ -224,7 +265,9 @@ function setOutput(){
 	if [ $lastchar == "/" ] ; then
 		outputDirectory=${outputDirectory:0:${#outputDirectory}-1}
 	fi
+	
 	outputDirectory=${outputDirectory}_${suffix}
+
 	
 	mkdir -p $outputDirectory
 	echo "setOutput: output directory is set to $outputDirectory" 1>&2
@@ -256,8 +299,11 @@ function fileStem(){
 	stem=$(echo $stem| sed 's%\.sam$%%' | sed 's%\.bam$%%')
 	stem=$(echo $stem| sed 's%\.fa$%%'| sed 's%\.fai$%%'| sed 's%\.fna$%%' | sed 's%\.faa$%%')
 	stem=$(echo $stem| sed 's%\.bcf$%%'| sed 's%\.vcf$%%')
+	stem=$(echo $stem| sed 's%GATK\.%%' )
+	stem=$(echo $stem| sed 's%Realign%%'|sed 's%Recalibrate%%' | sed 's%HaplotypeCallerCombinedCalls%%' | sed 's%Haplotype_gvcf%%')
+	stem=$(echo $stem| sed 's%VariantRecalibration%%'| sed 's%GenotypeGVCFs%%' | sed 's%SplitNCigarReads%%')
 	
-	stem=$(echo $stem| sed 's%Realing%%'|sed 's%Recalibrate%%' )
+
 	echo $stem	
 }
 
@@ -291,10 +337,10 @@ function ingestDirectory(){
 	for i in `ls -d $outputDirectory/* | grep -v '/cas-crawler' | grep -v 'lock4filetransfer$'`  ; do
 		echo "Staging $i in directory $outputDirectory"
 	        if [ -f $i ] ; then
-	                stage.pl --operation in --type file  $i file in
+	                stage.pl --operation in --type file  $i 
 	        fi
 	        if [ -d $i ] ; then
-	                stage.pl --operation in --type directory $i directory in
+	                stage.pl --operation in --type directory $i 
 	        fi
 	done
 	

@@ -19,13 +19,15 @@ output=${stem}.${step}.vcf
 genomeDatabase=${humanGenomeDir}/genome.fa
 genomeIndex=$(echo $genomeDatabase | sed 's%.fa%.dict%') 
 genomeIndex2=${genomeDatabase}.fai
-
+memory=7000
+cores=$(fullcores)
 header=$(bsubHeader $stem $step $memory $cores)
 echo \
 "$header
 
-#BSUB -E \"$scriptDir/../lib/stageReference.sh $step\"
-#$Date: 2015-06-01 18:02:35 -0700 (Mon, 01 Jun 2015) $ $Revision: 1524 $
+
+$scriptDir/../lib/stageReference.sh $step
+#$Date: 2015-10-15 17:44:21 -0700 (Thu, 15 Oct 2015) $ $Revision: 1719 $
 
 source $scriptDir/../lib/shared.sh
 
@@ -53,7 +55,8 @@ done
 
 outputDirectory=\$( setOutput \$file ${step} )
 
-celgeneExec.pl --analysistask $analysistask \"${gatkbin} \
+celgeneExec.pl --analysistask $analysistask \"\
+java -Xmx${memory}m -jar ${gatkbin} \
 -T GenotypeGVCFs \
 -R \${genomeDatabase} \$variantString \
 -o \${outputDirectory}/$stem.combined.vcf\"
@@ -72,5 +75,7 @@ closeJob
 
 "> $stem.$step.bsub
 
-bsub < $stem.$step.bsub
+
+bash $stem.$step.bsub
+#bsub < $stem.$step.bsub
 #rm $$.tmp

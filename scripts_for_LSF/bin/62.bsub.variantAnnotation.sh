@@ -23,15 +23,17 @@ exac=${exac}
 gwasCatalog=${gwascatalog}
 snpsiftdbNSFP=${humanVariantsDir}/dbNSFP2.8_variants.gz
 snpsiftPhastCons=${SNPEFF_BASE}/../phastCons/
+msigdb=$msigdb
+
 
 memory=30000
-cores=9
+cores=2
 header=$(bsubHeader $stem $step $memory $cores)
 echo \
 "$header
 
 #BSUB -E \"$scriptDir/../lib/stageReference.sh $step\"
-#$Date: 2015-06-25 19:01:25 -0700 (Thu, 25 Jun 2015) $ $Revision: 1617 $
+#$Date: 2015-09-03 12:48:50 -0700 (Thu, 03 Sep 2015) $ $Revision: 1643 $
 source $scriptDir/../lib/shared.sh
 
 initiateJob $stem $step
@@ -71,13 +73,13 @@ outputDirectory=\$( setOutput \$inputVCF $step )
 # 14. phastcons information
 
 celgeneExec.pl --analysistask $analysistask \"\
-java -Xmx8g -jar $snpsiftBin RmInfo \$inputVCF EFF ANN SNP HET VARTYPE AN_AFR AN_AMR AN_EAS AN_FIN AN_NFE AN_OTH AN_SAS \
+java -Xmx8g -jar $snpsiftBin RmInfo \$inputVCF EFF ANN SNP HET HOM VARTYPE AN_AFR AN_AMR AN_EAS AN_FIN AN_NFE AN_OTH AN_SAS \
  Het_AFR Het_AMR Het_EAS Het_FIN Het_NFE Het_OTH Het_SAS Hom_AFR Hom_AMR Hom_EAS Hom_FIN Hom_NFE Hom_OTH Hom_SAS \
  AF_TWINSUK,AF_ALSPAC CLNSIG dbNSFP_1000Gp1_AF dbNSFP_1000Gp1_AFR_AF dbNSFP_1000Gp1_EUR_AF dbNSFP_1000Gp1_AMR_AF dbNSFP_1000Gp1_ASN_AF \
  dbNSFP_ESP6500_AA_AF dbNSFP_ESP6500_EA_AF \
  dbNSFP_GERP++_RS dbNSFP_SiPhy_29way_logOdds dbNSFP_MutationTaster_pred dbNSFP_Polyphen2_HDIV_score dbNSFP_ARIC5606_AA_AF \
  dbNSFP_SIFT_pred dbNSFP_Polyphen2_HVAR_score dbNSFP_MutationTaster_score dbNSFP_phastCons100way_vertebrate \
- dbNSFP_ARIC5606_EA_AF dbNSFP_Polyphen2_HDIV_pred dbNSFP_GERP++_NR dbNSFP_Polyphen2_HVAR_pred dbNSFP_SIFT_score > \
+ dbNSFP_ARIC5606_EA_AF dbNSFP_Polyphen2_HDIV_pred dbNSFP_GERP++_NR dbNSFP_Polyphen2_HVAR_pred dbNSFP_SIFT_score MSigDb > \
 \${outputDirectory}/0.tmp.vcf ; \
 java -Xmx8g -jar $snpeffBin eff -c $snpeffConfig \
   -stats \${outputDirectory}/$stem.$step.stats.html \
@@ -86,13 +88,12 @@ java -Xmx8g -jar $snpeffBin eff -c $snpeffConfig \
   -motif -lof $snpeffGenomeVersion \${outputDirectory}/0.tmp.vcf  >\
 \$outputDirectory/1.tmp.vcf ; \
 rm \${outputDirectory}/0.tmp.vcf ; \
-cat \$outputDirectory/1.tmp.vcf  | \
-java -Xmx3g -jar $snpsiftBin annotate -id \$dbSNP - | \
-java -Xmx3g -jar $snpsiftBin annotate -id \$COSMICCoding - | \
-java -Xmx3g -jar $snpsiftBin annotate -id \$COSMICNonCoding - | \
-java -Xmx3g -jar $snpsiftBin annotate -info CLNSIG \$clinvar -  | \
-java -Xmx3g -jar $snpsiftBin varType -  > \$outputDirectory/2.tmp.vcf ; \
-rm  \$outputDirectory/1.tmp.vcf ; \
+java -Xmx3g -jar $snpsiftBin annotate -id \$dbSNP  \$outputDirectory/1.tmp.vcf > \$outputDirectory/1.tmp.dbsnp.vcf  ; \
+java -Xmx3g -jar $snpsiftBin annotate -id \$COSMICCoding \$outputDirectory/1.tmp.dbsnp.vcf | \
+java -Xmx3g -jar $snpsiftBin annotate -id \$COSMICNonCoding - > \$outputDirectory/1.tmp.cosmic.vcf ; \
+java -Xmx3g -jar $snpsiftBin annotate -info CLNSIG \$clinvar \$outputDirectory/1.tmp.cosmic.vcf > \$outputDirectory/1.tmp.clinvar.vcf ; \
+java -Xmx3g -jar $snpsiftBin varType \$outputDirectory/1.tmp.clinvar.vcf > \$outputDirectory/2.tmp.vcf ; \
+rm  \$outputDirectory/1.tmp.*.vcf ; \
 cat  \$outputDirectory/2.tmp.vcf | \
 java -Xmx4g -jar $snpsiftBin annotate -info AF_TWINSUK,AF_ALSPAC \$uk10k - >\
 \$outputDirectory/3.tmp.vcf ; \
@@ -116,8 +117,15 @@ ESP6500_AA_AF,ESP6500_EA_AF,ARIC5606_AA_AF,ARIC5606_EA_AF - >  \
 rm  \$outputDirectory/4.tmp.vcf ; \
 cat  \$outputDirectory/5.tmp.vcf | \
 java -Xmx4g -jar $snpsiftBin gwasCat -db \$gwasCatalog - > \
+\$outputDirectory/6.tmp.vcf ; \
+rm \$outputDirectory/5.tmp.vcf ; \
+cat  \$outputDirectory/6.tmp.vcf | \
+java -Xmx4g -jar $snpsiftBin geneSets -v $msigdb - >  \
 \${outputDirectory}/${stem}.${step}.vcf ;  \
-rm \$outputDirectory/5.tmp.vcf\"
+rm \$outputDirectory/6.tmp.vcf ; \
+bgzip \${outputDirectory}/${stem}.${step}.vcf  ; \
+tabix -p vcf \${outputDirectory}/${stem}.${step}.vcf.gz \"
+
 if [ \$? != 0 ] ; then
 	echo "Failed to run command"
 	exit 1

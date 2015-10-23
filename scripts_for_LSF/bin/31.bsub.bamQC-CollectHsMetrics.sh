@@ -10,7 +10,7 @@ step="CalculateHsMetrics"
 index=$(echo $input|sed 's/bam$/bai/');
 
 exptype=$(ngs-sampleInfo.pl $input experiment_type)
-if [ "$exptype" != "DNA-Seq exome sequencing (WES)" ]; then
+if [ "$exptype" != "DNA-Seq_exome_sequencing_(WES)" ]; then
 	echo "This script is suggested to be used for exome data"
 	exit 1
 fi
@@ -38,13 +38,52 @@ strand=$( ngs-sampleInfo.pl $input stranded )
 NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
 #####
 # check if exome set baitsfile and captureKit
-baitsfile=${humanAnnotationDir}/../nexterarapidcapture_exome_targetedregions_v1.2.intervals
-captureKit='Nextera_rapid_capture_v1.2'
+
+exomeSet=$(ngs-sampleInfo.pl $input bait_set)
+case  "${exomeSet}" in
+"Nextera_Rapid_Capture_v1.2_(Illumina)" )
+		baitsfile=${humanGenomeDir}/ExonCapture/nexterarapidcapture_exome_targetedregions_v1.2.intervals.bed
+	;;
+"SureSelect_Human_All_exon_v1_38Mb_(Agilent)" )
+	baitsfile=${humanGenomeDir}/ExonCapture/S0274956_Covered.intervals.bed
+	;;
+"SureSelect_Human_All_exon_v2_44Mb__(Agilent)" )
+	baitsfile=${humanGenomeDir}/ExonCapture/S0293689_Covered.intervals.bed
+	;;
+"SureSelect_Human_All_exon_v3_50_Mb_(Agilent)" )
+	baitsfile=${humanGenomeDir}/ExonCapture/S02972011_Covered.intervals.bed
+	;;
+"SureSelect_Human_All_exon_v4_51Mb_(Agilent)" )
+	baitsfile=${humanGenomeDir}/ExonCapture/S03723314_Covered.intervals.bed
+	;;
+"SureSelect_Human_All_exon_v4+UTRs_71Mb_(Agilent)" )
+	baitsfile=${humanGenomeDir}/ExonCapture/S03723424_Covered.intervals.bed
+	;;
+"SureSelect_Human_All_exon_v5+UTRs_75Mb_(Agilent)" )
+	baitsfile=${humanGenomeDir}/ExonCapture/S04380219_Covered.intervals.bed
+	;;
+"SureSelect_Human_All_exon_v5_50Mb_(Agilent)" )
+	baitsfile=${humanGenomeDir}/ExonCapture/S04380110_Covered.intervals.bed
+	;;
+"SureSelect_Human_All_exon_v6+COSMIC_64Mb_(Agilent)" )
+	baitsfile=${humanGenomeDir}/ExonCapture/S07604715_Covered.intervals.bed
+	;;
+"SureSelect_Human_All_exon_v6_58Mb_(Agilent)" )
+	baitsfile=${humanGenomeDir}/ExonCapture/S07604514_Covered.intervals.bed
+	;;
+"SureSelect_Human_All_exon_v6+UTRs_58Mb_(Agilent)" )
+	baitsfile=${humanGenomeDir}/ExonCapture/S07604624_Covered.intervals.bed
+	;;
+* )
+	echo "Cannot recognize exome capture kit"
+	;;
+esac
+captureKit=${exomeSet}
 #mkdir -p bamQC
 
 cores=2
 
-memory=2000
+memory=6000
 stem=$(fileStem $input)
 
 mkdir -p $NGS_LOG_DIR
@@ -53,8 +92,7 @@ header=$(bsubHeader $stem $step $memory $cores)
 echo \
 "$header
 
-#BSUB -E \"$scriptDir/../lib/stageReference.sh $step\"
-#$Date: 2015-06-01 18:04:39 -0700 (Mon, 01 Jun 2015) $ $Revision: 1527 $
+#$Date: 2015-09-17 17:46:09 -0700 (Thu, 17 Sep 2015) $ $Revision: 1651 $
 source $scriptDir/../lib/shared.sh 
 set -e
 initiateJob $stem $step
@@ -78,7 +116,7 @@ java -Xmx${memory}m -jar ${PICARD_BASE}/picard.jar CalculateHsMetrics \
   TMP_DIR=\${NGS_TMP_DIR}	\
   BI=\${baitsfile} \
   TI=\${baitsfile} \
-  N=$captureKit \
+  N=\'$captureKit\' \
   METRIC_ACCUMULATION_LEVEL=ALL_READS  \
   REFERENCE_SEQUENCE=\${genomefile} \
   PER_TARGET_COVERAGE=\${outputDirectory}/${stem}.${step}.trgcov.qstats \
@@ -105,7 +143,7 @@ fi
 
 closeJob
 
-" > ${stem}.{$step}.bsub
+" > ${stem}.${step}.bsub
 
 bsub < ${stem}.${step}.bsub
 #rm $$.tmp

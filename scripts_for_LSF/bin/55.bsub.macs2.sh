@@ -15,7 +15,9 @@ checkfile $inputControl
 inputTagIndex=$(echo $inputTag | sed 's/bam$/bai/')
 inputControlIndex=$(echo $inputControl | sed 's/bam$/bai/')
 
-stem=$(fileStem $inputTag)
+stem1=$(fileStem $inputTag)
+stem2=$(fileStem $inputControl)
+stem=${stem1}.cntr.${stem2}
 step="MACS2"
 
 analysistask=38
@@ -79,7 +81,7 @@ fi
 echo \
 "$header
 
-#$Date: 2015-06-01 18:02:35 -0700 (Mon, 01 Jun 2015) $ $Revision: 1524 $
+#$Date: 2015-10-05 17:46:45 -0700 (Mon, 05 Oct 2015) $ $Revision: 1690 $
 
 source $scriptDir/../lib/shared.sh 
 set -e

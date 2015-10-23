@@ -1,10 +1,11 @@
 #!/bin/bash
+# simple script that indexes a vcf file. It runs bgzip and tabix on an uncompressed vcf file
 scriptDir=$( dirname $0 ); source $scriptDir/../lib/shared.sh
 input=$1
-prefix=$2
-analysistask=52
-step="AddReadGroup"
 
+
+analysistask=52
+step="CompressTabix"
 
 
 export NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
@@ -16,45 +17,42 @@ stem=$(fileStem $input)
 
 mkdir -p $NGS_LOG_DIR
 
-
 header=$(bsubHeader $stem $step $memory $cores)
 echo \
 "$header
 
-#$Date: 2015-08-14 13:02:55 -0700 (Fri, 14 Aug 2015) $ $Revision: 1624 $
+#$Date: 2015-09-15 17:31:31 -0700 (Tue, 15 Sep 2015) $ $Revision: 1644 $
 source $scriptDir/../lib/shared.sh
 
 initiateJob $stem $step
-
 set -e
-
 
 input=\$( stage.pl --operation out --type file  $input )
 if [ \$input == "FAILED"  ] ; then
-	echo \"Could not transfer \$input\"
-	exit 1
+        echo \"Could not transfer \$input\"
+        exit 1
 fi
 
-outputDirectory=\$( setOutput \$input AddReadGroup )
-
+outputDirectory=\$( setOutput \$input VCF-indexed )
 
 
 celgeneExec.pl --analysistask ${analysistask} \"\
-java -Xmx${memory}m -jar ${PICARD_BASE}/picard.jar AddOrReplaceReadGroups VERBOSITY=WARNING INPUT=\$input \
-  TMP_DIR=\${NGS_TMP_DIR} O=\${outputDirectory}/$stem.bam VALIDATION_STRINGENCY=SILENT RGID=$prefix RGLB=$prefix RGPL=ILLUMINA RGPU=$prefix RGSM=$prefix \"
+zcat \$input |  bgzip -c \$input > \${outputDirectory}/\${stem}.vcf.gz ; \
+tabix -p vcf \${outputDirectory}/\${stem}.vcf.gz \"
+
+
  if [ \$? != 0 ] ; then
-	echo "Failed to run command"
-	exit 1
-fi 
+        echo "Failed to run command"
+        exit 1
+fi
 
-
-ingestDirectory  \$outputDirectory
+ingestDirectory \$outputDirectory
 if [ \$? != 0 ] ; then
-	echo "Failed to ingest data"
-	exit 1
-fi 
+        echo "Failed to ingest data"
+        exit 1
+fi
+closeJob
 
-closeJob 
 " > ${stem}.${step}.bsub
 
 bsub < ${stem}.${step}.bsub

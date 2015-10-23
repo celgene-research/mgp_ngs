@@ -1,4 +1,9 @@
 #!/bin/bash
+
+# script to run Haplotype Caller in a combined mode
+# input is a file with a list of bam files
+# and a bed file with regions to process
+
 scriptDir=$( dirname $0 ); source $scriptDir/../lib/shared.sh
 inputListBAM=$1
 
@@ -7,7 +12,9 @@ NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
 mkdir -p $NGS_LOG_DIR
 stem=$(fileStem $inputListBAM )
 step="GATK.HaplotypeCallerCombinedCalls"
+
 output=${stem}.${step}.vcf
+
 genomeDatabase=${humanGenomeDir}/genome.fa
 genomeIndex=$(echo $genomeDatabase | sed 's%.fa%.dict%') 
 genomeIndex2=${genomeDatabase}.fai
@@ -30,7 +37,7 @@ echo \
 "$header
 
 #BSUB -E \"$scriptDir/../lib/stageReference.sh $step\"
-#$Date: 2015-06-01 18:02:35 -0700 (Mon, 01 Jun 2015) $ $Revision: 1524 $
+#$Date: 2015-10-15 17:44:21 -0700 (Thu, 15 Oct 2015) $ $Revision: 1719 $
 source $scriptDir/../lib/shared.sh
 
 initiateJob $stem $step
@@ -59,11 +66,10 @@ outputDirectory=\$( setOutput \$file ${step} )
 
 
 
-
 experimentType=\$(ngs-sampleInfo.pl \$f experiment_type);
 if [  \"\$experimentType\" == \"DNA-Seq\" ] ; then
 	
-celgeneExec.pl --analysistask $analysistask \"${gatkbin} \
+celgeneExec.pl --analysistask $analysistask \"java -Xmx${memory}m -jar ${gatkbin} \
 -T HaplotypeCaller \
 -R \${genomeDatabase} \${bamString} \
 --dbsnp \${knownMuts1} \
@@ -74,7 +80,7 @@ if [ \$? != 0 ] ; then
 	exit 1
 fi 
 elif [ \"\$experimentType\" == \"RNA-Seq\" ] ; then
-celgeneExec.pl --analysistask $analysistask \"${gatkbin} \
+celgeneExec.pl --analysistask $analysistask \"java -Xmx${memory}m -jar ${gatkbin} \
 -T HaplotypeCaller \
 -R \${genomeDatabase} \${bamString}  \
 -stand_call_conf 20  \

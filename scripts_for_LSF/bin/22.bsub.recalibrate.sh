@@ -14,9 +14,9 @@ cores=2 # although this process requires only one core we use two in order to ma
 genomeDatabase=${humanGenomeDir}/genome.fa
 genomeIndex=$(echo $genomeDatabase | sed 's%.fa%.dict%') 
 genomeIndex2=${genomeDatabase}.fai
-knownMuts1=${dbsnp_gatk}
+knownMuts1=${dbsnp}
 knownMuts2=${mills}
-knownMuts3=${1000g_phase1}
+knownMuts3=${f1000g_phase1}
 memory=6000
 header=$(bsubHeader $stem $step $memory $cores)
 echo \
@@ -48,7 +48,7 @@ outputDirectory=\$( setOutput \$input ${step} )
 
 
 
-celgeneExec.pl --analysistask $analysistask \"${gatkbin} -T BaseRecalibrator \
+celgeneExec.pl --analysistask $analysistask \"java -Xmx${memory}m -jar ${gatkbin} -T BaseRecalibrator \
 -R \${genomeDatabase} \
 -knownSites \${knownMuts1} \
 -knownSites \${knownMuts2} \
@@ -56,7 +56,7 @@ celgeneExec.pl --analysistask $analysistask \"${gatkbin} -T BaseRecalibrator \
 -I \${input} \
 -dt ALL_READS -dfrac 0.10 \
 -o \${outputDirectory}/${stem}.base_recal ; \
-${gatkbin} -T PrintReads \
+java -Xmx${memory}m -jar ${gatkbin} -T PrintReads \
 -I \${input}  \
 -R \${genomeDatabase} \
 -BQSR \${outputDirectory}/${stem}.base_recal \

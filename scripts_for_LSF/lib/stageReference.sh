@@ -119,6 +119,9 @@ case "$option" in
 "STARaln.human" )
    dispatch $humanSTARidxAWS $humanSTARidx
 ;;
+"MISO.human" )
+	dispatch $humanAnnotationDirAWS $humanAnnotationDir
+;;
 "cufflinks.human" )
 	dispatch $humanChromosomesDirAWS $humanChromosomesDir
 	dispatch $humanAnnotationDirAWS $humanAnnotationDir
@@ -144,6 +147,7 @@ case "$option" in
 # Download the reference variants for GATK related jobs
 "GATK"* )
 	dispatch  $humanVariantsDirAWS $humanVariantsDir
+	dispatch $humanGenomeDirAWS $humanGenomeDir
 	dispatch $GATK_REF_AWS $GATK_REF
 ;;
 
@@ -173,12 +177,33 @@ case "$option" in
 
 ##################
 # xenografts
-"BWAmem.rat" )
+"BWAmem.xenograft" )
 	dispatch $human_mouseBWAidxAWS $human_mouseBWAidx
 ;;
 # download the xenograft indexes for STAR
-"STARaln.rat" )
+"STARaln.xenograft" )
 	dispatch $human_mouseSTARidxAWS $human_mouseSTARidx
+;;
+
+# Download reference sequences for xenograft
+"CalculateHsMetrics.xenograft" | \
+"CalculateAlnMetrics.xenograft" | \
+"InsertSize.xenograft" | \
+"CollectRNASeqMetrics.xenograft" | \
+"MarkDuplicates.xenograft" | \
+"LibraryComplexity.xenograft" | \
+"htseqGeneCount.xenograft" )
+	dispatch $human_mouseAnnotationDirAWS $human_mouseAnnotationDir
+	dispatch $human_mouseGenomeDirAWS $human_mouseGenomeDir
+	
+;;
+
+##################
+# rat
+
+# download the xenograft indexes for STAR
+"STARaln.rat" )
+	dispatch $ratSTARidxAWS $ratSTARidx
 ;;
 
 # Download reference sequences for xenograft
@@ -189,8 +214,8 @@ case "$option" in
 "MarkDuplicates.rat" | \
 "LibraryComplexity.rat" | \
 "htseqGeneCount.rat" )
-	dispatch $human_mouseAnnotationDirAWS $human_mouseAnnotationDir
-	dispatch $human_mouseGenomeDirAWS $human_mouseGenomeDir
+	dispatch $ratAnnotationDirAWS $ratAnnotationDir
+	dispatch $ratGenomeDirAWS $ratGenomeDir
 	
 ;;
 

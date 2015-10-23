@@ -1,1 +1,0 @@
-../bin/62.bsub.snpeff.sh

@@ -3,7 +3,7 @@
 # it defines basic variables (server IPS and ports and root folder locations)
 # and sources additional files
 
-#$Date: 2015-05-22 12:22:28 -0700 (Fri, 22 May 2015) $ $Revision: 1472 $ by $Author: kmavrommatis $
+#$Date: 2015-10-16 16:57:09 -0700 (Fri, 16 Oct 2015) $ $Revision: 1724 $ by $Author: kmavrommatis $
 
 
 
@@ -57,7 +57,7 @@ if [ "$CELGENE_AWS" == "true" ]; then
 
 	export NGS_LOG_DIR=/celgene/software/LOGS/
 	if [ -d /scratch ];then
-		export NGS_TMP_DIR=/scratch
+		export NGS_TMP_DIR=/scratch/tmp
 	else
 		export NGS_TMP_DIR=/celgene/tmp
 	fi
@@ -65,11 +65,12 @@ if [ "$CELGENE_AWS" == "true" ]; then
 fi
 ###############################
 
+
 mkdir -p $NGS_TMP_DIR
 export TMPDIR=$NGS_TMP_DIR/tmp
 mkdir -p $TMPDIR
-chmod 1777 $TMPDIR
-
+chmod 1777 $TMPDIR 2>/dev/null
+ 
 export _JAVA_OPTIONS=-Djava.io.tmpdir=${NGS_TMP_DIR}
 	
 
@@ -79,9 +80,14 @@ export _JAVA_OPTIONS=-Djava.io.tmpdir=${NGS_TMP_DIR}
 #######
 # source config file with binaries
 DEFAULT_CONFIG=${NGS_LSF_SCRIPTS}/config/config.sh
+DEFAULT_CONFIG_SYS=${NGS_LSF_SCRIPTS}/config/config_sys.sh
 if [ -z $NGS_CONFIG_FILE ] ;then
 	NGS_CONFIG_FILE=$DEFAULT_CONFIG
 fi
+if [ -z $NGS_CONFIG_SYS_FILE ] ;then
+	NGS_CONFIG_SYS_FILE=$DEFAULT_CONFIG_SYS
+fi
+source ${NGS_CONFIG_SYS_FILE}
 source ${NGS_CONFIG_FILE}
 ###############################
 # variables dependent on previous settings
@@ -95,7 +101,7 @@ source ${NGS_CONFIG_FILE}
 	export PERL5LIB=$PERL5LIB:$NGS_APPLICATION_DIR/perl/lib/perl5/
 	export PERL5LIB=$PERL5LIB:$NGS_APPLICATION_DIR/perl/lib64/perl5/
 	export PERL5LIB=$PERL5LIB:$NGS_APPLICATION_DIR/perl/share/perl5/
-	export PERL5LIB=$PERL5LIB:$NGS_APPLICATION_DIR/vcftools/DEFAULT/lib/perl5/site_perl/
+	export PERL5LIB=$PERL5LIB:$NGS_PERL5LIB
 	
 	export PYTHONPATH=""
 	export PYTHONPATH=$PYTHONPATH:$NGS_PYTHONPATH

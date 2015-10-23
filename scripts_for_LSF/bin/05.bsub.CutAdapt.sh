@@ -46,7 +46,7 @@ header=$(bsubHeader $stem $step $memory $cores)
 echo \
 "$header
 
-#$Date: 2015-06-01 18:04:39 -0700 (Mon, 01 Jun 2015) $ $Revision: 1527 $
+#$Date: 2015-10-05 18:27:44 -0700 (Mon, 05 Oct 2015) $ $Revision: 1693 $
 source $scriptDir/../lib/shared.sh 
 set -e
 initiateJob $stem $step
@@ -103,8 +103,11 @@ fi
 # command for single end sequences
 #celgeneExec.pl --analysistask ${analysistask} \"$binary -o /dev/null $adapterCMD2 ${input2} >> \${output1}\" 
 
-
+if [ \"${readPE}\" == \"1\" ]; then 
 runQC-fastq.pl --logfile \$MASTER_LOGFILE --inputfq \${input},\${input2} --outputfile \${output1} --reuse --qcStep Adapter
+else
+runQC-fastq.pl --logfile \$MASTER_LOGFILE --inputfq \${input},\${input} --outputfile \${output1} --reuse --qcStep Adapter	
+fi
 if [ \$? != 0 ] ; then
 	echo "Failed to update database"
 	exit 1

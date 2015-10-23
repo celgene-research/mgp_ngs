@@ -1,8 +1,0 @@
-(
-    (na FILTER | FILTER = 'PASS')&
-  (
-    (exists ID & ID =~ 'COSM' )|
-    (EFF[*].IMPACT = 'HIGH')|
-    (EFF[*].IMPACT='MODERATE')
-  )
-)

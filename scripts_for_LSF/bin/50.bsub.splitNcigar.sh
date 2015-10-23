@@ -24,31 +24,33 @@ header=$(bsubHeader $stem $step $memory $cores)
 echo \
 "$header
 
-#BSUB -E \"$scriptDir/../lib/stageReference.sh $step\"
-#$Date: 2015-06-01 18:02:35 -0700 (Mon, 01 Jun 2015) $ $Revision: 1524 $
+#$Date: 2015-10-14 07:44:57 -0700 (Wed, 14 Oct 2015) $ $Revision: 1704 $
 source $scriptDir/../lib/shared.sh
 
 initiateJob $stem $step
 set -e
 input=\$( stage.pl --operation out --type file  $input )
 index=\$( stage.pl --operation out --type file  $index )
-genomeDatabase=\$( stage.pl --operation out --type file  $genomeDatabase )
-genomeIndex=\$( stage.pl --operation out --type file ${genomeIndex}  )
-genomeIndex2=\$( stage.pl --operation out --type file ${genomeIndex2}  )
-if [ \$input == \"FAILED\" -o \$genomeDatabase == \"FAILED\" ] ; then
-	echo \"Could not transfer \$input\"
-	exit 1
-fi
+genomeDatabase=$genomeDatabase 
+genomeIndex=${genomeIndex}  
+genomeIndex2=${genomeIndex2} 
 
 outputDirectory=\$( setOutput \$input ${step} )
 
 
+# check the baseline for quality and append the command --fix_misencoded_quality_scores
+base=\$( $samtoolsbin view \${input} | head -1000 | checkQualityEncoding.pl)
+if [ \"\${base}\" == \"64\" ] ; then
+fixQual=\" --fix_misencoded_quality_scores \"
+else
+fixQual=\"\"
+fi
 
 
-celgeneExec.pl --analysistask $analysistask \"${gatkbin} \
+celgeneExec.pl --analysistask $analysistask \"java -Xmx${memory}m -jar ${gatkbin} \
   -T SplitNCigarReads \
   -R \${genomeDatabase}  \
-  --fix_misencoded_quality_scores \
+  $fixQual \
   -I \${input} \
   -o \${outputDirectory}/${stem}.split.bam \
   -rf ReassignMappingQuality \
@@ -57,7 +59,7 @@ celgeneExec.pl --analysistask $analysistask \"${gatkbin} \
   -L chr1 -L chr2 -L chr3 -L chr4 -L chr5 -L chr6 -L chr7 -L chr8 -L chr9 -L chr10 -L chr11 -L chr12 \
   -L chr13 -L chr14 -L chr15 -L chr16 -L chr17 -L chr18 -L chr19 -L chr20 -L chr21 -L chr22 -L chrX -L chrY \"
  if [ \$? != 0 ] ; then
-	echo "Failed to run command"
+	echo \"Failed to run command\"
 	exit 1
 fi 
 
