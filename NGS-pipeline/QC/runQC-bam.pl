@@ -11,6 +11,7 @@ use lib $FindBin::RealBin."/lib/";
 use File::Spec;
 use File::Basename;
 use picardQCsteps;
+use homerQCsteps;
 use Celgene::Utils::SVNversion;
 use Celgene::Utils::ArrayFunc;
 use Celgene::Metadata::FileConversion;
@@ -22,7 +23,7 @@ my $arguments=join(" ",@ARGV);
 #my $annotationFile="/opt/reference/Homo_sapiens/GENCODE/hg19/Annotation/gencode.v14.refFlat"; # for ENSEMBL
 
 my ($logLevel,$logFile,$manifest,$help,$inputFQ,$inputBAM,$samplename,$nocommit,$reuse, $nofilecheck, $mapper,$baitsFile,$captureKit)=('INFO',undef,undef);
-my($ribosomal_intervals,$annotationFile,$strand,$genomeFile,$outputFile,$programVersion);
+my($ribosomal_intervals,$annotationFile,$strand,$genomeFile,$outputFile,$programVersion,$usersample_id,$genomeVersion,$sampleFlag);
 my $qcStep;
 GetOptions(
 	"loglevel=s"=>\$logLevel,
@@ -34,19 +35,22 @@ GetOptions(
 	"ribosomal_intervals=s"=>\$ribosomal_intervals,
 	"annotationfile=s"=>\$annotationFile,
 	"genomefile=s"=>\$genomeFile,
+	"genomeversion=s"=>\$genomeVersion,
 	"strand=s"=>\$strand,	
 	"qcStep=s"=>\$qcStep,
 	"nocommit"=>\$nocommit,
 	"reuse"=>\$reuse,
+	"sample_flag=s"=>\$sampleFlag,
 	"nofilecheck"=>\$nofilecheck,
 	"version"=>\$programVersion,
+	"sample_id=i"=>\$usersample_id,
 	"help"=>\$help
 );
 if(!defined($logFile)){
 	if(defined($samplename)){$logFile= $samplename.".log";}
 	else{$logFile = "runQC.log";}
 }
-my $version=Celgene::Utils::SVNversion::version( '$Date: 2015-05-22 12:22:28 -0700 (Fri, 22 May 2015) $ $Revision: 1472 $' );
+my $version=Celgene::Utils::SVNversion::version( '$Date: 2015-10-14 09:31:15 -0700 (Wed, 14 Oct 2015) $ $Revision: 1709 $' );
 sub printHelp{
 	print
 	"$0. $version program that drives the QC analysis of samples\n".
@@ -57,11 +61,17 @@ sub printHelp{
 	"   --annotationfile <annotation file in refFlat format> \n".
 	"   --strand <strandness> {[NONE], FIRST_READ_TRANSCRIPTION_STRAND, SECOND_READ_TRANSCRIPTION_STRAND}\n".
 	"   --genomefile <fasta file with the genome used for reference>\n".
+	"   --genomeversion the version of the genome used (must match the version used with homer) e.g. hg19\n".
 	"   --baitsFile <intervals file with baits used for exome sequencing\n".
 	"   --captureKit <name of the capture kit>\n".
 	" --reuse will search for existing output files before it runs any QC module\n".
-	" --qcStep define QC module to run ('MarkDuplicates','CollectAlnSummary','CollectInsertSize','CollectRNASeqMetrics','BamIndex','LibraryComplexity','CaptureHsMetrics','Xenograft')\n".
+	" --sample_flag a flag the defines the type of sample information to store 
+	('original' : for the standard information [default]
+	 'tumor'/'host'  : for Qc on processed xenograft data, used to store either host or tumor data)".
+	" --qcStep define QC module to run 
+	('MarkDuplicates','CollectAlnSummary','CollectInsertSize','CollectRNASeqMetrics','BamIndex','LibraryComplexity','CaptureHsMetrics','Xenograft','Homer')\n".
 	" --nocommit will not update the database\n".
+	
 	" --nofilecheck will not check if input files (bam) exists.\n".
 	" --version will return the version(s) of the QC programs\n".
 	" --logLevel/--logFile standard logger arguments\n".
@@ -101,8 +111,10 @@ Log::Log4perl->init(\$logConf);
 my $logger=Log::Log4perl->get_logger("runQC-bam");
 
 my $picardQC=picardQCsteps->new();
+my $homerQC=homerQCsteps->new();
 my $QCversion=$picardQC->getVersion();
-if(defined($programVersion)){ print $QCversion,"\n"; exit(0);}
+my $QChomerversion=$homerQC->getVersion();
+if(defined($programVersion)){ print $QCversion," ",$QChomerversion,"\n"; exit(0);}
 
 if (    (!defined($inputBAM)   )  ){
 	printHelp();
@@ -114,17 +126,26 @@ if(defined($inputBAM) and !defined($reuse) and(!defined($ribosomal_intervals) or
    	printHelp();
    	$logger->logdie("Please provide additional alignment metadata");
    }
-require File::Spec;
-require Cwd;
-$inputBAM=File::Spec->rel2abs( $inputBAM );
-$inputBAM=Cwd::abs_path( $inputBAM );
-if(!-e $inputBAM and !defined($nofilecheck)){
-	$logger->logdie("Cannot find file $inputBAM");
+   
+if( !defined($sampleFlag)){ $sampleFlag='original'}
+if( $sampleFlag ne 'original' and $sampleFlag ne 'host' and $sampleFlag ne 'tumor'){
+	$logger->logdie("Unknown sample flag $sampleFlag");
+}   
+   
+if( $inputBAM !~/^s3/){
+	require File::Spec;
+	require Cwd;
+	$inputBAM=File::Spec->rel2abs( $inputBAM );
+	$inputBAM=Cwd::abs_path( $inputBAM );
+	if(!-e $inputBAM and !defined($nofilecheck)){
+		$logger->logdie("Cannot find file $inputBAM");
+	}
 }
 
 $logger->info("$0 ($version).");
 $logger->info("Host: $host");
 $logger->info("Arguments $arguments");
+$logger->info("Processing input files $inputBAM");
 
 	if(!defined($samplename)){$samplename="sample";}
 
@@ -157,53 +178,68 @@ $picardQC->runPicardQC($bamfile,$qcStep);
 
 $picardQC->parseFile( $bamfile, $qcStep);
 
+
+$homerQC->outputDirectory($outputFile );
+if(defined($reuse)){$homerQC->reuse();}
+
+$homerQC->genomeFile( $genomeVersion );
+$homerQC->runHomerQC($bamfile,$qcStep);
+$homerQC->parseFile( $bamfile, $qcStep);
+
+
+if(lc($qcStep) eq 'homer'){	
+	my $bq=processBAMhomer( $homerQC );
+#	print Dumper( $bq );
+	getFromXMLserver('sampleQC.updateAlignmentQC',$bq, $sample_id,$sampleFlag);
+}
+
 if($qcStep eq 'CaptureHsMetrics'){	
 	if((!defined($reuse) and !defined($baitsFile)) or !defined($captureKit)){ $logger->logdie("In order to run CaptureHsMetrics you need to provide captureKit and baitsFile")};
 	my $bq=processBAMCalculateHsMetrics( $picardQC );
 #	print Dumper( $bq );
-	getFromXMLserver('sampleQC.updateAlignmentQC',$bq, $sample_id);
+	getFromXMLserver('sampleQC.updateAlignmentQC',$bq, $sample_id, $sampleFlag);
 }
 if($qcStep eq 'MarkDuplicates'){	
 	my $bq=processBAMMarkDuplicates( $picardQC );
 #	print Dumper( $bq );
-	getFromXMLserver('sampleQC.updateAlignmentQC',$bq, $sample_id);
+	getFromXMLserver('sampleQC.updateAlignmentQC',$bq, $sample_id, $sampleFlag);
 }
 if($qcStep eq 'CollectAlnSummary'){
 	my $bq=processBAMCollectAlnSummaryMetrics( $picardQC );
 #	print Dumper( $bq );
 #	exit;
-	getFromXMLserver('sampleQC.updateAlignmentQC',$bq, $sample_id);
+	getFromXMLserver('sampleQC.updateAlignmentQC',$bq, $sample_id, $sampleFlag);
 }
 if($qcStep eq 'CollectInsertSize'){
 	my $bq=processBAMCollectInsertSizeMetrics( $picardQC );
 #	print Dumper( $bq );
 #	exit;
-	getFromXMLserver('sampleQC.updateAlignmentQC',$bq, $sample_id );
+	getFromXMLserver('sampleQC.updateAlignmentQC',$bq, $sample_id, $sampleFlag );
 }
 if($qcStep eq 'CollectRNASeqMetrics'){
 	my $bq=processBAMCollectRNASeqMetrics( $picardQC );
 #print Dumper( $bq );
-	getFromXMLserver('sampleQC.updateAlignmentQC',$bq, $sample_id );
+	getFromXMLserver('sampleQC.updateAlignmentQC',$bq, $sample_id, $sampleFlag );
 }
 if($qcStep eq 'BamIndex'){
 	my $bq=processBAMBamIndex( $picardQC );
 #	print Dumper( $bq );
 #	exit;
 
-	getFromXMLserver('sampleQC.updateAlignmentQC',$bq, $sample_id);
+	getFromXMLserver('sampleQC.updateAlignmentQC',$bq, $sample_id, $sampleFlag);
 }
 if($qcStep eq 'LibraryComplexity'){
 	my $bq=processBAMLibraryComplexity( $picardQC );
 #	print Dumper( $bq );
 #	exit;
-	getFromXMLserver('sampleQC.updateAlignmentQC',$bq, $sample_id);
+	getFromXMLserver('sampleQC.updateAlignmentQC',$bq, $sample_id, $sampleFlag);
 }
 if($qcStep eq 'Xenograft'){
 	my $bq=processXenograft( $picardQC );
 #	print Dumper( $bq );
 #	exit;
 
-	getFromXMLserver('sampleQC.updateAlignmentQC',$bq, $sample_id);
+	getFromXMLserver('sampleQC.updateAlignmentQC',$bq, $sample_id, $sampleFlag);
 }
 
 
@@ -214,6 +250,7 @@ $logger->info("Processing finished successfully");
 
 sub getsampleid{
 	my ($vendor_id,$bamfile)=@_;
+	if(defined($usersample_id)){return ($usersample_id,undef,undef);}
 	my($is_paired_end,$is_stranded)=(undef,undef);
 	my ($sql,$cur,$sample_id);
 	# get the sample id from the  metadata
@@ -222,8 +259,8 @@ sub getsampleid{
 
 	my @bam=split(",",$bamfile);
 	foreach my $bam(@bam){
-		$bam=Celgene::Metadata::FileConversion::cf( $bam ));
-		$bam=File::Spec->rel2abs( $bam );
+		
+		$bam=File::Spec->rel2abs( $bam ) if ($bam !~/^s3/);
 		my $t=getFromXMLserver('metadataInfo.getSampleIDByFilename',$bam);
 		@t2=(@t2, @$t);
 	}
@@ -406,6 +443,25 @@ sub processBAMLibraryComplexity{
 	}
 }
 
+sub processBAMhomer{
+	my($homerQC)=@_;
+	print Dumper($homerQC);	
+	return{
+		'homer_taggccontent'=> $homerQC->{ tag_gc},
+		'homer_taggccount'=> $homerQC->{ tag_gc_total},
+		'homer_genomegccontent'=> $homerQC->{genome_gc},
+		'homer_genomegccount'=> $homerQC->{genome_gc_total},
+		'homer_fragment_length'=> $homerQC->{fragment_length_estimate},
+		'homer_peak_width'=> $homerQC->{peak_width_estimate},
+		'homer_tagdistance'=> $homerQC->{distance},
+		'homer_tagautocorrelation_samestrand'=> $homerQC->{same_strand_count},
+		'homer_tagautocorrelation_oppositestrand'=> $homerQC->{opposite_strand_count},
+		'homer_tags_position'=> $homerQC->{tags_position},
+		'homer_tags_per_position'=> $homerQC->{tags_per_position},
+	};
+	
+}
+
 # finding the library of the reads is equivalent to
 #samtools view $1 | cut -f3,4 -d ':'| uniq | sort | uniq | tr ':' '      '
 
@@ -441,7 +497,7 @@ sub getFromXMLserver{
 	my(@args)=@_;
 	
 	my $result;
-	
+	$logger->debug("getFromXMLserver: requesting information from the RPC service:\n\t",join(" " , @args));
 	#while( 1 ){
 		$result = $server->call( @args );
 		

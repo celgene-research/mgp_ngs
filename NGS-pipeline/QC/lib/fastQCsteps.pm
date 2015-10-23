@@ -333,7 +333,8 @@ sub parseFastQC{
 		if($line=~/>>Per base sequence quality/){
 			$self->parseBaseQuality($index);
 		}
-		if($line=~/>>Per base GC content/){
+		if($line=~/>>Per base sequence content/ or 
+		   $line=~/>>Per base GC content/){
 			$self->parseBaseGC($index);
 		}
 		if($line=~/>>Per base N content/){
@@ -568,9 +569,15 @@ sub parseBaseGC{
 			last;
 		}
 		if($line=~/#/){next;}
-		my($base,$GC)=split("\t",$line);
+		my($base,@GC)=split("\t",$line);
 		$base--;
-		$self->{GC}->[$index]->[$base]=int($GC);
+		#older Fastqc output
+		if( scalar(@GC) < 4 ){
+			$self->{GC}->[$index]->[$base]=int($GC[0]);
+		}else{
+			# newer fastqc output. they have %ages for each base separately
+			$self->{GC}->[$index]->[$base]=int( $GC[0] + $GC[3] );
+		}
 	}
 	return;
 }

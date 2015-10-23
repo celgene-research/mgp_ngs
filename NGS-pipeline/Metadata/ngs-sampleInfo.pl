@@ -11,7 +11,7 @@ use Celgene::Utils::SVNversion;
 use Getopt::Long;
 use Log::Log4perl;
 
-my $version=Celgene::Utils::SVNversion::version( '$Date: 2015-06-25 15:56:06 -0700 (Thu, 25 Jun 2015) $ $Revision: 1612 $ by $Author: kmavrommatis $' );
+my $version=Celgene::Utils::SVNversion::version( '$Date: 2015-09-16 14:31:45 -0700 (Wed, 16 Sep 2015) $ $Revision: 1645 $ by $Author: kmavrommatis $' );
 
 my($help,$log_level,$log_file,$showversion);
 GetOptions(
@@ -102,16 +102,20 @@ my $server = Frontier::Client->new('url' => $server_url.'/RPC2');
 #print "Connecting to server $server_url\n";
 
 
-
+if($field eq 'bait_set'){
+	$field='exome_bait_set_name';
+}
 
 my $idArray = $server->call('metadataInfo.getSampleIDByFilename',$filename);
+$logger->trace(Dumper($idArray));
 my @retVals;
 foreach my $id ( @{$idArray}){
 	
 	$logger->debug( "Found sample $id corresponding to file\n");
 	if(defined($id)){
+		$logger->trace("Getting data for id:$id");
 		my $data=$server->call('sampleInfo.getSampleByID', $id);
-		#print STDERR Dumper( $data );
+		$logger->trace(Dumper( $data ));
 		if(!defined( $data ) or $data eq ''){next;}
 		my $retVal= $data->{ $field };
 		$retVal =~s/\s/_/g;

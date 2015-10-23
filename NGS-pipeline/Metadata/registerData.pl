@@ -108,7 +108,15 @@ sub loadFile{
 }
 
 sub getTitles{
-	my $titleLine=shift @filelines;
+	
+	my $titleLine;
+	
+	for(my $i=0; $i<scalar(@filelines);$i++){
+		my $l=shift(@filelines);
+		if($l=~/^#/){next;}
+		$titleLine=$l ;
+		last;
+	}
 	my @titles=split("\t",$titleLine);
 	my %titles;
 	

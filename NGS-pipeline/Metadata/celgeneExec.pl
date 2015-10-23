@@ -20,7 +20,7 @@ use fileObj;
 use Getopt::Long;
 
 
-my $version=Celgene::Utils::SVNversion::version( '$Date: 2015-06-08 15:01:26 -0700 (Mon, 08 Jun 2015) $ $Revision: 1590 $ by $Author: kmavrommatis $' );
+my $version=Celgene::Utils::SVNversion::version( '$Date: 2015-08-16 22:19:49 -0700 (Sun, 16 Aug 2015) $ $Revision: 1625 $ by $Author: kmavrommatis $' );
 
 my($help,$log_level,$log_file,$analysis_task,$derived_from,$derived_from_file,$showversion,@output_file,$norun);
 GetOptions(

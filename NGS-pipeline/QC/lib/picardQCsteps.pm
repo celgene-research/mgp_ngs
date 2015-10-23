@@ -379,7 +379,7 @@ sub parseFile{
 	
 	elsif(lc($step) eq 'xenograft'){ $self->parseXenograft( $self->outputFile() );}
 	
-	else{ $self->{logger}->logdie("Unknown QC module $step")}
+	else{ $self->{logger}->warn("Unknown QC module $step for picard"); return ; }
 }
 
 
@@ -481,7 +481,7 @@ sub parseAlnSummary{
 
 sub parseDuplicates{
 	my($self,$file)=@_;
-	$self->{logger}->debug("parseHsMetrics:Processing file $file for general information");
+	$self->{logger}->debug("parseDuplicates:Processing file $file for general information");
 	my $rfh=Celgene::Utils::FileFunc::newReadFileHandle($file);
 	while(my $l=<$rfh>){
 		if($l=~/# METRICS CLASS/){
@@ -522,9 +522,21 @@ sub parseDuplicates{
 	}
 	close($rfh);
 }
+
+
+#parseHsMetrics parses the output from CollectHsMetrics which is something like the following: 
+## htsjdk.samtools.metrics.StringHeader
+
+## htsjdk.samtools.metrics.StringHeader
+# Started on: Fri Sep 18 22:29:14 UTC 2015
+
+## METRICS CLASS        picard.analysis.directed.HsMetrics
+#BAIT_SET        GENOME_SIZE     BAIT_TERRITORY  TARGET_TERRITORY        BAIT_DESIGN_EFFICIENCY  TOTAL_READS     PF_READS        PF_UNIQUE_READS PCT_PF_READS    PCT_PF_UQ_READS PF_UQ_READS_ALIGNED  PCT_PF_UQ_READS_ALIGNED  PF_UQ_BASES_ALIGNED     ON_BAIT_BASES   NEAR_BAIT_BASES OFF_BAIT_BASES  ON_TARGET_BASES PCT_SELECTED_BASES      PCT_OFF_BAIT    ON_BAIT_VS_SELECTED     MEAN_BAIT_COVERAGE   MEAN_TARGET_COVERAGE     PCT_USABLE_BASES_ON_BAIT        PCT_USABLE_BASES_ON_TARGET      FOLD_ENRICHMENT ZERO_CVG_TARGETS_PCT    FOLD_80_BASE_PENALTY    PCT_TARGET_BASES_2X     PCT_TARGET_BASES_10X PCT_TARGET_BASES_20X     PCT_TARGET_BASES_30X    PCT_TARGET_BASES_40X    PCT_TARGET_BASES_50X    PCT_TARGET_BASES_100X   HS_LIBRARY_SIZE HS_PENALTY_10X  HS_PENALTY_20X  HS_PENALTY_30X  HS_PENALTY_40X       HS_PENALTY_50X  HS_PENALTY_100X AT_DROPOUT      GC_DROPOUT      SAMPLE  LIBRARY READ_GROUP
+#SureSelect_Human_All_exon_v4+UTRs_71Mb_(Agilent)        3101804739      70569107        70569107        1       121405760       121405760       121405760       1       1       120399290       0.9917	1       12048524628     9210365960      1229964140      1608194528      9210365960      0.866524        0.133476        0.882191        130.515552      130.64193       0.754368        0.754368     33.600276        0.001475        2.666162        0.996598        0.982369        0.950548        0.906663        0.854411        0.797282        0.514687                0       0       0       0    00       1.807404        0.879221
+
 sub parseHsMetrics{
 	my($self,$file)=@_;
-	$self->{logger}->debug("parseDuplicates:Processing file $file for general information");
+	$self->{logger}->debug("parseHsMetrics:Processing file $file for general information");
 	my $rfh=Celgene::Utils::FileFunc::newReadFileHandle($file);
 	while(my $l=<$rfh>){
 		if($l=~/# METRICS CLASS/){
@@ -578,6 +590,7 @@ sub parseHsMetrics{
 	        $self->{library },
 	        $self->{read_group}
 			)=split("\t", $l);
+			if(!defined($self->{hs_library_size} ) or $self->{hs_library_size} eq ""){$self->{hs_library_size}=0;}
 		}
 	}
 	close($rfh);

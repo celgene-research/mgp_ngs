@@ -19,15 +19,16 @@ use Data::Dumper;
 my $host=hostname;
 my $arguments=join(" ",@ARGV);
 #my $annotationFile="/opt/reference/Homo_sapiens/GENCODE/hg19/Annotation/gencode.v14.refFlat"; # for ENSEMBL
-my $version=Celgene::Utils::SVNversion::version( '$Date: 2015-05-22 12:22:28 -0700 (Fri, 22 May 2015) $ $Revision: 1472 $' );
+my $version=Celgene::Utils::SVNversion::version( '$Date: 2015-10-14 08:34:44 -0700 (Wed, 14 Oct 2015) $ $Revision: 1707 $' );
 my ($logLevel,$logFile,$manifest,$help,$inputFQ,$inputBAM,$samplename,$nocommit,$reuse, $mapper)=('INFO',undef,undef);
-my($ribosomal_intervals,$annotationFile,$strand,$genomeFile,$qcStep,$outputFile);
+my($ribosomal_intervals,$annotationFile,$strand,$genomeFile,$qcStep,$outputFile,$sampleFlag);
 GetOptions(
 	"loglevel=s"=>\$logLevel,
 	"logfile=s"=>\$logFile,
 	"inputfq=s"=>\$inputFQ,
 	"outputfile=s"=>\$outputFile,
 	"samplename=s"=>\$samplename,
+	"sample_flag=s"=>\$sampleFlag,
 	"nocommit"=>\$nocommit,
 	"reuse"=>\$reuse,
 	"qcStep=s"=>\$qcStep,
@@ -46,6 +47,9 @@ sub printHelp{
 	" --samplename <sample name> [sample]\n".
 	" --inputfq <input fastq file> (should be a comma separated list of two files)\n".
 	" --outputfile <file to store QC output>. The contents of this file will be automatically added to the database\n".
+	" --sample_flag a flag the defines the type of sample information to store 
+	('original' : for the standard information [default]
+	 'trimmed'  : for Qc on reads after trimming)".
 	" --reuse will search for existing output files before it runs fastqc \n".
 	" --qcStep define QC module to run ('FastQC','LaneDistribution','Adapter')\n".
 	" --nocommit will not update the database\n".
@@ -96,6 +100,14 @@ $logger->info("Arguments $arguments");
 
 	if(!defined($samplename)){$samplename="sample";}
 
+   
+if( !defined($sampleFlag)){ $sampleFlag='original'}
+if( $sampleFlag ne 'original' and $sampleFlag ne 'trimmed'){
+	$logger->logdie("Unknown sample flag $sampleFlag");
+}   
+   
+
+
 	
 my($name, $inlist)=( $samplename, $inputFQ);
 $logger->info("Processing fastq: $inlist") if(defined($inlist));
@@ -128,16 +140,16 @@ if($qcStep eq 'FastQC'){
 
 #	print Dumper($fqc);
 
-	getFromXMLserver("sampleQC.updateReadQC", $fqc,$sample_id);
+	getFromXMLserver("sampleQC.updateReadQC", $fqc,$sample_id, $sampleFlag);
 }
 if($qcStep eq 'LaneDistribution'){
 	my $fqc=processLane( $fastQC );
-	getFromXMLserver("sampleQC.updateReadQC", $fqc,$sample_id);
+	getFromXMLserver("sampleQC.updateReadQC", $fqc,$sample_id, $sampleFlag);
 }
 if($qcStep eq 'Adapter'){
 	my $fqc=processAdapter( $fastQC );
 	
-	getFromXMLserver("sampleQC.updateReadQC", $fqc,$sample_id);
+	getFromXMLserver("sampleQC.updateReadQC", $fqc,$sample_id, $sampleFlag);
 }
 
 

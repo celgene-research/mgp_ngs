@@ -14,7 +14,7 @@ use Cwd;
 use Celgene::Utils::SVNversion;
 
 
-my $version=Celgene::Utils::SVNversion::version( '$Date: 2015-06-26 12:37:00 -0700 (Fri, 26 Jun 2015) $ $Revision: 1621 $ by $Author: kmavrommatis $' );
+my $version=Celgene::Utils::SVNversion::version( '$Date: 2015-10-12 17:09:33 -0700 (Mon, 12 Oct 2015) $ $Revision: 1696 $ by $Author: kmavrommatis $' );
 
 my($help,$type,$operation,$flag,$forcecopy,$forcelink,$logLevelArg,$logFileArg,$showversion);
 GetOptions(
@@ -136,10 +136,14 @@ if(!defined($NGS_TMP_DIR)){
 	$logger->logdie( "Cannot find the temporary directory. Env variable NGS_TMP_DIR is not set\n");
 }
 
+
+
 my $CELGENE_NGS_BUCKET=sanitizeFilename( $ENV{CELGENE_NGS_BUCKET} );
 if(!defined($CELGENE_NGS_BUCKET)){ $CELGENE_NGS_BUCKET="";}
 if( substr( $CELGENE_NGS_BUCKET , -1) eq '/' ){ chop $CELGENE_NGS_BUCKET; }
 my $aws; if(defined($ENV{CELGENE_AWS})){ $aws =1; }
+
+
 
 
 my ($src, $dest);
@@ -188,12 +192,19 @@ $dest=~s!^s3:/!s3://!;
 print $dest;
 
 # get the absolute full path of the file (or keep the same if it is an S3 object)
+
 sub getObjectPath{
 	my($object)=@_;
 	$logger->debug("getObjectPath: received $object");
 	my $isS3='no';
-	if($object =~/^s3:/){
-		$isS3='yes';
+	if($object =~/(^s3:\/\/[a-z,A-Z,\-]+)/  ){
+
+                $isS3='yes';
+                my $object_bucket=$1;
+                if($object_bucket ne $CELGENE_NGS_BUCKET){
+                        $logger->warn("getObjectPath: the s3 bucket of this object [$object_bucket] is different than the default bucket [$CELGENE_NGS_BUCKET]. I will proceed with the new information.");
+                        $CELGENE_NGS_BUCKET=$object_bucket;
+                }
 	}else{
 		$object=
 		getFullFilePath( $object );
