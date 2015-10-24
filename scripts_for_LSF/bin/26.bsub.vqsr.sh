@@ -19,7 +19,13 @@ resource3=${f1000g_snps_gatk}
 resource4=${dbsnp}
 resource5=${mills}
 memory=6000
+experimentType=$(ngs-sampleInfo.pl $inputVCF experiment_type);
+if [[  \"$experimentType\" =~ ^DNA-Seq ]] ; then
+echo "The input file comes from a DNA-Seq experiment and VariantRecalibration (VQSR) will be used"
+elif [[ \"$experimentType\" =~ ^RNA-Seq ]] ; then
 
+echo "The input file comes from a RNA-Seq experiment and VariantFiltration will be used"
+fi
 header=$(bsubHeader $stem $step $memory $cores)
 echo \
 "$header
@@ -50,6 +56,7 @@ outputDirectory=\$( setOutput \$inputVCF ${step} )
 ## -an InbreedingCoeff is an option suggested by GATK best practices but in all cases I have tried
 #  it gives me the error:
 # Bad input: Values for InbreedingCoeff annotation not detected for ANY training variant in the input callset.
+if [[  \"$experimentType\" =~ ^DNA-Seq ]] ; then
 
 celgeneExec.pl --analysistask $analysistask \"\
 java -Xmx${memory}m -jar ${gatkbin} \
@@ -97,10 +104,32 @@ java -Xmx${memory}m -jar ${gatkbin} \
    -tranchesFile \${outputDirectory}/${stem}.tranches \
    -recalFile \${outputDirectory}/${stem}.vqsr-indel.recal  \
 	--out \${outputDirectory}/${stem}.vqsr.vcf  \"  
+
 if [ \$? != 0 ] ; then
 	echo "Failed to run command"
 	exit 1
 fi 
+
+elif [[ \"$experimentType\" =~ ^RNA-Seq ]] ; then
+celgeneExec.pl --analysistask $analysistask \"\
+java -Xmx${memory}m -jar ${gatkbin} \
+ 	-T VariantFiltration \
+	-R  \${genomeDatabase} \
+	-V \${inputVCF} \
+	-window 35 \
+	-cluster 3 \
+	-filterName FS \
+	-filter 'FS > 30.0' \
+	-filterName QD \
+	-filter 'QD < 2.0'\
+	-o \${outputDirectory}/${stem}.varfilt.vcf \"
+
+if [ \$? != 0 ] ; then
+	echo "Failed to run command"
+	exit 1
+fi 
+fi
+
 
 ingestDirectory \$outputDirectory
 if [ \$? != 0 ] ; then
