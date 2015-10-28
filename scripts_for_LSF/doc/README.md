@@ -39,6 +39,7 @@ Although this can also be managed by a NGS_CONFIG_SYS_FILE env variable, it is r
 Each output directory has a numeric suffix (which is the epoch of the time of the run). If you want to change this number you can set the **$NGS_SUFFIX** variable to the number you wish
 Before you run a script you can set the environment variable **$NGS_OUTPUT_DIRECTORY** to a string. This string will be added to the output directory before the numeric prefix.
 
+The output of the pipeline is typically stored in a directory that is derived from the input directory by replacing SRC with Processed and at the end replacing the last directory with the analysis task name. If a user wants a different Processed directory the env variable **$NGS_PROCESSED_DIRECTORY** can be used.
 
 
 ##Help and other information
