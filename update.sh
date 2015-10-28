@@ -11,8 +11,10 @@ echo "Example: cd ~/ngs; git pull; bash update.sh"
 
 DD=/celgene/software
 
+
+
 rsync -avq --recursive scripts_for_LSF ${DD}/scripts_for_LSF
-rsync -avq --recursive NGS_pipeline ${DD}/NGS-pipeline
+rsync -avq --recursive NGS-pipeline ${DD}/NGS-pipeline
 rsync -avq --recursive Celgene ${DD}/perl/lib/perl5/Celgene/
 
 for i in `find $DD/scripts_for_LSF/  | grep sh$`; do chmod 755 $i; done
