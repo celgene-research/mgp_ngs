@@ -141,7 +141,7 @@ function getStdSuffix(){
 	if [ -z "${NGS_OUTPUT_DIRECTORY}" ]; then
 		echo -n
 	else
-		suffix=${$NGS_OUTPUT_DIRECTORY}_${suffix}
+		suffix=${NGS_OUTPUT_DIRECTORY}_${suffix}
 		echo "User has provided an additional component (${NGS_OUTPUT_DIRECTORY}) of the suffix. The directory suffix is now ${suffix}"
 	fi
 	
