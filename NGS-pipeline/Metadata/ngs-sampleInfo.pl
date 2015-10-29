@@ -50,11 +50,12 @@ ngs-sampleInfo.pl v ". $version ."
 
 is a simple script to extract single values from the NGS database.
 Usage
-ngs-sampleInfo.pl [options] <filename> <field>
+ngs-sampleInfo.pl [options] <filename> <field> <updatevalue>
 
 filename: the name of the file that needs to be searched in the database
 field   : a database field. Currently supported fields are
 ". join("\n\t", keys(%supportedFields)),"
+updatevalue: is the value that will be added to that field 
 
 options are:
  -h | --help get help for the script
@@ -82,7 +83,7 @@ if(defined($showversion)){
 
 my $logger=setUpLog();
 
-my($filename, $field)=@ARGV;
+my($filename, $field, $updateValue)=@ARGV;
 
 if(!defined($filename) ) {
 	$logger->logdie( "Please provide filename");
@@ -92,6 +93,9 @@ if(!defined($field)) {
 }
 if(!defined($supportedFields{ $field })) {
 	$logger->logdie( "Unsupported field $field");
+}
+if(defined($updateValue)){
+	$logger->info("Will update field $field with value $updateValue");
 }
 
 
@@ -105,6 +109,10 @@ my $server = Frontier::Client->new('url' => $server_url.'/RPC2');
 if($field eq 'bait_set'){
 	$field='exome_bait_set_name';
 }
+
+
+
+
 
 my $idArray = $server->call('metadataInfo.getSampleIDByFilename',$filename);
 $logger->trace(Dumper($idArray));
@@ -128,8 +136,17 @@ else{
 	@retVals=Celgene::Utils::ArrayFunc::unique(\@retVals);
 }
 if(scalar(@retVals)>1){ print join(" ", @retVals);}
-else{ print $retVals[0]}
+else{ print $retVals[0] if defined($retVals[0]) }
 
+
+
+if(defined($updateValue)){
+	my $idArray2 = $server->call('metadataInfo.getSOLRIDByFilename',$filename);
+	foreach my $id2( @$idArray2){
+		$logger->info("Document id $id2: The field $field will be updated and the new value $updateValue will be added.");
+		$server->call('metadataInfo.updateFieldBySOLRID',$field, $updateValue, $id2);
+	}
+}
 
 exit(0);
 
