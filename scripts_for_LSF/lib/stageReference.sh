@@ -112,6 +112,9 @@ case "$option" in
 "Express.human" )
 	dispatch $humanrsemidxAWS $humanrsemidx
 ;;
+"Salmon.human" )
+	dispatch $humanrsemidxAWS $humanrsemidx
+;;
 "Sailfish.human" )
 	dispatch ${humanDirAWS}/SailFishIndex ${humanDir}/SailFishIndex
 ;;
