@@ -137,7 +137,9 @@ After updating this file make sure that is copied in the
 		<glob pattern="*.qcstats"/>
 		<sub-class-of type="text/plain"/>
 	</mime-type>
-
+ 	<mime-type type="text/table">
+		<glob pattern="*.tbl"/>
+	</mime-type>
 	<mime-type type="text/variants">
 		<glob pattern="*.bcf"/>
 		<glob pattern="*.vcf"/>
@@ -165,9 +167,10 @@ After updating this file make sure that is copied in the
 		<glob pattern="*.xprs"/>
 		<glob pattern="*.results"/>
 		<glob pattern="*.stats"/>
+		<glob pattern="*.salmon" />
+		<glob pattern="*.quant" />
 		<glob pattern="*.rsem*"/>
 		<sub-class-of type="text/plain"/>
-		
 	</mime-type>
 	
 
