@@ -92,35 +92,43 @@ fi
 
 outputDirectory=\$( setOutput \$input1 ${step}-bamfiles )
 
-if [ \"$paired_end\" == \"1\" ]; then
+> ${stem}.${step}.bsub
+
+
+
+
+echo "\
 celgeneExec.pl --analysistask ${analysistask} \"\
 $bwabin mem \
   -t $cores \
   -a \
   -R '@RG\tID:$stem\tSM:$stem\tPL:ILLUMINA\tLB:$stem\tPU:$stem' \
+" >> ${stem}.{$step}.bsub
+if [ "$paired_end" == "1" ]; then
+echo \"
   -M \$genomeDatabase/genome.fa \$input1 \$input2 | \
-$filterBamAlnQuality --input - --output - --stats \${outputDirectory}/${stem}.qcstats | \
-$samtoolsbin view -Sbh -F 4 - > \${outputDirectory}/${stem}.bam; \
-$samtoolsbin sort -@ $cores -m 1G \${outputDirectory}/${stem}.bam  \${outputDirectory}/${stem}.coord ; \
-$samtoolsbin index  \${outputDirectory}/${stem}.coord.bam ; mv \${outputDirectory}/${stem}.coord.bam.bai \${outputDirectory}/${stem}.coord.bai ; \
-$samtoolsbin sort -n -@ $cores -m 1G \${outputDirectory}/${stem}.bam  \${outputDirectory}/${stem}.name ; \
-rm \${outputDirectory}/${stem}.bam \"
+" >>  ${stem}.{$step}.bsub
 else
-celgeneExec.pl --analysistask ${analysistask} \"\
-$bwabin mem \
-  -t $cores \
-  -a \
-  -R '@RG\tID:$stem\tSM:$stem\tPL:ILLUMINA\tLB:$stem\tPU:$stem' \
-  -M \$genomeDatabase/genome.fa \$input1 | \
+echo \"
+ -M \$genomeDatabase/genome.fa \$input1 | \
+" >>  ${stem}.{$step}.bsub
+
+if [ "$refdatabase" == "1" ] ;then
+	echo \"
 $filterBamAlnQuality --input - --output - --stats \${outputDirectory}/${stem}.qcstats | \
+" >> ${stem}.${step}.bsub
+fi
+echo \"
 $samtoolsbin view -Sbh -F 4 - > \${outputDirectory}/${stem}.bam; \
 $samtoolsbin sort -@ $cores -m 1G \${outputDirectory}/${stem}.bam  \${outputDirectory}/${stem}.coord ; \
 $samtoolsbin index  \${outputDirectory}/${stem}.coord.bam ; mv \${outputDirectory}/${stem}.coord.bam.bai \${outputDirectory}/${stem}.coord.bai ; \
 $samtoolsbin sort -n -@ $cores -m 1G \${outputDirectory}/${stem}.bam  \${outputDirectory}/${stem}.name ; \
-rm \${outputDirectory}/${stem}.bam \"
+rm \${outputDirectory}/${stem}.bam \" \
+">> ${stem}.${step}.bsub
 
-fi
 
+
+echo "\
 
 ingestDirectory \$outputDirectory
 if [ \$? -ne 0 ] ; then
@@ -130,6 +138,6 @@ fi
 
 
 closeJob
-"> ${stem}.${step}.bsub
+">> ${stem}.${step}.bsub
 
 bsub < ${stem}.${step}.bsub
