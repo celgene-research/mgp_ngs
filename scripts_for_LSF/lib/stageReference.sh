@@ -112,7 +112,7 @@ case "$option" in
 "Express.human" )
 	dispatch $humanrsemidxAWS $humanrsemidx
 ;;
-"Salmon.human" )
+"Salmon-bam.human" )
 	dispatch $humanrsemidxAWS $humanrsemidx
 ;;
 "Sailfish.human" )
