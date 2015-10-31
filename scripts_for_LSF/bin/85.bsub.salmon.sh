@@ -1,7 +1,7 @@
 #!/bin/bash
 scriptDir=$( dirname $0 ); source $scriptDir/../lib/shared.sh
 
-step="Salmon-bam.human"
+step="Salmon-bam"
 inputBAM=$1
 analysistask=38
 

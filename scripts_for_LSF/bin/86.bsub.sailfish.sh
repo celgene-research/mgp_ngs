@@ -13,7 +13,7 @@ stem=$(fileStem $input1)
 output=$stem
 
 
-database=${humanDir}/SailFishIndex
+database=${humanDir}/SailFishIndex_0.7.6
 step=$step.human
 
 export NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
@@ -23,9 +23,9 @@ mkdir -p $NGS_LOG_DIR
 
 paired_end=$(ngs-sampleInfo.pl $input1 paired_end)
 if [ $paired_end == "1" ]; then
-	library="T=PE:O=><:S=AS"
+	library="ISR"
 else
-	library="T=SE:S=A"
+	library="IU"
 fi
 
 # end of command arguments
@@ -61,7 +61,13 @@ export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:\${dd}/lib
 celgeneExec.pl --analysistask ${analysistask} \"\
 $pigzbin -c -d -p $cores \$input1 > \${outputDirectory}/1.fq ; \
 $pigzbin -c -d -p $cores \$input2 > \${outputDirectory}/2.fq ; \
-$sailfishbin quant --index \$database --libtype '$library' -1 \${outputDirectory}/1.fq -2 \${outputDirectory}/2.fq  -o \${outputDirectory}/$stem.$step.sfish -p $cores  --no_bias_correct ; \
+$sailfishbin quant --index \$database \
+  --libtype '$library' \
+  -1 \${outputDirectory}/1.fq -2 \${outputDirectory}/2.fq  \
+  -o \${outputDirectory}/$stem.$step.sfish \
+  -p $cores  \
+  --useVBOpt \
+  --numBootstraps 100  ; \
 rm \${outputDirectory}/*.fq \"
 
 
