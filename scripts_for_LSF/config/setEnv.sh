@@ -53,7 +53,7 @@ export JAVA_HOME=/celgene/software/java/latest/
 ###############################
 # settings specific to AWS
 if [ "$CELGENE_AWS" == "true" ]; then
-	export CELGENE_NGS_BUCKET=s3://celgene-ngs-data
+	export CELGENE_NGS_BUCKET=s3://celgene-src-bucket
 
 	export NGS_LOG_DIR=/celgene/software/LOGS/
 	if [ -d /scratch ];then

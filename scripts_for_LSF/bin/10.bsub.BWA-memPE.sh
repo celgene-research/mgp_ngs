@@ -92,38 +92,32 @@ fi
 
 outputDirectory=\$( setOutput \$input1 ${step}-bamfiles )
 
-> ${stem}.${step}.bsub
+"> ${stem}.${step}.bsub
 
 
 
 
-echo "\
+echo -n "\
 celgeneExec.pl --analysistask ${analysistask} \"\
 $bwabin mem \
   -t $cores \
   -a \
-  -R '@RG\tID:$stem\tSM:$stem\tPL:ILLUMINA\tLB:$stem\tPU:$stem' \
-" >> ${stem}.{$step}.bsub
+  -R '@RG\tID:$stem\tSM:$stem\tPL:ILLUMINA\tLB:$stem\tPU:$stem' " >> ${stem}.${step}.bsub
 if [ "$paired_end" == "1" ]; then
-echo \"
-  -M \$genomeDatabase/genome.fa \$input1 \$input2 | \
-" >>  ${stem}.{$step}.bsub
+echo -n "  -M \$genomeDatabase/genome.fa \$input1 \$input2 | " >>  ${stem}.${step}.bsub
 else
-echo \"
- -M \$genomeDatabase/genome.fa \$input1 | \
-" >>  ${stem}.{$step}.bsub
+echo -n " -M \$genomeDatabase/genome.fa \$input1 | " >>  ${stem}.${step}.bsub
+fi
+
 
 if [ "$refdatabase" == "1" ] ;then
-	echo \"
-$filterBamAlnQuality --input - --output - --stats \${outputDirectory}/${stem}.qcstats | \
-" >> ${stem}.${step}.bsub
+echo -n "$filterBamAlnQuality --input - --output - --stats \${outputDirectory}/${stem}.qcstats | " >> ${stem}.${step}.bsub
 fi
-echo \"
-$samtoolsbin view -Sbh -F 4 - > \${outputDirectory}/${stem}.bam; \
+echo -n "$samtoolsbin view -Sbh -F 4 - > \${outputDirectory}/${stem}.bam ; \
 $samtoolsbin sort -@ $cores -m 1G \${outputDirectory}/${stem}.bam  \${outputDirectory}/${stem}.coord ; \
 $samtoolsbin index  \${outputDirectory}/${stem}.coord.bam ; mv \${outputDirectory}/${stem}.coord.bam.bai \${outputDirectory}/${stem}.coord.bai ; \
 $samtoolsbin sort -n -@ $cores -m 1G \${outputDirectory}/${stem}.bam  \${outputDirectory}/${stem}.name ; \
-rm \${outputDirectory}/${stem}.bam \" \
+rm \${outputDirectory}/${stem}.bam  \
 ">> ${stem}.${step}.bsub
 
 
