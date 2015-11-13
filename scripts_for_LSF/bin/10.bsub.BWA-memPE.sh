@@ -117,7 +117,7 @@ echo -n "$samtoolsbin view -Sbh -F 4 - > \${outputDirectory}/${stem}.bam ; \
 $samtoolsbin sort -@ $cores -m 1G \${outputDirectory}/${stem}.bam  \${outputDirectory}/${stem}.coord ; \
 $samtoolsbin index  \${outputDirectory}/${stem}.coord.bam ; mv \${outputDirectory}/${stem}.coord.bam.bai \${outputDirectory}/${stem}.coord.bai ; \
 $samtoolsbin sort -n -@ $cores -m 1G \${outputDirectory}/${stem}.bam  \${outputDirectory}/${stem}.name ; \
-rm \${outputDirectory}/${stem}.bam  \
+rm \${outputDirectory}/${stem}.bam \"\
 ">> ${stem}.${step}.bsub
 
 

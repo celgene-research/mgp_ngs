@@ -254,19 +254,17 @@ function setOutput(){
 	fi
 	
 	local workDir=$( workDir $input )
+	local lastDir=$( lastDir $input)
+	local outputDirectory=""
 	if [ -z "$NGS_PROCESSED_DIRECTORY" ] ; then
 		workDir=$( replaceDirNames $workDir )
+		outputDirectory=$(  echo ${workDir} |sed 's%'${lastDir}'%'${newDir}'%'  )
 	else
-		echo "Output will be under $NGS_PROCESSED_DIRECTORY"
+		#echo "Output will be under $NGS_PROCESSED_DIRECTORY"
 		workDir=${NGS_PROCESSED_DIRECTORY}
+		outputDirectory=${workDir}/${newDir}
 	fi
 	
-	local lastDir=$( lastDir $input)
-	
-	
-	# replace the 'SRC' part of the directory with Processed
-	
-	local outputDirectory=$(  echo ${workDir} |sed 's%'${lastDir}'%'${newDir}'%'  )
 	
 	
 	lastchar="${outputDirectory: -1}"
