@@ -256,17 +256,18 @@ function setOutput(){
 	local workDir=$( workDir $input )
 	local lastDir=$( lastDir $input)
 	local outputDirectory=""
+	workDir=$( replaceDirNames $workDir )
 	if [ -z "$NGS_PROCESSED_DIRECTORY" ] ; then
-		workDir=$( replaceDirNames $workDir )
+		
 		outputDirectory=$(  echo ${workDir} |sed 's%'${lastDir}'%'${newDir}'%'  )
 	else
 		#echo "Output will be under $NGS_PROCESSED_DIRECTORY"
-		workDir=${NGS_PROCESSED_DIRECTORY}
+		workDir=${workDir}/${NGS_PROCESSED_DIRECTORY}
 		outputDirectory=${workDir}/${newDir}
 	fi
 	
 	
-	
+	#make sure that teh output directory does not end with a /
 	lastchar="${outputDirectory: -1}"
 	if [ $lastchar == "/" ] ; then
 		outputDirectory=${outputDirectory:0:${#outputDirectory}-1}

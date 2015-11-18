@@ -101,19 +101,19 @@ echo -n "\
 celgeneExec.pl --analysistask ${analysistask} \"\
 $bwabin mem \
   -t $cores \
-  -a \
-  -R '@RG\tID:$stem\tSM:$stem\tPL:ILLUMINA\tLB:$stem\tPU:$stem' " >> ${stem}.${step}.bsub
+  -R '@RG\tID:$stem\tSM:$stem\tPL:ILLUMINA\tLB:$stem\tPU:$stem' \
+  -M \$genomeDatabase/genome.fa  " >> ${stem}.${step}.bsub
 if [ "$paired_end" == "1" ]; then
-echo -n "  -M \$genomeDatabase/genome.fa \$input1 \$input2 | " >>  ${stem}.${step}.bsub
+echo -n " \$input1 \$input2 " >>  ${stem}.${step}.bsub
 else
-echo -n " -M \$genomeDatabase/genome.fa \$input1 | " >>  ${stem}.${step}.bsub
+echo -n " \$input1 " >>  ${stem}.${step}.bsub
 fi
 
 
 if [ "$refdatabase" == "1" ] ;then
-echo -n "$filterBamAlnQuality --input - --output - --stats \${outputDirectory}/${stem}.qcstats | " >> ${stem}.${step}.bsub
+echo -n " -a | $filterBamAlnQuality --input - --output - --stats \${outputDirectory}/${stem}.qcstats " >> ${stem}.${step}.bsub
 fi
-echo -n "$samtoolsbin view -Sbh -F 4 - > \${outputDirectory}/${stem}.bam ; \
+echo -n " | $samtoolsbin view -Sbh -F 4 - > \${outputDirectory}/${stem}.bam ; \
 $samtoolsbin sort -@ $cores -m 1G \${outputDirectory}/${stem}.bam  \${outputDirectory}/${stem}.coord ; \
 $samtoolsbin index  \${outputDirectory}/${stem}.coord.bam ; mv \${outputDirectory}/${stem}.coord.bam.bai \${outputDirectory}/${stem}.coord.bai ; \
 $samtoolsbin sort -n -@ $cores -m 1G \${outputDirectory}/${stem}.bam  \${outputDirectory}/${stem}.name ; \

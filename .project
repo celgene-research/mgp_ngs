@@ -5,16 +5,15 @@
 	<projects>
 	</projects>
 	<buildSpec>
+		<buildCommand>
+			<name>org.epic.perleditor.perlbuilder</name>
+			<arguments>
+			</arguments>
+		</buildCommand>
 	</buildSpec>
 	<natures>
+		<nature>org.epic.perleditor.perlnature</nature>
 	</natures>
-	<linkedResources>
-		<link>
-			<name>scripts_for_LSF/mutationCalls/65.bsub.variantFilter.sh</name>
-			<type>1</type>
-			<locationURI>copy_PROJECT_LOC/bin/65.bsub.variantFilter.sh</locationURI>
-		</link>
-	</linkedResources>
 	<variableList>
 		<variable>
 			<name>copy_PROJECT_LOC</name>

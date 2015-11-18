@@ -41,6 +41,9 @@ Before you run a script you can set the environment variable **$NGS_OUTPUT_DIREC
 
 The output of the pipeline is typically stored in a directory that is derived from the input directory by replacing SRC with Processed and at the end replacing the last directory with the analysis task name. If a user wants a different Processed directory the env variable **$NGS_PROCESSED_DIRECTORY** can be used.
 
+So overall the output directory where data is stored will be:
+workDir=${workDir}/${NGS_PROCESSED_DIRECTORY}/${NGS_OUTPUT_DIRECTORY}_${NGS_SUFFIX}
+where workDir comes from the directory of the input file, but Rawdata has been replaced by Processed, and the last directory is set by the script and typically indicates the step of the process.
 
 ##Help and other information
 
