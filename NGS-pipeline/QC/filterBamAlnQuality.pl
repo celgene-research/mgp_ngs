@@ -22,10 +22,7 @@ GetOptions(
 );
 my $logger=setUpLog();
 
-# script that tags the reads that are coming from either the host, the tumor, or cannot be assigned
-# reads that are not mapped are reported as belonging to the tumour
-# the script works with STDIN and STDOUT
- 
+
  
  
 
