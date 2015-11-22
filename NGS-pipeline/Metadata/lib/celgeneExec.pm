@@ -92,21 +92,31 @@ sub getBinary{
 	my ($binary)=split(/\s+/, $cmd);
 	#special case for calling explicit interpreters. Binary is becoming the java class or the script.
 	if($binary =~/java$/){ 
-		$cmd=~/(.+) -jar (\S+)/; 
+		$cmd=~/(.+) -jar (\S+) (\S+)/; 
 		$binary = $2;
-		
+		my $binary2=$3;
 		# for picard tools which are called in the form 'picard.jar TOOL' 
 		# and possibly other tools in the future, the actual binary is the combination
 		# of the java class and its first argument 
 		if($binary =~/picard.jar$/){
-			$binary .=" ".$3;
+			$binary .=" ".$binary2;
 		}
 		$interpreter= 'java'};
 	if($binary =~/bash/){ 
 		$cmd=~/bash\s+(\S+)/; 
 		$binary = $1;
-		$interpreter= 'bash'};
-	
+		$interpreter= 'bash'
+	};
+	if($binary =~/perl/){ 
+		$cmd=~/perl\s+(\S+)/; 
+		$binary = $1;
+		$interpreter= 'perl'
+	};	
+	if($binary =~/python/){ 
+		$cmd=~/python\s+(\S+)/; 
+		$binary = $1;
+		$interpreter= 'python'
+	};
 	$logger->trace("Detected binary as $binary");
 	$logger->trace("Detected interpreter as $interpreter")if defined($interpreter);
 	

@@ -94,7 +94,7 @@ sub runHomerQC{
 	my($self, $bamfile, $step)=@_;
 
 	if( lc($step) eq 'homer'){ $self->runHomerQCMakeTagDirectory( $bamfile);}
-	else{ $self->logger->warn( "Uknown QC step $step for homer")}
+	else{ $self->{logger}->warn( "Uknown QC step $step for homer")}
 	
 }
 sub runHomerQCMakeTagDirectory{
