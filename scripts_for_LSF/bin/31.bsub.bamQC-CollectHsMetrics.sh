@@ -146,5 +146,4 @@ closeJob
 " > ${stem}.${step}.bsub
 
 bsub < ${stem}.${step}.bsub
-#rm $$.tmp
 
