@@ -127,6 +127,7 @@ foreach my $id ( @{$idArray}){
 		if(!defined( $data ) or $data eq ''){next;}
 		my $retVal= $data->{ $field };
 		$retVal =~s/\s/_/g;
+		$retVal =~s/[()]//g;
 		push @retVals, $retVal;
 	}
 	
