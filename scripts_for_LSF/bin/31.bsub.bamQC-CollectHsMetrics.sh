@@ -10,7 +10,7 @@ step="CalculateHsMetrics"
 index=$(echo $input|sed 's/bam$/bai/');
 
 exptype=$(ngs-sampleInfo.pl $input experiment_type)
-if [ "$exptype" != "DNA-Seq_exome_sequencing_(WES)" ]; then
+if [ "$exptype" != "DNA-Seq_exome_sequencing_WES" ]; then
 	echo "This script is suggested to be used for exome data"
 	exit 1
 fi
@@ -41,37 +41,37 @@ NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
 
 exomeSet=$(ngs-sampleInfo.pl $input bait_set)
 case  "${exomeSet}" in
-"Nextera_Rapid_Capture_v1.2_(Illumina)" )
+"Nextera_Rapid_Capture_v1.2_Illumina" )
 		baitsfile=${humanGenomeDir}/ExonCapture/nexterarapidcapture_exome_targetedregions_v1.2.intervals.bed
 	;;
-"SureSelect_Human_All_exon_v1_38Mb_(Agilent)" )
+"SureSelect_Human_All_exon_v1_38Mb_Agilent" )
 	baitsfile=${humanGenomeDir}/ExonCapture/S0274956_Covered.intervals.bed
 	;;
-"SureSelect_Human_All_exon_v2_44Mb__(Agilent)" )
+"SureSelect_Human_All_exon_v2_44Mb_Agilent" )
 	baitsfile=${humanGenomeDir}/ExonCapture/S0293689_Covered.intervals.bed
 	;;
-"SureSelect_Human_All_exon_v3_50_Mb_(Agilent)" )
+"SureSelect_Human_All_exon_v3_50_Mb_Agilent" )
 	baitsfile=${humanGenomeDir}/ExonCapture/S02972011_Covered.intervals.bed
 	;;
-"SureSelect_Human_All_exon_v4_51Mb_(Agilent)" )
+"SureSelect_Human_All_exon_v4_51Mb_Agilent" )
 	baitsfile=${humanGenomeDir}/ExonCapture/S03723314_Covered.intervals.bed
 	;;
-"SureSelect_Human_All_exon_v4+UTRs_71Mb_(Agilent)" )
+"SureSelect_Human_All_exon_v4+UTRs_71Mb_Agilent" )
 	baitsfile=${humanGenomeDir}/ExonCapture/S03723424_Covered.intervals.bed
 	;;
-"SureSelect_Human_All_exon_v5+UTRs_75Mb_(Agilent)" )
+"SureSelect_Human_All_exon_v5+UTRs_75Mb_Agilent" )
 	baitsfile=${humanGenomeDir}/ExonCapture/S04380219_Covered.intervals.bed
 	;;
-"SureSelect_Human_All_exon_v5_50Mb_(Agilent)" )
+"SureSelect_Human_All_exon_v5_50Mb_Agilent" )
 	baitsfile=${humanGenomeDir}/ExonCapture/S04380110_Covered.intervals.bed
 	;;
-"SureSelect_Human_All_exon_v6+COSMIC_64Mb_(Agilent)" )
+"SureSelect_Human_All_exon_v6+COSMIC_64Mb_Agilent" )
 	baitsfile=${humanGenomeDir}/ExonCapture/S07604715_Covered.intervals.bed
 	;;
-"SureSelect_Human_All_exon_v6_58Mb_(Agilent)" )
+"SureSelect_Human_All_exon_v6_58Mb_Agilent" )
 	baitsfile=${humanGenomeDir}/ExonCapture/S07604514_Covered.intervals.bed
 	;;
-"SureSelect_Human_All_exon_v6+UTRs_58Mb_(Agilent)" )
+"SureSelect_Human_All_exon_v6+UTRs_58Mb_Agilent" )
 	baitsfile=${humanGenomeDir}/ExonCapture/S07604624_Covered.intervals.bed
 	;;
 * )
