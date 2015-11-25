@@ -11,7 +11,7 @@ stem=$(fileStem $inputVCF)
 
 export NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
 snpeffBin=$snpeffbin
-snpeffConfig=${SNPEFF_BASE}/snpEff.config
+snpeffConfig=${snpeffconfig}
 snpsiftBin=$snpsiftbin
 
 dbSNP=${dbsnp}
