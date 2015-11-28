@@ -108,7 +108,6 @@ outputDirectory=\$( setOutput \$input \$newDir/${step} )
 
 
 
-
 celgeneExec.pl --analysistask ${analysistask} \"\
 java -Xmx${memory}m -jar ${PICARD_BASE}/picard.jar CalculateHsMetrics \
   VERBOSITY=WARNING \
