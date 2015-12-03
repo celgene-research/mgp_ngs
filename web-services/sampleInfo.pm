@@ -630,10 +630,9 @@ sub updateAlignmentQC{
  		$sqlh.=" wgs_coverage," if defined($bq->{ wgs_coverage } );
 
 
-
-
-
-	chop($sqlh); # remove the last comma	
+		if( substr ($sqlh , -1) eq ' ' ) { chop( $sqlh )}
+        if( substr ($sqlh , -1) eq "," ) { chop( $sqlh);} #remove the last comma
+		
 		$sqlh.=")=( ";
 		$sqlh.=" '{". join(",",@{ $bq->{insertsize }})   ."}','{". join(",",@{$bq->{insertsizecount}})."}  ', " if(defined($bq->{insertsize}));
 		$sqlh.=" $bq->{median_insert_size}, " if(defined($bq->{median_insert_size}));
@@ -742,17 +741,17 @@ sub updateAlignmentQC{
 
 
 		$sqlh.=" $bq->{wgs_genome_territory}," if defined($bq->{ wgs_genome_territory } );
-		$sqlh.=" $bq->{wgs_mean_COVERAGE}," if defined($bq->{ wgs_mean_coverage  } );   
- 		$sqlh.=" $bq->{wgs_sd_COVERAGE}," if defined($bq->{ wgs_sd_coverage } );
- 		$sqlh.=" $bq->{wgs_median_COVERAGE}," if defined($bq->{ wgs_median_coverage } );
- 		$sqlh.=" $bq->{wgs_mad_COVERAGE}," if defined($bq->{ wgs_mad_coverage } );
- 		$sqlh.=" $bq->{wgs_pct_EXC_MAPQ} ," if defined($bq->{ wgs_pct_exc_mapq } );
- 		$sqlh.=" $bq->{wgs_pct_EXC_DUPE}," if defined($bq->{ wgs_pct_exc_dupe } );
- 		$sqlh.=" $bq->{wgs_pct_EXC_UNPAIRED}," if defined($bq->{ wgs_pct_exc_unpaired } );
- 		$sqlh.=" $bq->{wgs_pct_EXC_BASEQ}," if defined($bq->{ wgs_pct_exc_baseq } );
- 		$sqlh.=" $bq->{wgs_pct_EXC_OVERLAP}," if defined($bq->{ wgs_pct_exc_overlap } );
- 		$sqlh.=" $bq->{wgs_pct_EXC_CAPPED}," if defined($bq->{ wgs_pct_exc_capped } );
- 		$sqlh.=" $bq->{wgs_pct_EXC_TOTAL}," if defined($bq->{ wgs_pct_exc_total } );
+		$sqlh.=" $bq->{wgs_mean_coverage}," if defined($bq->{ wgs_mean_coverage  } );   
+ 		$sqlh.=" $bq->{wgs_sd_coverage}," if defined($bq->{ wgs_sd_coverage } );
+ 		$sqlh.=" $bq->{wgs_median_coverage}," if defined($bq->{ wgs_median_coverage } );
+ 		$sqlh.=" $bq->{wgs_mad_coverage}," if defined($bq->{ wgs_mad_coverage } );
+ 		$sqlh.=" $bq->{wgs_pct_exc_mapq} ," if defined($bq->{ wgs_pct_exc_mapq } );
+ 		$sqlh.=" $bq->{wgs_pct_exc_dupe}," if defined($bq->{ wgs_pct_exc_dupe } );
+ 		$sqlh.=" $bq->{wgs_pct_exc_unpaired}," if defined($bq->{ wgs_pct_exc_unpaired } );
+ 		$sqlh.=" $bq->{wgs_pct_exc_baseq}," if defined($bq->{ wgs_pct_exc_baseq } );
+ 		$sqlh.=" $bq->{wgs_pct_exc_overlap}," if defined($bq->{ wgs_pct_exc_overlap } );
+ 		$sqlh.=" $bq->{wgs_pct_exc_capped}," if defined($bq->{ wgs_pct_exc_capped } );
+ 		$sqlh.=" $bq->{wgs_pct_exc_total}," if defined($bq->{ wgs_pct_exc_total } );
  		$sqlh.=" $bq->{wgs_pct_5X}," if defined($bq->{ wgs_pct_5X } );
  		$sqlh.=" $bq->{wgs_pct_10X}," if defined($bq->{ wgs_pct_10X } );
  		$sqlh.=" $bq->{wgs_pct_15X}," if defined($bq->{ wgs_pct_15X } );
@@ -766,10 +765,12 @@ sub updateAlignmentQC{
  		$sqlh.=" $bq->{wgs_pct_80X}," if defined($bq->{ wgs_pct_80X } );
  		$sqlh.=" $bq->{wgs_pct_90X}," if defined($bq->{ wgs_pct_90X } );
  		$sqlh.=" $bq->{wgs_pct_100X}," if defined($bq->{ wgs_pct_100X } );
- 		$sqlh.="'{". join(",", @{$bq->{wgs_coverage}})."}'," if defined($bq->{ wgs_coverage } );
+ 		$sqlh.="'{{". join(",", @{$bq->{wgs_coverage_abundance}}) ."},{". join(",", @{$bq->{wgs_coverage}})."}}', " if defined($bq->{ wgs_coverage } );
+ 		
 
-
-chop( $sqlh );chop($sqlh); #remove the last comma
+		if( substr ($sqlh , -1) eq ' ' ) { chop( $sqlh )}
+        if( substr ($sqlh , -1) eq "," ) { chop( $sqlh);} #remove the last comma
+		
 		$sqlh.=")where sample_id=$sample_id and flag='$flag'
 		";
 		$logger->info("updateAlignmentQC: executing \n$sqlh");
