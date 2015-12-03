@@ -291,7 +291,12 @@ sub runPicardQCEstimateLibraryComplexity{
 
 
 }
-
+sub runPicardQCCollectWgsMetrics{
+	# dummy function
+	# we are not using this script to run the picard tools
+	
+	
+}
 sub runPicardQCCalculateHSMetrics{
 	my($self, $bamfile)=@_;
 	my($filename, $directories, $suffix) = fileparse($bamfile);
@@ -362,7 +367,7 @@ sub refflat{
 sub parseFile{
 	my($self, $bamfile,$step)=@_;
 
-
+	
 	my($filename, $directories, $suffix) = fileparse($bamfile);
 	$self->{filename}=File::Spec->rel2abs($bamfile);
 	# we need to parse the results from different tools
@@ -376,7 +381,7 @@ sub parseFile{
 	elsif(lc($step) eq 'collectalnsummary'){ $self->parseAlnSummary( $self->outputFile() );}
 	elsif(lc($step) eq 'bamindex'){ $self->parseBamIndex( $self->outputFile() );}
 	elsif(lc($step) eq 'capturehsmetrics'){ $self->parseHsMetrics( $self->outputFile() );}
-	
+	elsif(lc($step) eq 'collectwgsmetrics'){ $self->parseWgsMetrics($self->outputFile());}
 	elsif(lc($step) eq 'xenograft'){ $self->parseXenograft( $self->outputFile() );}
 	
 	else{ $self->{logger}->warn("Unknown QC module $step for picard"); return ; }
@@ -425,7 +430,66 @@ sub parseBamIndex{
 	$self->{logger}->trace("chromosome names: ". join(",", @{ $self->{chromosomename} } ));
 	$self->{logger}->trace("aligned bases   : ". join(",", @{ $self->{aligned}}));
 }
+sub parseWgsMetrics{
+	my($self,$file)=@_;
+	$self->{logger}->debug("parseWgsMetrics:Processing file $file for general information");
+	my $rfh=Celgene::Utils::FileFunc::newReadFileHandle($file);
+	
+	
+	while(my $l=<$rfh>){
+		chomp $l;
+		if($l=~/## METRICS CLASS/){
+			my $l2=<$rfh>; # read the next line with the labels
+			$l2=<$rfh>; # read the line with the values
+			chomp $l2;
+			(
+				$self->{wgs_genome_territory}, 
+				$self->{wgs_mean_coverage},
+				$self->{wgs_sd_coverage },
+				$self->{wgs_median_coverage },
+				$self->{ wgs_mad_coverage},
+				$self->{ wgs_pct_exc_mapq},
+				$self->{wgs_pct_exc_dupe },
+				$self->{wgs_pct_exc_unpaired },
+				$self->{wgs_pct_exc_baseq },
+				$self->{wgs_pct_exc_overlap },
+				$self->{ wgs_pct_exc_capped},
+				$self->{ wgs_pct_exc_total},
+				$self->{wgs_pct_5X },
+				$self->{wgs_pct_10X },
+				$self->{wgs_pct_15X },
+				$self->{ wgs_pct_20X},
+				$self->{wgs_pct_25X },
+				$self->{wgs_pct_30X },
+				$self->{wgs_pct_40X },
+				$self->{wgs_pct_50X },
+				$self->{ wgs_pct_60X},
+				$self->{wgs_pct_70X },
+				$self->{ wgs_pct_80X},
+				$self->{wgs_pct_90X },
+				$self->{ wgs_pct_100X}			
+					)=split("\t",$l2); 
+		}
+		if($l=~/## HISTOGRAM/){
+			my $l3=<$rfh>;
+			my $arrayIndex=0;
+			while($l3=<$rfh>){
+				chomp $l3;
+				if($l3 eq ""){ next; }
+				
+				my($abundance,$coverage)=split("\t",$l3);
+				$self->{wgs_coverage_abundance}->[$arrayIndex]=$abundance;
+				$self->{wgs_coverage}->[$arrayIndex]=$coverage;
+				$arrayIndex++;
+				
+				
+			}
+		
+		}
+	}
+	
 
+}
 sub parseAlnSummary{
 	my($self,$file)=@_;
 	$self->{logger}->debug("parseAlnSummary:Processing file $file for general information");

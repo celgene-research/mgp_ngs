@@ -67,9 +67,15 @@ sub printHelp{
 	" --reuse will search for existing output files before it runs any QC module\n".
 	" --sample_flag a flag the defines the type of sample information to store 
 	('original' : for the standard information [default]
-	 'tumor'/'host'  : for Qc on processed xenograft data, used to store either host or tumor data)".
+	 'tumor'/'host'  : for Qc on processed xenograft data, used to store either host or tumor data)\n".
 	" --qcStep define QC module to run 
-	('MarkDuplicates','CollectAlnSummary','CollectInsertSize','CollectRNASeqMetrics','BamIndex','LibraryComplexity','CaptureHsMetrics','Xenograft','Homer')\n".
+	('MarkDuplicates','CollectAlnSummary','BamIndex','LibraryComplexity',
+	'CollectInsertSize' : used only for paired end sequences,
+	'CollectWgsMetrics' : used only for Whole Genome Sequencing projects,
+	'CollectRNASeqMetrics': used only for RNA Sequencing projects,
+	'CaptureHsMetrics': used only for Whole Exome Sequencing projects,
+	'Xenograft': used only for Xenograft models,
+	'Homer': used only for ChIP Sequencing projects)\n".
 	" --nocommit will not update the database\n".
 	
 	" --nofilecheck will not check if input files (bam) exists.\n".
@@ -218,6 +224,11 @@ if($qcStep eq 'CollectInsertSize'){
 }
 if($qcStep eq 'CollectRNASeqMetrics'){
 	my $bq=processBAMCollectRNASeqMetrics( $picardQC );
+#print Dumper( $bq );
+	getFromXMLserver('sampleQC.updateAlignmentQC',$bq, $sample_id, $sampleFlag );
+}
+if($qcStep eq 'CollectWgsMetrics'){
+	my $bq=processBAMCollectWgsMetrics( $picardQC );
 #print Dumper( $bq );
 	getFromXMLserver('sampleQC.updateAlignmentQC',$bq, $sample_id, $sampleFlag );
 }
@@ -396,6 +407,54 @@ sub processBAMCollectRNASeqMetrics{
 	};
 	
 }
+
+sub processBAMCollectWgsMetrics{
+	my($picardQC)=@_;
+	# fields from qcstatss file to store are:
+	#GENOME_TERRITORY        MEAN_COVERAGE   SD_COVERAGE     MEDIAN_COVERAGE 
+	#MAD_COVERAGE  PCT_EXC_MAPQ    PCT_EXC_DUPE    PCT_EXC_UNPAIRED        
+	#PCT_EXC_BASEQPCT_EXC_OVERLAP  PCT_EXC_CAPPED  PCT_EXC_TOTAL   
+	#PCT_5X  PCT_10X PCT_15X PCT_20X       PCT_25X PCT_30X PCT_40X PCT_50X PCT_60X PCT_70X PCT_80X PCT_90X PCT_100X
+	
+	return {
+		'wgs_genome_territory' => $picardQC->{wgs_genome_territory}, 
+		'wgs_mean_coverage' => $picardQC->{wgs_mean_coverage},
+		'wgs_sd_coverage' => $picardQC->{wgs_sd_coverage },
+		'wgs_median_coverage' => $picardQC->{wgs_median_coverage },
+		'wgs_mad_coverage' => $picardQC->{ wgs_mad_coverage},
+		'wgs_pct_exc_mapq' => $picardQC->{ wgs_pct_exc_mapq},
+		'wgs_pct_exc_dupe' => $picardQC->{wgs_pct_exc_dupe },
+		'wgs_pct_exc_unpaired' => $picardQC->{wgs_pct_exc_unpaired },
+		'wgs_pct_exc_baseq' => $picardQC->{wgs_pct_exc_baseq },
+		'wgs_pct_exc_overlap' => $picardQC->{wgs_pct_exc_overlap },
+		'wgs_pct_exc_capped' => $picardQC->{ wgs_pct_exc_capped},
+		'wgs_pct_exc_total' => $picardQC->{ wgs_pct_exc_total},
+		'wgs_pct_5X' => $picardQC->{wgs_pct_5X },
+		'wgs_pct_10X' => $picardQC->{wgs_pct_10X },
+		'wgs_pct_15X' => $picardQC->{wgs_pct_15X },
+		'wgs_pct_20X' => $picardQC->{ wgs_pct_20X},
+		'wgs_pct_25X' => $picardQC->{wgs_pct_25X },
+		'wgs_pct_30X' => $picardQC->{wgs_pct_30X },
+		'wgs_pct_40X' => $picardQC->{wgs_pct_40X },
+		'wgs_pct_50X' => $picardQC->{wgs_pct_50X },
+		'wgs_pct_60X' => $picardQC->{ wgs_pct_60X},
+		'wgs_pct_70X' => $picardQC->{wgs_pct_70X },
+		'wgs_pct_80X' => $picardQC->{ wgs_pct_80X},
+		'wgs_pct_90X' => $picardQC->{wgs_pct_90X },
+		'wgs_pct_100X' => $picardQC->{ wgs_pct_100X},
+		'wgs_coverage_abundance'=>$picardQC->{wgs_coverage_abundance},
+		'wgs_coverage' => $picardQC->{wgs_coverage }
+		
+		
+		
+		
+		
+		
+	};
+	
+}
+
+
 sub processBAMCollectAlnSummaryMetrics{
 	my($picardQC)=@_;
 	return {
