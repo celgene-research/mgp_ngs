@@ -89,7 +89,7 @@ if [ \$? != 0 ] ; then
 	echo "Failed to run command"
 	exit 1
 fi 
-#runQC-bam.pl --logfile \$MASTER_LOGFILE  --inputbam \$input --outputfile \${outputDirectory}/$stem.${step}.qcstats --reuse --qcStep CollectWgsMetrics
+runQC-bam.pl --logfile \$MASTER_LOGFILE  --inputbam \$input --outputfile \${outputDirectory}/$stem.${step}.qcstats --reuse --qcStep CollectWgsMetrics
 if [ \$? != 0 ] ; then
 	echo "Failed to update database"
 	exit 1
