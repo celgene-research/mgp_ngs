@@ -46,6 +46,8 @@ GetOptions(
 	"sample_id=i"=>\$usersample_id,
 	"help"=>\$help
 );
+
+
 if(!defined($logFile)){
 	if(defined($samplename)){$logFile= $samplename.".log";}
 	else{$logFile = "runQC.log";}
