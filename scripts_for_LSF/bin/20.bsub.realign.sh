@@ -14,7 +14,7 @@ NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
 mkdir -p $NGS_LOG_DIR
 stem=$( fileStem $input )
 
-cores=2 # although this process requires only one core we use two in order to make it lighter for I/O
+cores=$( fullcores ) # although this process requires only one core we use two in order to make it lighter for I/O
 genomeDatabase=${humanGenomeDir}/genome.fa
 genomeIndex=$(echo $genomeDatabase | sed 's%.fa%.dict%')
 genomeIndex2=${genomeDatabase}.fai
@@ -71,7 +71,8 @@ $fixQual \
 -known \${knownMuts2} \
 -I \${input} \
 --filter_bases_not_stored --filter_bases_not_stored \
--o \${outputDirectory}/${stem}.intervals ; \
+-o \${outputDirectory}/${stem}.intervals 
+-nt $cores; \
 java -Xmx${memory}m -jar ${gatkbin} \
 -T IndelRealigner -R \${genomeDatabase} \
 -known \${knownMuts1} \

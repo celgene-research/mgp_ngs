@@ -25,12 +25,13 @@ analysistask=38
  
 export NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
 mkdir -p $NGS_LOG_DIR
-cores=$(fullcores) #MACS does not need many cores, but when run many instances on the same machine there are crashes.
+cores=1 #MACS does not need many cores, but when run many instances on the same machine there are crashes.
 memory=3000
 header=$(bsubHeader $stem $step $memory $cores)
 
 peaktype=$( ngs-sampleInfo.pl $inputTag antibody_target )
-
+display=$(ngs-sampleInfo.pl $inputTag display_name)
+controlDisplay=$(ngs-sampleInfo.pl $inputControl display_name)
 # This by no means is a comprehensive list
 # it is being built as we get more ChIP-Seq experiments
 # from https://sites.google.com/site/anshulkundaje/projects/encodehistonemods
@@ -119,7 +120,7 @@ $macs2bin callpeak \
  --bdg \
  --keep-dup auto\
 $commandArguments \"
-
+touch \${outputDirectory}/${display}-${controlDisplay}-${peaktype}
 chromInfo=\${outputDirectory}/${stem}.macs2/chromInfo.txt
 $samtoolsbin view -H \$inputTag | grep '^@SQ' | cut -f2,3 | sed 's%SN:%%' | sed 's%LN:%%' > \$chromInfo
 

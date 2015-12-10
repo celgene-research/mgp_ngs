@@ -9,7 +9,7 @@ stem=$( fileStem $inputVCF )
 NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
 mkdir -p $NGS_LOG_DIR
 output=${stem}.${step}
-cores=2 # although this process requires only one core we use two in order to make it lighter for I/O
+cores=$(fullcores) # although this process requires only one core we use two in order to make it lighter for I/O
 genomeDatabase=${humanGenomeDir}/genome.fa
 genomeIndex=$(echo $genomeDatabase | sed 's%.fa%.dict%') 
 genomeIndex2=${genomeDatabase}.fai
@@ -72,7 +72,8 @@ java -Xmx${memory}m -jar ${gatkbin} \
    -resource:1000G,known=false,training=true,truth=false,prior=10.0 \${resource3} \
    -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 \${resource4} \
    -an MQRankSum -an ReadPosRankSum -an FS -an MQ -an DP -an QD -an SOR  \
-   -mode SNP ;\
+   -mode SNP \
+   -nt $cores ;\
 java -Xmx${memory}m -jar ${gatkbin} \
    -T ApplyRecalibration \
    -R \${genomeDatabase} \
@@ -81,7 +82,8 @@ java -Xmx${memory}m -jar ${gatkbin} \
    -ts_filter_level 99.0 \
    -tranchesFile \${outputDirectory}/${stem}.tranches \
    -recalFile \${outputDirectory}/${stem}.vqsr-snp.recal \
-   --out \${outputDirectory}/${stem}.snp.vcf ; \
+   --out \${outputDirectory}/${stem}.snp.vcf \
+   -nt $cores; \
 java -Xmx${memory}m -jar ${gatkbin} \
    -T VariantRecalibrator \
    -R \${genomeDatabase} \
@@ -94,16 +96,18 @@ java -Xmx${memory}m -jar ${gatkbin} \
    -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 \${resource4} \
    -an MQRankSum -an ReadPosRankSum -an FS -an DP -an QD -an SOR -an ReadPosRankSum \
    --maxGaussians 4 \
-   -mode INDEL ; \
+   -mode INDEL \
+   -nt $cores ; \
 java -Xmx${memory}m -jar ${gatkbin} \
    -T ApplyRecalibration \
    -R \${genomeDatabase} \
    -ts_filter_level 99.0 \
--input \${outputDirectory}/${stem}.snp.vcf \
+   -input \${outputDirectory}/${stem}.snp.vcf \
    -mode INDEL \
    -tranchesFile \${outputDirectory}/${stem}.tranches \
    -recalFile \${outputDirectory}/${stem}.vqsr-indel.recal  \
-	--out \${outputDirectory}/${stem}.vqsr.vcf  \"  
+	--out \${outputDirectory}/${stem}.vqsr.vcf  \
+    -nt $cores \"  
 
 if [ \$? != 0 ] ; then
 	echo "Failed to run command"

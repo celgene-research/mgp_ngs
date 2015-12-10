@@ -14,7 +14,7 @@ genomeIndex2=${genomeDatabase}.fai
 knownMuts1=${dbsnp}
 memory=28000
 experimentType=$(ngs-sampleInfo.pl $inputBAM experiment_type);
-cores=4
+cores=$(fullcores)
 header=$(bsubHeader $stem $step $memory $cores)
 echo \
 "$header
@@ -58,7 +58,8 @@ java -Xmx${memory}m -jar ${gatkbin} \
 -minPruning 2  \
 --emitRefConfidence GVCF \
 --variant_index_type LINEAR \
---variant_index_parameter 128000\"
+--variant_index_parameter 128000 \
+-nct $cores \"
 if [ \$? != 0 ] ; then
 	echo \"Failed to run command\"
 	exit 1
@@ -75,7 +76,8 @@ java -Xmx${memory}m -jar ${gatkbin} \
 -stand_emit_conf 20 \
 -recoverDanglingHeads \
 -dontUseSoftClippedBases  \
--o \${outputDirectory}/${output} \"
+-o \${outputDirectory}/${output} \
+-nct $cores \"
 if [ \$? != 0 ] ; then
 	echo \"Failed to run command\"
 	exit 1
