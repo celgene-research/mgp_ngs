@@ -165,7 +165,6 @@ while(my $line= shift @filelines){
 	my @filenames=split("[,;]", $data[$titles{filename}]);
 	$logger->debug("From this line will process \n",join("\n",@filenames));
 	my $metFileExists=undef;
-			
 	
 	for(my $i=0; $i<scalar(@filenames); $i++){
 		$logger->debug("Iteration $i. Processing $filenames[$i]");
