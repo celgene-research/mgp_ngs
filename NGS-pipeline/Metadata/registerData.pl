@@ -9,6 +9,7 @@ use Celgene::Utils::ArrayFunc;
 use Time::localtime;
 use File::stat;
 use File::Basename;
+use File::Find;
 use FindBin;
 use lib $FindBin::RealBin."/lib";
 use Data::Dumper;
@@ -139,7 +140,6 @@ sub getTitles{
 }
 
 
-
 my $lineNumber=0;
 while(my $line= shift @filelines){
 	$lineNumber ++;
@@ -165,21 +165,45 @@ while(my $line= shift @filelines){
 	my @filenames=split("[,;]", $data[$titles{filename}]);
 	$logger->debug("From this line will process \n",join("\n",@filenames));
 	my $metFileExists=undef;
+			
+	
 	for(my $i=0; $i<scalar(@filenames); $i++){
-		my $fobj=fileObj->new( $filenames[$i] , "regular", "on");
-		if(! -e $fobj->absFilename() ){
-			$logger->logdie("File [$filenames[$i]] aka [".$fobj->absFilename()."] does not exist");
-		}
+		$logger->debug("Iteration $i. Processing $filenames[$i]");
 		
-		my $fileDirectory=dirname( $fobj->absFilename() );
-		push @outputDirectories, $fileDirectory;
+		if(-d $filenames[$i] ){
+			$logger->info("File [$filenames[$i]] points to a directory. All the files of the directory will be processed.");
+			# get the contents of the directory
+			# helper function for the find operation. Used when a directory is provided in the input filename 
+			sub mvFile{
+				my $oldLocation = $File::Find::name  ;
+				if( -d $oldLocation ){return}
+				push @filenames, $oldLocation;
+				$logger->info("\t[$oldLocation] ");
+			}
+			find( \&mvFile, $filenames[$i] );
+			
+			$logger->debug("Finished scanning $filenames[$i]");
+			$filenames[$i]=undef;
+		}else{
 		
-		$filenames[$i]=$fobj;
-		if( -e $fobj->absFilename().".met"){
-			$metFileExists=1;
+			my $fobj=fileObj->new( $filenames[$i] , "regular", "on");
+			
+			if(! -e $fobj->absFilename() ){
+				$logger->logdie("File [$filenames[$i]] aka [".$fobj->absFilename()."] does not exist");
+			}
+			
+			my $fileDirectory=dirname( $fobj->absFilename() );
+			push @outputDirectories, $fileDirectory;
+			
+			$filenames[$i]=$fobj;
+			if( -e $fobj->absFilename().".met"){
+				$metFileExists=1;
+			}
 		}
 	}
-	
+	#compact filenames (i.e. remove undefined ones which may point to directories)
+	@filenames = grep defined, @filenames;
+
 	
 	if(defined($metFileExists) and defined( $ignoremet)){ 
 		$logger->info("At least one of the files from this sample has already been processed. Skipping this sample (--ignoremet argument)");
