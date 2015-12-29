@@ -61,7 +61,14 @@ sub printUsage{
 	"--logLevel/logFile\n".
 	"--stop/restart stops or restarts the server. Assumes pid that is stored in the file ngs-server.pid\n".
 	"--forcePort force to use a different port than the default [8082]\n".
-	"--help this page\n";
+	"--help this page\n".
+	
+	"This script is using the Frontier package for managing the XML-RPC calls. Due to the inability of Frontier to handle\n".
+	"secure connections (i.e. https) stunnel can be used to wrap the functionality of this script in a secure protocol\n".
+	"In order to use stunnel install it, and create a stunnel.conf file that binds the public NGS_SERVER_PORT (e.g. 8082)\n".
+	"to an unpublished IP (e.g. 8081). Then start this script ($0) and force it to listen to the 'unpublished' port\n".
+	"Now the clients will be contacting this server using the public port by https, and stunnel will forward the traffic to the \n".
+	"unpublished port.";
 }
 
 # list of available functions and what they do:
