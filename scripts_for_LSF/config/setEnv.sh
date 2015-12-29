@@ -33,7 +33,8 @@ export OODT_FILEMGR_IP=10.130.0.26
 export SOLR_SERVER_IP=10.130.0.26
 export SOLR_SERVER_PORT=8983
 export OODT_FILEMGR_URL=http://${OODT_FILEMGR_IP}:${OODT_FILEMGR_PORT}
-export NGS_SERVER_URL=http://${NGS_SERVER_IP}:${NGS_SERVER_PORT}
+# the NGS_SERVER_URL became a SSL based 
+export NGS_SERVER_URL=https://${NGS_SERVER_IP}:${NGS_SERVER_PORT}
 
 ##############################
 # Settings specific for each environment
