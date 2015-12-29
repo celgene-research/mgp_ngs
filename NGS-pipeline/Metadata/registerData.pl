@@ -173,35 +173,40 @@ while(my $line= shift @filelines){
 			$logger->info("File [$filenames[$i]] points to a directory. All the files of the directory will be processed.");
 			# get the contents of the directory
 			# helper function for the find operation. Used when a directory is provided in the input filename 
-			sub mvFile{
-				my $oldLocation = $File::Find::name  ;
-				if( -d $oldLocation ){return}
-				push @filenames, $oldLocation;
-				$logger->info("\t[$oldLocation] ");
-			}
-			find( \&mvFile, $filenames[$i] );
+			
+			find( 
+				sub{
+					my $fname=$File::Find::name;
+					if(!-f $fname or $fname =~/.met$/){ return; }
+					$logger->debug("Adding $File::Find::name to the list of files");
+					push @filenames, $fname } , 
+				$filenames[$i] );
 			
 			$logger->debug("Finished scanning $filenames[$i]");
 			$filenames[$i]=undef;
-		}else{
-		
-			my $fobj=fileObj->new( $filenames[$i] , "regular", "on");
-			
-			if(! -e $fobj->absFilename() ){
-				$logger->logdie("File [$filenames[$i]] aka [".$fobj->absFilename()."] does not exist");
-			}
-			
-			my $fileDirectory=dirname( $fobj->absFilename() );
-			push @outputDirectories, $fileDirectory;
-			
-			$filenames[$i]=$fobj;
-			if( -e $fobj->absFilename().".met"){
-				$metFileExists=1;
-			}
 		}
 	}
 	#compact filenames (i.e. remove undefined ones which may point to directories)
 	@filenames = grep defined, @filenames;
+	for(my $i=0; $i<scalar(@filenames); $i++){
+		$logger->debug("Iteration $i. Processing $filenames[$i]");
+		
+		my $fobj=fileObj->new( $filenames[$i] , "regular", "on");
+		
+		if(! -e $fobj->absFilename() ){
+			$logger->logdie("File [$filenames[$i]] aka [".$fobj->absFilename()."] does not exist");
+		}
+		
+		my $fileDirectory=dirname( $fobj->absFilename() );
+		push @outputDirectories, $fileDirectory;
+		
+		$filenames[$i]=$fobj;
+		if( -e $fobj->absFilename().".met"){
+			$metFileExists=1;
+		}
+		
+	}
+	
 
 	
 	if(defined($metFileExists) and defined( $ignoremet)){ 
@@ -216,7 +221,7 @@ while(my $line= shift @filelines){
 		$logger->info("Will search for existing samples with vendor_id: ". $data[$titles{vendor_id}].
 		              " belonging to project ". $data[$titles{celgene_project_desc}] );
 		($sample_id, $experiment_type ,$experimentName,$celgene_project_desc, $celgene_project_name)=
-			getSampleId( $data[$titles{vendor_id}],$data[$titles{celgene_project_desc}]);
+			getSampleId( $data[$titles{vendor_id}],$data[$titles{da_project_id}]);
 		if(!defined($sample_id) or $sample_id==0){
 			$logger->logdie("Cannot find a valid sample id for the sample with vendor id = ".$data[$titles{vendor_id}]);
 		}
@@ -425,11 +430,14 @@ while(my $line= shift @filelines){
 
 $logger->info("Registration of samples in the database is completed");
 @outputDirectories=Celgene::Utils::ArrayFunc::unique( \@outputDirectories );
+my $scriptFn=Celgene::Utils::FileFunc::newWriteFileHandle( $file.'.register.txt');
 foreach my $o(@outputDirectories){
 	
 	$logger->info("Please go to directory $o and run the run_crawler.sh script to ingest the files in the database");
-	
+	print $scriptFn "cd $o\nrun_crawler.sh\n";
 }
+$logger->info("A sample script to register the files can be found at ${file}.register.txt");
+close($scriptFn);
 
 
 
@@ -620,7 +628,7 @@ sub _checkNumeric{
 
 sub getSampleId{
 	my($vendor_id,$project_name)=@_;
-
+	$logger->info("Looking for sample id from vendor_id [$vendor_id] and project [$project_name]");
 	my $result = $server->call('sampleInfo.getSampleByVendorID', $vendor_id,$project_name);
 	return($result->{sample_id}, 
 			$result->{experiment_type_id} ,
