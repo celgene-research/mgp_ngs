@@ -1,12 +1,13 @@
 #!/bin/bash
 scriptDir=$( dirname $0 ); source $scriptDir/../lib/shared.sh
 input=$1
-input2=$( getSecondReadFile $input)
+
 analysistask=48
 binary=${NGS_BINARIES_DIR}/getLibraryDistribution.pl
 checkfile $input
 readPE=$(ngs-sampleInfo.pl  $input paired_end )
 if [ "$readPE" == "1" ] ; then
+input2=$( getSecondReadFile $input)
 checkfile $input2
 fi
 #for step in MarkDuplicates CollectAlnSummary CollectInsertSize CollectRNASeqMetrics BamIndex LibraryComplexity
