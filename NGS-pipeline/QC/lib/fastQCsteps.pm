@@ -83,19 +83,24 @@ sub outputDirectory{
 	return $self->{outputdir};
 }
 
+# create the results file/directory for fastqc
+
+
 sub resultsFile{
 	my($self, $infile)=@_;
 	
 	my($filename, $directories, $suffix) = fileparse($infile);
 	$filename=~s/\.gz$//; # remove extension gz if present
+	$filename=~s/\.bz2$//; # remove extension gz if present
 	$filename=~s/\.fastq$//; #remove fastq if present
 	$filename=~s/\.fq$//; #remove fq if present
 	#filename now contains only the name of the run (withoug extenstions)
 	
 	my $outdir=$self->outputDirectory();
 	my $mask=$outdir."/".$filename."*_fastqc";
-	$self->{logger}->debug("Looking for output in $outdir");
-	opendir(my $dirh , $outdir) or $self->{logger}->logdie("Cannot access directory $outdir");
+	$self->{logger}->info("Looking for output in $outdir");
+	opendir(my $dirh , $outdir) or $self->{logger}->logdie("Cannot access directory $outdir.".
+	"This could mean that either the directory does not exist or the algorithm to predicted the name is not accurate");
 	my @filenamesInDirectory=readdir( $dirh );
 	closedir($dirh);
 	if(scalar(@filenamesInDirectory)==0){
