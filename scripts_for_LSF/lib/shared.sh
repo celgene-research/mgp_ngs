@@ -137,13 +137,7 @@ function getStdSuffix(){
 		fi
 	fi
 	
-	
-	if [ -z "${NGS_OUTPUT_DIRECTORY}" ]; then
-		echo -n
-	else
-		suffix=${NGS_OUTPUT_DIRECTORY}_${suffix}
-		echo "User has provided an additional component (${NGS_OUTPUT_DIRECTORY}) of the suffix. The directory suffix is now ${suffix}" >&2
-	fi
+
 	
 echo $suffix
 
@@ -239,6 +233,10 @@ function replaceDirNames(){
 	echo $newDirectoryName
 }
 
+
+
+# input is the name of the input file
+# newDir is the name of the directory that will hold the results (e.g. contains the processing step)
 function setOutput(){
 	input=$1
 	newDir=$2
@@ -253,27 +251,34 @@ function setOutput(){
 		exit 112
 	fi
 	
-	local workDir=$( workDir $input )
-	local lastDir=$( lastDir $input)
+	local workDir=$( workDir $input ) # get the directory except for the last part
+	local lastDir=$( lastDir $input)  # get the last part of teh directory name
 	local outputDirectory=""
-	workDir=$( replaceDirNames $workDir )
+	
+	
+	if [ -z "$NGS_OUTPUT_DIRECTORY" ] ; then
+		${newDir}=$( sanitizeDirectoryName ${newDir} )
+	else
+		${newDir}=$( sanitizeDirectoryName ${NGS_OUTPUT_DIRECTORY} )
+		echo "setOutput: User has provided a output directory (to replace the name of the tool/step of workflow)" 1>&2
+	fi
+	
+	workDir=$( replaceDirNames $workDir )  # replace the RawData names with Processed
+	workDir=$( sanitizeDirectoryName ${workDir} )
 	if [ -z "$NGS_PROCESSED_DIRECTORY" ] ; then
 		
-		outputDirectory=$(  echo ${workDir} |sed 's%'${lastDir}'%'${newDir}'%'  )
+		outputDirectory="${workDir}/${newDir}"
 	else
-		#echo "Output will be under $NGS_PROCESSED_DIRECTORY"
-		workDir=${workDir}/${NGS_PROCESSED_DIRECTORY}
-		outputDirectory=${workDir}/${newDir}
+		#echo "Output will be under $NGS_PROCESSED_DIRECTORY"		
+		$NGS_PROCESSED_DIRECTORY=$(sanitizeDirectoryName ${NGS_PROCESSED_DIRECTORY} )
+		outputDirectory="${workDir}/${NGS_PROCESSED_DIRECTORY}/${newDir}"
 	fi
 	
 	
 	#make sure that teh output directory does not end with a /
-	lastchar="${outputDirectory: -1}"
-	if [ $lastchar == "/" ] ; then
-		outputDirectory=${outputDirectory:0:${#outputDirectory}-1}
-	fi
+	outputDirectory=$(sanitizeDirectoryName ${outputDirectory})
 	
-	outputDirectory=${outputDirectory}_${suffix}
+	outputDirectory="/${outputDirectory}_${suffix}"
 
 	
 	mkdir -p $outputDirectory
@@ -368,4 +373,21 @@ function getSecondReadFile(){
 	echo $SecondReadFile						
 					
 	
+}
+
+# remove front and trailing slashes from directory names
+
+function sanitizeDirectoryName(){
+	directoryName=$1
+	lastchar="${directoryName: -1}"
+	if [ "$lastchar" == "/" ] ; then
+		directoryName=${directoryName:0:${#directoryName}-1}
+	fi
+
+
+	firstchar=${directoryName:0:1}
+	if [ "$firstchar" == "/" ] ; then
+		directoryName=${directoryName:1:${#directoryName}}
+	fi
+	echo $directoryName
 }
