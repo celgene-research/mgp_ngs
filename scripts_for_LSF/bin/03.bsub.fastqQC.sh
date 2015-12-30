@@ -1,14 +1,14 @@
 #!/bin/bash
 scriptDir=$( dirname $0 ); source $scriptDir/../lib/shared.sh
 input=$1
-
+input2=$( getSecondReadFile $input)
 analysistask=48
 
 
 checkfile $input
 readPE=$(ngs-sampleInfo.pl  $input paired_end )
 if [ "$readPE" == "1" ] ; then
-input2=$( getSecondReadFile $input)	
+	
 checkfile $input2
 fi
 
@@ -46,6 +46,7 @@ $fastqcbin \
   --outdir \${outputDirectory}/tmp \
   --quiet --nogroup \
   --threads 2 \
+  --extract \
   --format fastq \${input} \${input2} ;\
 mv \${outputDirectory}/tmp \${output} \"
 else
@@ -54,6 +55,7 @@ $fastqcbin \
   --outdir \${outputDirectory}/tmp \
   --quiet --nogroup \
   --threads 2 \
+  --extract \
   --format fastq \${input} ;\
 mv \${outputDirectory}/tmp \${output} \"
 	

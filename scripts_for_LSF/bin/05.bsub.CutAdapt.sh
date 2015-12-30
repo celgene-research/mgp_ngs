@@ -16,7 +16,7 @@
 
 scriptDir=$( dirname $0 ); source $scriptDir/../lib/shared.sh
 input=$1
-
+input2=$( getSecondReadFile $input)
 storeOutput=$2
 if [ ! -n "$storeOutput" ] ; then
 	echo "The trimmed fastq files will be saved for further processing"
@@ -28,7 +28,7 @@ checkfile $input
 
 readPE=$(ngs-sampleInfo.pl  $input paired_end )
 if [ "$readPE" == "1" ] ; then
-	input2=$( getSecondReadFile $input)
+	
 	checkfile $input2
 fi
 
