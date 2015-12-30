@@ -291,7 +291,7 @@ function fileStem(){
 	
 	stem=$(basename $input)
 # remove compress info
-	stem=$( echo $stem | sed 's%\.bz$%%' | sed 's%\.gz$%%'  | sed 's%\.zip$%%')
+	stem=$( echo $stem | sed 's%\.bz$%%' | sed 's%\.gz$%%'  | sed 's%\.zip$%%' | sed 's%\.bz2$%%' )
 # remove paired end info
 	stem=$(echo $stem| sed 's%_R1%%'| sed 's%_R2%%' )
 # remove some file parts that the pipeline adds
@@ -363,7 +363,7 @@ function getSecondReadFile(){
 	
 	if [ "$FirstReadFile" == "$SecondReadFile" ] ; then
 		echo "$SecondReadFile is the same as $FirstReadFile. Either a parsing error or wrong input provided" >&2
-		exit 3
+		#exit 3
 	fi
 	echo $SecondReadFile						
 					
