@@ -72,6 +72,8 @@ sub newReadFileHandle{
 		$fh= \*STDIN;
 	}elsif( $fn =~/\.gz$/){
 		open($fh, "gunzip -c $fn|") or $logger->logdie("Cannot open file $fn for reading\n");
+	}elsif( $fn =~/\.bz2$/){
+		open($fh, "bzcat  $fn|") or $logger->logdie("Cannot open file $fn for reading\n");
 	}
 	else{
 		open($fh, $fn) or $logger->logdie("Cannot open file $fn for reading\n");
