@@ -10,6 +10,12 @@
 scriptDir=$( dirname $0 ); source $scriptDir/../lib/shared.sh
 inputTag=$1
 inputControl=$2
+
+if [ -z "$inputControl" ] ; then 
+	echo "Input to this script is two files. The tag and input bam files. One of the two is missing. Aborting !"
+	exit 1
+fi
+
 checkfile $inputTag
 checkfile $inputControl
 inputTagIndex=$(echo $inputTag | sed 's/bam$/bai/')
@@ -120,7 +126,7 @@ $macs2bin callpeak \
  --bdg \
  --keep-dup auto\
 $commandArguments \"
-touch \${outputDirectory}/${display}-${controlDisplay}-${peaktype}
+touch \${outputDirectory}/${stem}.macs2/${display}-${controlDisplay}-${peaktype}
 chromInfo=\${outputDirectory}/${stem}.macs2/chromInfo.txt
 $samtoolsbin view -H \$inputTag | grep '^@SQ' | cut -f2,3 | sed 's%SN:%%' | sed 's%LN:%%' > \$chromInfo
 
