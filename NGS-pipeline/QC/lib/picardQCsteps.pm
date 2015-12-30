@@ -550,7 +550,7 @@ sub parseDuplicates{
 	while(my $l=<$rfh>){
 		if($l=~/# METRICS CLASS/){
 			$l=<$rfh>;
-			$l=<$rfh>;
+			
 			$self->{unpaired_reads_examined}=0;
 			$self->{read_pairs_examined}=0;
 			$self->{umapped_reads}=0;
