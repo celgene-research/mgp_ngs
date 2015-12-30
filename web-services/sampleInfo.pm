@@ -128,11 +128,14 @@ sub getSampleBamQCByID{
 	my $result=$cur->fetchrow_hashref();
 	$cur->finish();
 	if(!defined($result)){ return undef; }	
-	# R seems to have problem with very large numbers
+	# R XMLRPC seems to have problem with very large numbers
 	# to avoid this problem we divide all the numbers refering to bases
 	# with 1,000,000
+	# Alternatively we can use a modified version of the XMLRPC package
+	# that converts the numbers to type 'numeric' instead of 'integer'
+	# The following division is in the code to ensure  compatibility
+	# to the unpatched XMLRCP package
 	foreach my $k(keys %$result){
-		
 		if( $k =~/bases/) { $result->{$k}/=1000000 if defined($result->{$k})}
 	}
 	
