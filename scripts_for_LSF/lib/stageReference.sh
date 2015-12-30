@@ -109,6 +109,9 @@ case "$option" in
 "Bowtie.human" )
 	dispatch $humanBowtieidxAWS $humanBowtieidx
 ;;
+"Bismark.human" )
+	dispatch $humanbismarkidxAWS $humanbismarkidx
+;;
 "Express.human" )
 	dispatch $humanrsemidxAWS $humanrsemidx
 ;;
