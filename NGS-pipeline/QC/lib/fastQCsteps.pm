@@ -91,7 +91,8 @@ sub resultsFile{
 	
 	my($filename, $directories, $suffix) = fileparse($infile);
 	$filename=~s/\.gz$//; # remove extension gz if present
-	$filename=~s/\.bz2$//; # remove extension gz if present
+	$filename=~s/\.bz2$//; # remove extension bz2 if present
+	$filename=~s/\.zip$//; # remove extension zip if present
 	$filename=~s/\.fastq$//; #remove fastq if present
 	$filename=~s/\.fq$//; #remove fq if present
 	#filename now contains only the name of the run (withoug extenstions)
