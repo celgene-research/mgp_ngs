@@ -255,22 +255,23 @@ function setOutput(){
 	local lastDir=$( lastDir $input)  # get the last part of teh directory name
 	local outputDirectory=""
 	
+	workDir=$( replaceDirNames $workDir )  # replace the RawData names with Processed
+	workDir=$( sanitizeDirectoryName ${workDir} )
 	
 	if [ -z "$NGS_OUTPUT_DIRECTORY" ] ; then
-		${newDir}=$( sanitizeDirectoryName ${newDir} )
+		newDir=$( sanitizeDirectoryName ${newDir} )
 	else
-		${newDir}=$( sanitizeDirectoryName ${NGS_OUTPUT_DIRECTORY} )
+		newDir=$( sanitizeDirectoryName ${NGS_OUTPUT_DIRECTORY} )
 		echo "setOutput: User has provided a output directory (to replace the name of the tool/step of workflow)" 1>&2
 	fi
 	
-	workDir=$( replaceDirNames $workDir )  # replace the RawData names with Processed
-	workDir=$( sanitizeDirectoryName ${workDir} )
+	
 	if [ -z "$NGS_PROCESSED_DIRECTORY" ] ; then
 		
 		outputDirectory="${workDir}/${newDir}"
 	else
 		#echo "Output will be under $NGS_PROCESSED_DIRECTORY"		
-		$NGS_PROCESSED_DIRECTORY=$(sanitizeDirectoryName ${NGS_PROCESSED_DIRECTORY} )
+		NGS_PROCESSED_DIRECTORY=$(sanitizeDirectoryName ${NGS_PROCESSED_DIRECTORY} )
 		outputDirectory="${workDir}/${NGS_PROCESSED_DIRECTORY}/${newDir}"
 	fi
 	
