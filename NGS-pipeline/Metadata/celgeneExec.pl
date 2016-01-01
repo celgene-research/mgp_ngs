@@ -32,7 +32,7 @@ GetOptions(
 	"derivedfrom|derived_from|d=s"=>\$derived_from,
 	"derivedfromfile|derived_from_file|D=s"=>\$derived_from_file,
 	"outputfile|output|output_file|o=s"=>\@output_file,
-	"metadatastring=s"=>\$metadata_string,
+	"metadatastring=s@"=>\$metadata_string,
 	"version!"=>\$showversion
 );
 if(defined($showversion)){
@@ -79,20 +79,28 @@ if(defined($derived_from)){
 }
 
 
-my $metadataString="";
-my $metadataKey="";
-if(defined($metadata_string)){
-	
-	my ($mKey,$mFn)=split( "=",$metadata_string);
+foreach my $mstring(@$metadata_string){
+	my $metadataString="";
+
+	my ($mKey,$mFn)=split( "=",$mstring);
 	if( !defined($mKey ) or !defined($mFn)){
 		$logger->logdie("Option [metadatastring] provided but without the correct amount of arguments ($metadata_string)");
 	}
-	$logger->info("Including the metadata field $mKey with the contents of file $mFn");
-	my $fh=Celgene::Utils::FileFunc::newReadFileHandle($mFn);
-	my @metadataContent= <$fh>;
-	$metadataString=join("", @metadataContent) if scalar(@metadataContent)>0;
-	$metadataKey=$mKey;
+	if( -e $mFn){
+		$logger->info("Including the metadata field $mKey with the contents of file $mFn");
+		my $fh=Celgene::Utils::FileFunc::newReadFileHandle($mFn);
+		my @metadataContent= <$fh>;
+		close($fh);
+		$metadataString=join("", @metadataContent) if scalar(@metadataContent)>0;
+	}else{
+		$logger->info("Including the metadata field $mKey with the value $mFn");
+		$metadataString=$mFn;
+	}
+
+	
+	$hash->{ $mKey }= $metadataString;
 }
+
 
 
 #if(defined($hash->{analysis_task}) or defined($hash->{derived_from})){shift @ARGV;}
@@ -220,9 +228,7 @@ if( defined($ENV{CELGENE_AWS})){
 	$hash->{ 'ami-id' }=`curl http://169.254.169.254/latest/meta-data/ami-id`;
 
 }
-if(defined($metadata_string)){
-	$hash->{ $metadataKey }= $metadataString;
-}
+
 
 foreach my $outputfileObj( @{$hash->{output}} ){
 	my ( $outputFilename, $outputDirectory,$suffix)=fileparse($outputfileObj->absFilename() );
@@ -328,8 +334,11 @@ Optional arguments include:
 		check if these file exist. This is an option suitable for adding s3 objects in the derived_from list.
 	--outputfile --output --output_file -o output_file (can be used multiple times)
 		Used in cases where output file is not mentioned in the command line.
-	--metadatastring a string that contains the metadata value and a filename with the values. E.g. config=rumnme.config, 
+	--metadatastring a string that contains the metadata key and either a value or a filename with the values. This option can be provided multiple times
+	    E.g. config=rumnme.config, 
 	    will add the metadata field config with value the contents of the runme.config file.
+	    E.g. config='Hello world'
+	    will add the metadata field config with value 'Hello world'
 	--version show the version of the script and exit
 	--h --help this screen
 	
