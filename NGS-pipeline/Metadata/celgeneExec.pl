@@ -22,7 +22,7 @@ use Getopt::Long;
 
 my $version=Celgene::Utils::SVNversion::version( '$Date: 2015-08-16 22:19:49 -0700 (Sun, 16 Aug 2015) $ $Revision: 1625 $ by $Author: kmavrommatis $' );
 
-my($help,$log_level,$log_file,$analysis_task,$derived_from,$derived_from_file,$showversion,@output_file,$norun);
+my($help,$log_level,$log_file,$analysis_task,$derived_from,$derived_from_file,$showversion,@output_file,$norun,$metadata_string);
 GetOptions(
 	"analysis_task|analysistask|a=i"=>\$analysis_task,
 	"h|help!"=>\$help,
@@ -32,6 +32,7 @@ GetOptions(
 	"derivedfrom|derived_from|d=s"=>\$derived_from,
 	"derivedfromfile|derived_from_file|D=s"=>\$derived_from_file,
 	"outputfile|output|output_file|o=s"=>\@output_file,
+	"metadatastring=s"=>\$metadata_string,
 	"version!"=>\$showversion
 );
 if(defined($showversion)){
@@ -75,6 +76,17 @@ if(defined($derived_from)){
 		push  @{$hash->{derived_from}}, $l;
 	}
 	close($rfh);
+}
+
+
+my $metadataString="";
+my $metadataKey="";
+if(defined($metadata_string)){
+	my ($mKey,$mFn)=split("=",$metadata_string);
+	my $fh=Celgene::Utils::FileFunc::newReadFileHandle($mFn);
+	my @metadataContent= <$fh>;
+	$metadataString=join("\n", @metadataContent) if scalar(@metadataContent)>0;
+	$metadataKey=$mKey;
 }
 
 
@@ -204,6 +216,7 @@ if( defined($ENV{CELGENE_AWS})){
 
 }
 
+$hash->{ $metadataKey }= $metadataString;
 
 foreach my $outputfileObj( @{$hash->{output}} ){
 	my ( $outputFilename, $outputDirectory,$suffix)=fileparse($outputfileObj->absFilename() );
@@ -309,6 +322,8 @@ Optional arguments include:
 		check if these file exist. This is an option suitable for adding s3 objects in the derived_from list.
 	--outputfile --output --output_file -o output_file (can be used multiple times)
 		Used in cases where output file is not mentioned in the command line.
+	--metadatastring a string that contains the metadata value and a filename with the values. E.g. config=rumnme.config, 
+	    will add the metadata field config with value the contents of the runme.config file.
 	--version show the version of the script and exit
 	--h --help this screen
 	
