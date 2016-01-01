@@ -82,10 +82,15 @@ if(defined($derived_from)){
 my $metadataString="";
 my $metadataKey="";
 if(defined($metadata_string)){
-	my ($mKey,$mFn)=split("=",$metadata_string);
+	
+	my ($mKey,$mFn)=split( "=",$metadata_string);
+	if( !defined($mKey ) or !defined($mFn)){
+		$logger->logdie("Option [metadatastring] provided but without the correct amount of arguments ($metadata_string)");
+	}
+	$logger->info("Including the metadata field $mKey with the contents of file $mFn");
 	my $fh=Celgene::Utils::FileFunc::newReadFileHandle($mFn);
 	my @metadataContent= <$fh>;
-	$metadataString=join("\n", @metadataContent) if scalar(@metadataContent)>0;
+	$metadataString=join("", @metadataContent) if scalar(@metadataContent)>0;
 	$metadataKey=$mKey;
 }
 
@@ -215,8 +220,9 @@ if( defined($ENV{CELGENE_AWS})){
 	$hash->{ 'ami-id' }=`curl http://169.254.169.254/latest/meta-data/ami-id`;
 
 }
-
-$hash->{ $metadataKey }= $metadataString;
+if(defined($metadata_string)){
+	$hash->{ $metadataKey }= $metadataString;
+}
 
 foreach my $outputfileObj( @{$hash->{output}} ){
 	my ( $outputFilename, $outputDirectory,$suffix)=fileparse($outputfileObj->absFilename() );
