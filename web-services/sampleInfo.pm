@@ -730,17 +730,17 @@ sub updateAlignmentQC{
         $sqlh.=" $bq->{rrnacov_pct75}, " if defined($bq->{rrnacov_pct75});
         $sqlh.=" $bq->{rrnacov_pct95}, " if defined($bq->{rrnacov_pct95});
 
-		$sqlh.=" $bq->{homer_taggccontent}, " if defined($bq->{homer_taggccontent});
-		$sqlh.=" $bq->{homer_taggccount}, " if defined($bq->{homer_taggccount});
-		$sqlh.=" $bq->{homer_genomegccontent}, " if defined($bq->{homer_genomegccontent});
-		$sqlh.=" $bq->{homer_genomegccount}, " if defined($bq->{homer_genomegccount});
-		$sqlh.=" $bq->{homer_fragment_length}, " if defined($bq->{homer_fragment_length});
-		$sqlh.=" $bq->{homer_peak_width}, " if defined($bq->{homer_peak_width});
-		$sqlh.=" $bq->{homer_tagdistance}, " if defined($bq->{homer_tagdistance});
-		$sqlh.=" $bq->{homer_tagautocorrelation_samestrand}, " if defined($bq->{homer_tagautocorrelation_samestrand});
-		$sqlh.=" $bq->{homer_tagautocorrelation_oppositestrand}, " if defined($bq->{homer_tagautocorrelation_oppositestrand});
-		$sqlh.=" $bq->{homer_tags_position}, " if defined($bq->{homer_tags_position});
-		$sqlh.=" $bq->{homer_tags_per_position}, " if defined($bq->{homer_tags_per_position});
+		$sqlh.= " '{". join(",",@{$bq->{homer_taggccontent}})."}', "  if defined($bq->{homer_taggccontent});
+		$sqlh.= " '{". join(",",@{$bq->{homer_taggccount}}   )."}', " if defined($bq->{homer_taggccount});
+		$sqlh.= " '{". join(",",@{$bq->{homer_genomegccontent}})."}', " if defined($bq->{homer_genomegccontent});
+		$sqlh.= " '{". join(",",@{$bq->{homer_genomegccount}})."}', " if defined($bq->{homer_genomegccount});
+		$sqlh.= "$bq->{homer_fragment_length}, " if defined($bq->{homer_fragment_length});
+		$sqlh.= "$bq->{homer_peak_width}, " if defined($bq->{homer_peak_width});
+		$sqlh.= " '{". join(",",@{$bq->{homer_tagdistance}})."}', " if defined($bq->{homer_tagdistance});
+		$sqlh.= " '{". join(",",@{$bq->{homer_tagautocorrelation_samestrand}})."}', " if defined($bq->{homer_tagautocorrelation_samestrand});
+		$sqlh.= " '{". join(",",@{$bq->{homer_tagautocorrelation_oppositestrand}})."}', " if defined($bq->{homer_tagautocorrelation_oppositestrand});
+		$sqlh.= " '{". join(",",@{$bq->{homer_tags_position}})."}', " if defined($bq->{homer_tags_position});
+		$sqlh.= " '{". join(",",@{$bq->{homer_tags_per_position}})."}', " if defined($bq->{homer_tags_per_position});
 
 
 		$sqlh.=" $bq->{wgs_genome_territory}," if defined($bq->{ wgs_genome_territory } );
