@@ -383,7 +383,7 @@ sub parseFile{
 	elsif(lc($step) eq 'capturehsmetrics'){ $self->parseHsMetrics( $self->outputFile() );}
 	elsif(lc($step) eq 'collectwgsmetrics'){ $self->parseWgsMetrics($self->outputFile());}
 	elsif(lc($step) eq 'xenograft'){ $self->parseXenograft( $self->outputFile() );}
-	
+	elsif(lc($step) eq 'homer'){ ;}
 	else{ $self->{logger}->warn("Unknown QC module $step for picard"); return ; }
 }
 
