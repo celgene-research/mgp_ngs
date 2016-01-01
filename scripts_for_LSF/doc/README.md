@@ -36,14 +36,17 @@ A second configuration file config_sys.sh is also found in the /celgene/software
 Although this can also be managed by a NGS_CONFIG_SYS_FILE env variable, it is recommended not to change it. THis script is also managed by puppet.
 
 ##HIDDEN GEMS
-Each output directory has a numeric suffix (which is the epoch of the time of the run). If you want to change this number you can set the **$NGS_SUFFIX** variable to the number you wish
-Before you run a script you can set the environment variable **$NGS_OUTPUT_DIRECTORY** to a string. This string will be added to the output directory before the numeric prefix.
+Each output directory has a numeric suffix (which is the epoch of the time of the run). If you want to change this number you can set the **$NGS_SUFFIX** variable to the number you wish. This is useful if you want to run a script and add the output in an existing directory (e.g. if you realized that one file has not been processed)
+
+Before you run a script you can set the environment variable **$NGS_OUTPUT_DIRECTORY** to a string. This string will be added to the output directory before the numeric prefix. This is typically a string that contains the workflow step, or the tool name.
 
 The output of the pipeline is typically stored in a directory that is derived from the input directory by replacing SRC with Processed and at the end replacing the last directory with the analysis task name. If a user wants a different Processed directory the env variable **$NGS_PROCESSED_DIRECTORY** can be used.
 
 So overall the output directory where data is stored will be:
 workDir=${workDir}/${NGS_PROCESSED_DIRECTORY}/${NGS_OUTPUT_DIRECTORY}_${NGS_SUFFIX}
 where workDir comes from the directory of the input file, but Rawdata has been replaced by Processed, and the last directory is set by the script and typically indicates the step of the process.
+
+All the directories that are provided as enviroment variables will be stripped off of starting and trailing slashes.bjobs
 
 ##Help and other information
 
