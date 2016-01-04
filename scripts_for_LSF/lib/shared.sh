@@ -251,11 +251,13 @@ function setOutput(){
 		exit 112
 	fi
 	
-	local workDir=$( workDir $input ) # get the directory except for the last part
+	local workDir=$( workDir $input ) # get the directory including the last part
+	workDir=$( dirname $workDir ) # get the directory without the last part
 	local lastDir=$( lastDir $input)  # get the last part of teh directory name
 	local outputDirectory=""
 	
 	workDir=$( replaceDirNames $workDir )  # replace the RawData names with Processed
+	
 	workDir=$( sanitizeDirectoryName ${workDir} )
 	
 	if [ -z "$NGS_OUTPUT_DIRECTORY" ] ; then
