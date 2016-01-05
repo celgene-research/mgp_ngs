@@ -53,7 +53,7 @@ if [ \$? != 0 ] ; then
 	echo "Failed to update database"
 	exit 1
 fi 
-rm \${output}/*.zip # remove the zipped files fastqc creates since they are also extracted
+
 
 ingestDirectory \${outputDirectory} yes
 if [ \$? != 0 ] ; then
