@@ -70,7 +70,7 @@ echo \
 
 source $scriptDir/../lib/shared.sh
 
-initiateJob $stem $step
+initiateJob $stem $step $1
 
 
 input=\$( stage.pl --operation out --type file  $input )

@@ -10,7 +10,15 @@
 function setLogging(){
 	stem=$1
 	step=$2
-	NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
+	da=$3
+	
+	
+	if [ -z "${da}" ] ;then
+		NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
+	else
+		NGS_LOG_DIR=${NGS_LOG_DIR}/${da}/${step}
+	fi
+
 	mkdir -p $NGS_LOG_DIR
 	export MASTER_LOGFILE=${NGS_LOG_DIR}/${stem}.${step}.log
 	export STAGEFILE_LOGFILE=${MASTER_LOGFILE}
@@ -181,8 +189,11 @@ function fullmemory(){
 function initiateJob(){
 	stem=$1
 	step=$2
-
-	setLogging $stem $step
+	filename=$3
+	
+	da=$( getDataAssets $filename  )
+	
+	setLogging $stem $step $da
 	setTemp $step				
 	
 	
@@ -393,4 +404,16 @@ function sanitizeDirectoryName(){
 		directoryName=${directoryName:1:${#directoryName}}
 	fi
 	echo $directoryName
+}
+
+# try to find the dataassets id (DAXXXXXXX) or 
+#public assets (PDXXXXXXX)
+
+
+function getDataAssets(){
+	directoryName=$1
+	
+	da=$( echo $directoryName | perl -lne 'print $1 if /\/(DA\d{7})\// or /\/(PD\d{7})\// ' )
+
+	echo $da
 }

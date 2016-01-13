@@ -33,7 +33,7 @@ echo \
 #$Date: 2015-10-12 17:58:48 -0700 (Mon, 12 Oct 2015) $ $Revision: 1697 $
 source $scriptDir/../lib/shared.sh
 
-initiateJob $stem $step
+initiateJob $stem $step $1
 set -e
 
 inputVCF=\$( stage.pl --operation out --type file  $inputVCF )

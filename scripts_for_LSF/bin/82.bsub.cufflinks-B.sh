@@ -49,7 +49,7 @@ echo \
 
 source $scriptDir/../lib/shared.sh 
 set -e
-initiateJob $stem $step
+initiateJob $stem $step $1
 
 inputBAM=\$( stage.pl --operation out --type file  $inputBAM )
 inputIndex=\$(stage.pl --operation out --type file  $index )

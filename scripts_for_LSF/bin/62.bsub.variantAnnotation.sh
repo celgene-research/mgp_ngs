@@ -36,7 +36,7 @@ echo \
 #$Date: 2015-09-03 12:48:50 -0700 (Thu, 03 Sep 2015) $ $Revision: 1643 $
 source $scriptDir/../lib/shared.sh
 
-initiateJob $stem $step
+initiateJob $stem $step $1
 set -e
 inputVCF=\$( stage.pl --operation out --type file  $inputVCF)
 COSMICCoding=$COSMICCoding

@@ -32,7 +32,7 @@ echo \
 #BSUB -E \"$scriptDir/../lib/stageReference.sh $step\"
 #$Date: 2015-06-01 18:05:20 -0700 (Mon, 01 Jun 2015) $ $Revision: 1528 $
 source $scriptDir/../lib/shared.sh
-initiateJob $stem $step
+initiateJob $stem $step $1
 
 database=$database
 input1=\$( stage.pl --operation out --type file  $input1 )

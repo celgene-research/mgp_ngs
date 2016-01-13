@@ -29,7 +29,7 @@ echo \
 #$Date: 2015-09-25 08:56:09 -0700 (Fri, 25 Sep 2015) $ $Revision: 1656 $
 source $scriptDir/../lib/shared.sh
 
-initiateJob $stem $step
+initiateJob $stem $step $1
 set -e
 
 input=\$( stage.pl --operation out --type file  $input )

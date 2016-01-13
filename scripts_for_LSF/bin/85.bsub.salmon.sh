@@ -55,7 +55,7 @@ echo \
 
 source $scriptDir/../lib/shared.sh 
 set -e
-initiateJob $stem $step
+initiateJob $stem $step $1
 
 transcripts=$transcripts
 inputBAM=\$( stage.pl --operation out --type file  $inputBAM )

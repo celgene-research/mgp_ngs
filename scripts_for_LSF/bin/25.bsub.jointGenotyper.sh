@@ -31,7 +31,7 @@ $scriptDir/../lib/stageReference.sh $step
 
 source $scriptDir/../lib/shared.sh
 
-initiateJob $stem $step
+initiateJob $stem $step $1
 set -e
 
 genomeDatabase=$genomeDatabase

@@ -26,7 +26,7 @@ echo "$header
 #$Date: 2015-10-16 16:10:53 -0700 (Fri, 16 Oct 2015) $ $Revision: 1722 $
 source $scriptDir/../lib/shared.sh 
 set -e
-initiateJob $stem $step
+initiateJob $stem $step $1
 
 inputBAM=\$( stage.pl --operation out --type file  $inputBAM )
 inputIndex=\$(stage.pl --operation out --type file  $index )

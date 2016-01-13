@@ -57,7 +57,7 @@ echo \
 #$Date: 2015-08-14 13:02:55 -0700 (Fri, 14 Aug 2015) $ $Revision: 1624 $
 source $scriptDir/../lib/shared.sh
 
-initiateJob $stem $step
+initiateJob $stem $step $1
 set -e
 
 input=\$( stage.pl --operation out --type file  $input )

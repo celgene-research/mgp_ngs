@@ -77,7 +77,7 @@ echo \
 
 #$Date: 2015-06-04 13:44:36 -0700 (Thu, 04 Jun 2015) $ $Revision: 1585 $
 source $scriptDir/../lib/shared.sh
-initiateJob $stem $step
+initiateJob $stem $step $1
 
 database=$genomeDatabase
 input1=\$( stage.pl --operation out --type file  $input1 )

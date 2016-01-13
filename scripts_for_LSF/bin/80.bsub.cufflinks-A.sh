@@ -34,7 +34,7 @@ do
 #$Date: 2015-08-14 13:02:55 -0700 (Fri, 14 Aug 2015) $ $Revision: 1624 $
 source $scriptDir/../lib/shared.sh
 
-initiateJob $stem $step
+initiateJob $stem $step $1
 
 	inputBAM=\$( stage.pl --operation out --type file  $inputBAM )
 	maskFile=\$(stage.pl --operation out --type file $maskFile )
