@@ -63,6 +63,6 @@ closeJob
 "> $stem.$step.bsub
 
 
-bash $stem.$step.bsub
-#bsub < $stem.$step.bsub
+#bash $stem.$step.bsub
+bsub < $stem.$step.bsub
 #rm $$.tmp
