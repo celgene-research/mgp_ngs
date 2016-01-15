@@ -126,7 +126,7 @@ function getStdSuffix(){
 	
 	if [ -n "$NGS_SUFFIX" ] ; then
 		suffix="$NGS_SUFFIX"
-		echo "User has provided a directory suffix ${NGS_SUFFIX} for this run"
+echo "User has provided a directory suffix ${NGS_SUFFIX} for this run" 1>&2
 	else
 	# create a file with a predermined filename and use its date as the suffix for 
 	# all directories
