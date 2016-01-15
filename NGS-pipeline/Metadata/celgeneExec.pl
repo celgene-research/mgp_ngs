@@ -24,7 +24,7 @@ my $version=Celgene::Utils::SVNversion::version( '$Date: 2015-08-16 22:19:49 -07
 
 my($help,$log_level,$log_file,$analysis_task,$derived_from,$derived_from_file,$showversion,@output_file,$norun,$metadata_string);
 GetOptions(
-	"analysis_task|analysistask|a=i"=>\$analysis_task,
+	"analysis_task|analysistask|a=s"=>\$analysis_task,
 	"h|help!"=>\$help,
 	"norun!"=>\$norun,
 	"loglevel=s"=>\$log_level,
