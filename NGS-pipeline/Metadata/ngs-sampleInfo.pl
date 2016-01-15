@@ -38,7 +38,8 @@ my %supportedFields =( 'stranded'=>1,
 						'experiment_type'=>1,
 						'technology'=>1,
 						'display_name'=>1,
-						'antibody_target'=>1
+						'antibody_target'=>1,
+						'cell_line'=>1
 			);
 			
 			
