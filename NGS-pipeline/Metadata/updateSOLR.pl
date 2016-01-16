@@ -62,7 +62,7 @@ my @oldfnames;
 my @newfnames;
 
 my @filenameList;
-
+my $useDirectoryId;
 if(defined($recursive) and -d $oldFilename ){
 	$logger->info("Traversing the old directory [$oldFilename] to update the location of the included files");
 	find( \&mvFile , $oldFilename );
@@ -72,13 +72,24 @@ if(defined($recursive) and -d $oldFilename ){
 	$logger->info("Traversing the new directory [$newFilename] to update the location of the included files");
 	find( \&mvFile , $newFilename);
 	@newfnames= @filenameList;
+}elsif(!defined($recursive) and -d $oldFilename ){
+	$logger->info("Assuming hierarchical ingestion of directory. Traversing the old directory [$oldFilename] to update the location of the included files");
+	find( \&mvFile , $oldFilename );
+	@oldfnames=@filenameList;
+	$useDirectoryId='TRUE';
+	
+}elsif( !defined($recursive) and -d $newFilename){
+	$logger->info("Assuming hierarchical ingestion of directory. Traversing the new directory [$newFilename] to update the location of the included files");
+	find( \&mvFile , $newFilename);
+	@newfnames= @filenameList;
+	$useDirectoryId='TRUE';
 }else{
-	updateSOLR( $oldFilename, $newFilename);
+	updateSOLR( $oldFilename, $newFilename); #for simple files
 }
 
 
 
-
+my $SOLRDocId;
 for(my $i=0; $i< scalar(@filenameList); $i ++){
 	if(!defined($oldfnames[$i])){
 		($oldfnames[$i]= $newfnames[$i])=~ s!$newFilename!$oldFilename! ;
@@ -91,7 +102,9 @@ for(my $i=0; $i< scalar(@filenameList); $i ++){
 	 	$logger->debug("We don't process met or lock4filetransfer files");
 	 	next;
 	 }
-	updateSOLR( $oldfnames[ $i ], $newfnames[  $i ]);
+	
+	my $id=updateSOLR( $oldfnames[ $i ], $newfnames[  $i ], $SOLRDocId);
+	if($i==0 and $useDirectoryId eq 'TRUE'){ $SOLRDocId=$id;}
 }
 
 
@@ -141,8 +154,15 @@ sub modifyPath{
 	return($absOldFilename,$absNewFilename);
 }
 	
+	
+	
+# uupdate SOLR does the basic work
+#input $old filename
+#      $new filename
+#      $id  SOLR document id, If set to a value (pointer to array) the script will use always the same id 
+#           this is used when need to update the locations of directories tha thave been ingested as one object
 sub updateSOLR{
-	my($old, $new)=@_;
+	my($old, $new, $id)=@_;
 	
 	$logger->debug("updateSOLR: $old -> $new");
 	
@@ -167,13 +187,15 @@ sub updateSOLR{
 	$logger->info("     absolute path of new location [$absNewFilename2]") if defined($absNewFilename2);
 	
 	# get the solr id of the existing file
-	my $result=[]; $result=$server->call("metadataInfo.getSOLRIDByFilename",
-	$absOldFilename )if defined($absOldFilename);
-	my $result2=[]; $result2=$server->call("metadataInfo.getSOLRIDByFilename",
-	$absOldFilename2 ) if defined($absOldFilename2);
-	@$result=(@$result,@$result2);
-	$result=Celgene::Utils::ArrayFunc::unique($result);
-	#print Dumper($result);
+	my $result;
+	if(!defined($id) ){
+		$result=getSOLRID($absOldFilename,$absOldFilename2);
+		
+	}else{
+		$result=$id;
+		$logger->debug("Using previously assigned id [$id]");
+	}
+	
 	
 	
 	if(!defined($result) or scalar(@$result)==0){
@@ -203,6 +225,7 @@ sub updateSOLR{
 
 		
 	}
+	return $result;
 }
 exit(0);
 
@@ -252,6 +275,20 @@ sub sanitizeFilename{
 	$fn =~s!^s3:/!s3://!; # for s3 objects we need double slashes
 	return $fn;
 }
+
+sub getSOLRID{
+		my( $absOldFilename, $absOldFilename2)=@_;
+		my $result=[]; $result=$server->call("metadataInfo.getSOLRIDByFilename",
+		$absOldFilename )if defined($absOldFilename);
+		my $result2=[]; $result2=$server->call("metadataInfo.getSOLRIDByFilename",
+		$absOldFilename2 ) if defined($absOldFilename2);
+		@$result=(@$result,@$result2);
+		$result=Celgene::Utils::ArrayFunc::unique($result);
+		#print Dumper($result);
+		return $result;
+		
+	}
+
 
 sub mvFile{
 
