@@ -29,6 +29,7 @@ if(defined($showversion)){
 if(!defined($retries)){
 	$retries=3;
 }
+my $ConnectionError;
 my %supportedFields =( 'stranded'=>1,
 						'sample_id'=>1,
 						'xenograft'=>1,
@@ -130,9 +131,9 @@ foreach my $id ( @{$idArray}){
 		my $data;
 		for(my $r=0; $r< $retries; $r++){
 			eval{ $data=$server->call('sampleInfo.getSampleByID', $id); };
-			if(!defined($@)){ last;}
+			if(!defined($@)){ last;}else{$ConnectionError=$@;}
 		}
-		if(defined($@)){ $logger->logdie("Error contacting server $@");}
+		if(defined($ConnectionError)){ $logger->logdie("Error contacting server $ConnectionError");}
 		$logger->trace(Dumper( $data ));
 		if(!defined( $data ) or $data eq ''){next;}
 		my $retVal= $data->{ $field };
@@ -155,16 +156,16 @@ if(defined($updateValue)){
 	my $idArray2 ;
 	for(my $r=0; $r< $retries; $r++){
 		eval{ $idArray2= $server->call('metadataInfo.getSOLRIDByFilename',$filename); } ;
-		if(!defined($@)){ last;}
+		if(!defined($@)){ last;}else{$ConnectionError=$@;}
 	}
-	if(defined($@)){ $logger->logdie("Error contacting server $@");}	
+	if(defined($ConnectionError)){ $logger->logdie("Error contacting server $ConnectionError");}
 	foreach my $id2( @$idArray2){
 		$logger->info("Document id $id2: The field $field will be updated and the new value $updateValue will be added.");
 		for(my $r=0; $r< $retries; $r++){
 			eval{ $server->call('metadataInfo.updateFieldBySOLRID',$field, $updateValue, $id2); } ;
-			if(!defined($@)){ last;}
+			if(!defined($@)){ last;}else{$ConnectionError=$@;}
 		}	
-		if(defined($@)){ $logger->logdie("Error contacting server $@");}
+		if(defined($ConnectionError)){ $logger->logdie("Error contacting server $ConnectionError");}
 	}
 }
 
