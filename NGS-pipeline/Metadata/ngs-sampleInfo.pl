@@ -13,17 +13,21 @@ use Log::Log4perl;
 
 my $version=Celgene::Utils::SVNversion::version( '$Date: 2015-09-16 14:31:45 -0700 (Wed, 16 Sep 2015) $ $Revision: 1645 $ by $Author: kmavrommatis $' );
 
-my($help,$log_level,$log_file,$showversion);
+my($help,$log_level,$log_file,$retries,$showversion);
 GetOptions(
 	"h|help!"=>\$help,
 	"loglevel=s"=>\$log_level,
 	"logfile=s"=>\$log_file,
+	"retries=i"=>\$retries,
 	"version!"=>\$showversion
 );
 
 if(defined($showversion)){
 	print "ngs-sampleInfo.pl $version\n";
 	exit 0;
+}
+if(!defined($retries)){
+	$retries=3;
 }
 my %supportedFields =( 'stranded'=>1,
 						'sample_id'=>1,
@@ -123,7 +127,12 @@ foreach my $id ( @{$idArray}){
 	$logger->debug( "Found sample $id corresponding to file\n");
 	if(defined($id)){
 		$logger->trace("Getting data for id:$id");
-		my $data=$server->call('sampleInfo.getSampleByID', $id);
+		my $data;
+		for(my $r=0; $r< $retries; $r++){
+			eval{ $data=$server->call('sampleInfo.getSampleByID', $id); };
+			if(!defined($@)){ last;}
+		}
+		if(defined($@)){ $logger->logdie("Error contacting server $@");}
 		$logger->trace(Dumper( $data ));
 		if(!defined( $data ) or $data eq ''){next;}
 		my $retVal= $data->{ $field };
@@ -143,10 +152,19 @@ else{ print $retVals[0] if defined($retVals[0]) }
 
 
 if(defined($updateValue)){
-	my $idArray2 = $server->call('metadataInfo.getSOLRIDByFilename',$filename);
+	my $idArray2 ;
+	for(my $r=0; $r< $retries; $r++){
+		eval{ $idArray2= $server->call('metadataInfo.getSOLRIDByFilename',$filename); } ;
+		if(!defined($@)){ last;}
+	}
+	if(defined($@)){ $logger->logdie("Error contacting server $@");}	
 	foreach my $id2( @$idArray2){
 		$logger->info("Document id $id2: The field $field will be updated and the new value $updateValue will be added.");
-		$server->call('metadataInfo.updateFieldBySOLRID',$field, $updateValue, $id2);
+		for(my $r=0; $r< $retries; $r++){
+			eval{ $server->call('metadataInfo.updateFieldBySOLRID',$field, $updateValue, $id2); } ;
+			if(!defined($@)){ last;}
+		}	
+		if(defined($@)){ $logger->logdie("Error contacting server $@");}
 	}
 }
 
