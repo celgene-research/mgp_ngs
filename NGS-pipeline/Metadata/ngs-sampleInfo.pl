@@ -135,13 +135,13 @@ foreach my $id ( @{$idArray}){
 		}
 		if(defined($ConnectionError) and $ConnectionError ne ""){ $logger->logdie("Error contacting server $ConnectionError");}
 		$logger->trace(Dumper( $data ));
-		if(!defined( $data ) or $data eq ''){next;}
+		if(!defined( $data ) or $data eq ''){next;} 
 		my $retVal= $data->{ $field };
 		$retVal =~s/\s/_/g;
 		$retVal =~s/[()]//g;
 		push @retVals, $retVal;
 	}
-	
+
 }	
 if(scalar(@retVals)==0){print 'NA';}
 else{
