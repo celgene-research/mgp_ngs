@@ -16,7 +16,7 @@ stem=$(fileStem $input1)
 output=$stem
 
 
-database=${humanDir}/SailFishIndex_0.7.6
+database=${humanDir}/SailFish0.9_Index
 step=$step.human
 
 export NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
