@@ -1,4 +1,7 @@
 #!/bin/bash
+
+# use this script to run sailfish from fastq files. 
+# the script is using the latest 'kallisto' like sailfish interface
 scriptDir=$( dirname $0 ); source $scriptDir/../lib/shared.sh
 
 step="Sailfish"
@@ -62,10 +65,10 @@ celgeneExec.pl --analysistask ${analysistask} \"\
 $pigzbin -c -d -p $cores \$input1 > \${outputDirectory}/1.fq ; \
 $pigzbin -c -d -p $cores \$input2 > \${outputDirectory}/2.fq ; \
 $sailfishbin quant --index \$database \
-  --libtype '$library' \
+  -l '$library' \
   -1 \${outputDirectory}/1.fq -2 \${outputDirectory}/2.fq  \
   -o \${outputDirectory}/$stem.$step.sfish \
-  -p $cores  \
+  --numThreads $cores  \
   --useVBOpt \
   --numBootstraps 100  ; \
 rm \${outputDirectory}/*.fq \"
