@@ -68,7 +68,7 @@ $sailfishbin quant --index \$database \
   -l '$library' \
   -1 \${outputDirectory}/1.fq -2 \${outputDirectory}/2.fq  \
   -o \${outputDirectory}/$stem.$step.sfish \
-  --numThreads $cores  \
+  --threads $cores  \
   --useVBOpt \
   --numBootstraps 100  ; \
 rm \${outputDirectory}/*.fq \"
