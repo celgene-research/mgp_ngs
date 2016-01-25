@@ -141,7 +141,6 @@ foreach my $id ( @{$idArray}){
 		$retVal =~s/[()]//g;
 		push @retVals, $retVal;
 	}
-
 }	
 if(scalar(@retVals)==0){print 'NA';}
 else{
