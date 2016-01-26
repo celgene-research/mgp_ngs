@@ -119,7 +119,7 @@ case "$option" in
 	dispatch $humanrsemidxAWS $humanrsemidx
 ;;
 "Sailfish.human" )
-	dispatch ${humanDirAWS}/SailFishIndex_0.7.6 ${humanDir}/SailFishIndex_0.7.6
+	dispatch ${humanDirAWS}/SailFish0.9_Index ${humanDir}/SailFish0.9_Index
 ;;
 # download the human indexes for STAR
 "STARaln.human" )
