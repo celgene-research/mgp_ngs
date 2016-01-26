@@ -170,6 +170,7 @@ if(defined($updateValue)){
 
 exit(0);
 
+
 sub getAbsPath{
 	my($fn)=@_;
 	if($fn =~/^s3:/){ return $fn;} # file is a S3 object and is absolute
