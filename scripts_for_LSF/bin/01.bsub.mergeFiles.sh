@@ -14,6 +14,7 @@ shift # disgards the first argument (which is stored as stem)
 inputDirectory=$@
 step="mergeFastq"
 analysistask=$step
+
 NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
 mkdir -p $NGS_LOG_DIR
 
@@ -36,14 +37,16 @@ filestr1=\"\"
 for i in "$inputDirectory" ;do
 	i=\$( stage.pl --type file --operation out \${i} )
 	filestr1=\"\${filestr1} \${i}\"
+	extension=\${filestr1##*.}
 done
-
-
+uncompressBin=\"cat\"
+if [ \"$extension\"==\"bz2\" ] ; then uncompressBin=\"bzcat\" ; fi
+if [ \"$extension\"==\"gz\" ] ; then uncompressBin=\"gunzip -c\" ;  fi
 
 outputDirectory=\$( setOutput \$i ${step} )
 
 celgeneExec.pl --analysistask $analysistask \"\
-bzcat \$filestr1 > \${outputDirectory}/$stem.fq ; \
+$uncompressBin \$filestr1 > \${outputDirectory}/$stem.fq ; \
 gzip \${outputDirectory}/$stem.fq \
 \"
 if [ \$? != 0 ] ; then
