@@ -71,18 +71,26 @@ After updating this file make sure that is copied in the
 	<mime-type type="text/fastqfirstmateread">
 		<glob pattern=".*R1.*\.fastq.gz$" isregex="true" />
 		<glob pattern="*R1.fastq.gz"/>
+		<glob pattern="*R1.fastq"/>
+		<glob pattern="*1.fastq"/>
 		<glob pattern="*R1.fastq.bz2"/>
 		<glob pattern=".*R1.*\.fq.gz$" isregex="true" />
 		<glob pattern="*R1.fq.gz"/>
+		<glob pattern="*R1.fq"/>
+		<glob pattern="*1.fq"/>
 		<glob pattern="*R1.fq.bz2"/>
 		<sub-class-of type="text/fastq"/>
 	</mime-type>
 	<mime-type type="text/fastqsecondmateread">
        	<glob pattern=".*_R2.*\.fastq.gz$" isregex="true" />
        	<glob pattern="*R2.fastq.gz"/>
+       	<glob pattern="*R2.fastq"/>
+		<glob pattern="*2.fastq"/>
        	<glob pattern="*R2.fastq.bz2"/>
        	<glob pattern=".*_R2.*\.fq.gz$" isregex="true" />
        	<glob pattern="*R2.fq.gz"/>
+       	<glob pattern="*R2.fq"/>
+		<glob pattern="*2.fq"/>
        	<glob pattern="*R2.fq.bz2"/>
 		<sub-class-of type="text/fastq"/>
 	</mime-type>
