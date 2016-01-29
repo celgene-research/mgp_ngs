@@ -12,10 +12,11 @@ function setLogging(){
 	step=$2
 	da=$3
 	
-	
+	NGS_LOG_DIR=$(echo $NGS_LOG_DIR | sed 's|/${step}||g' )
 	if [ -z "${da}" ] ;then
 		NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
 	else
+		NGS_LOG_DIR=$(echo $NGS_LOG_DIR | sed 's|/${da}||g' )
 		NGS_LOG_DIR=${NGS_LOG_DIR}/${da}/${step}
 	fi
 
