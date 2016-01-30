@@ -38,15 +38,20 @@ Although this can also be managed by a NGS_CONFIG_SYS_FILE env variable, it is r
 ##HIDDEN GEMS
 Each output directory has a numeric suffix (which is the epoch of the time of the run). If you want to change this number you can set the **$NGS_SUFFIX** variable to the number you wish. This is useful if you want to run a script and add the output in an existing directory (e.g. if you realized that one file has not been processed)
 
-Before you run a script you can set the environment variable **$NGS_OUTPUT_DIRECTORY** to a string. This string will be added to the output directory before the numeric prefix. This is typically a string that contains the workflow step, or the tool name.
+Before you run a script you can set the environment variable **$NGS_OUTPUT_DIRECTORY** to a string. This string will be added to the output directory before the numeric prefix. This is typically a string that contains the workflow step, or the tool name. 
 
-The output of the pipeline is typically stored in a directory that is derived from the input directory by replacing SRC with Processed and at the end replacing the last directory with the analysis task name. If a user wants a different Processed directory the env variable **$NGS_PROCESSED_DIRECTORY** can be used.
+The output of the pipeline is typically stored in a directory that is derived from the input directory by replacing SRC with Processed and at the end replacing the last directory with the analysis task name. If a user wants a different Processed directory the env variable **$NGS_PROCESSED_DIRECTORY** can be used. Note that the last directory of a filepath is removed anyway;
 
 So overall the output directory where data is stored will be:
 workDir=${workDir}/${NGS_PROCESSED_DIRECTORY}/${NGS_OUTPUT_DIRECTORY}_${NGS_SUFFIX}
 where workDir comes from the directory of the input file, but Rawdata has been replaced by Processed, and the last directory is set by the script and typically indicates the step of the process.
+eg. input file is:
+s3://celgene-src-bucket/DA0000124/RNA-Seq/RawData/Personalis/SEM_CAN_RNA_v1.0.4_RNAseq/Deliverables/Fastq/SEM_Reads_1.fastq
+in order to store the output to
+s3://celgene-src-bucket/DA0000124/RNA-Seq/Processed/SEM_Reads_1.fastq.something
+we need to set the NGS_PROCESSED_DIRECTORY to ../../../ (only three levels up since the last level -Fastq- will be removed anyway)
 
-All the directories that are provided as enviroment variables will be stripped off of starting and trailing slashes.bjobs
+All the directories that are provided as enviroment variables will be stripped off of starting and trailing slashesOC
 
 ##Help and other information
 
