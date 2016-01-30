@@ -119,7 +119,7 @@ if($field eq 'bait_set'){
 
 
 
-
+$logger->info("Searching for [$field] information for $filename")
 
 my $idArray = serverCall('metadataInfo.getSampleIDByFilename',$filename);
 $logger->trace(Dumper($idArray));
@@ -166,17 +166,20 @@ sub serverCall{
 	my ($function, @arguments)=@_;
 	my $retArray;
 	for(my $r=1; $r<= $retries; $r++){
-		eval{ $retArray=$server->call($function,@arguments); } ;
+		$retArray=eval{$server->call($function,@arguments); } ;
 		
-		if(!defined($@) or $@ eq ''){ 
-			last;
-		}else{
-			$ConnectionError=$@;
-			$logger->warn("Attempt $r to connect server failed with error [$ConnectionError]");
+		if($@){
+			$logger->warn("Attempt $r to connect server failed with error [$@]");
 			
 			if( $r==$retries){
 				$logger->logdie("Cannot contact server. Aborting !!!")
 			}
+			
+		}else{
+			if($r>1){
+                $logger->info("Attempt $r was successful");
+            }
+            last;
 			
 		}
 	}
