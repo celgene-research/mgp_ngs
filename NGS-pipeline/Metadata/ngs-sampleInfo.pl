@@ -22,12 +22,14 @@ GetOptions(
 	"version!"=>\$showversion
 );
 
+my $logger=setUpLog();
 if(defined($showversion)){
 	print "ngs-sampleInfo.pl $version\n";
 	exit 0;
 }
 if(!defined($retries)){
 	$retries=3;
+	$logger->info("Setting retries to $retries");
 }
 my $ConnectionError;
 my %supportedFields =( 'stranded'=>1,
@@ -87,7 +89,6 @@ if(defined($showversion)){
 	exit(0);
 }
 
-my $logger=setUpLog();
 
 my($filename, $field, $updateValue)=@ARGV;
 
@@ -120,7 +121,7 @@ if($field eq 'bait_set'){
 
 
 
-my $idArray = $server->call('metadataInfo.getSampleIDByFilename',$filename);
+my $idArray = serverCall('metadataInfo.getSampleIDByFilename',$filename);
 $logger->trace(Dumper($idArray));
 my @retVals;
 foreach my $id ( @{$idArray}){
@@ -129,10 +130,7 @@ foreach my $id ( @{$idArray}){
 	if(defined($id)){
 		$logger->trace("Getting data for id:$id");
 		my $data;
-		for(my $r=0; $r< $retries; $r++){
-			eval{ $data=$server->call('sampleInfo.getSampleByID', $id); };
-			if(!defined($@)){ $ConnectionError=undef;last;}else{$ConnectionError=$@;}
-		}
+		$data=serverCall('sampleInfo.getSampleByID', $id);
 		if(defined($ConnectionError) and $ConnectionError ne ""){ $logger->logdie("Error contacting server $ConnectionError");}
 		$logger->trace(Dumper( $data ));
 		if(!defined( $data ) or $data eq ''){next;} 
@@ -153,22 +151,38 @@ else{ print $retVals[0] if defined($retVals[0]) }
 
 if(defined($updateValue)){
 	my $idArray2 ;
-	for(my $r=0; $r< $retries; $r++){
-		eval{ $idArray2= $server->call('metadataInfo.getSOLRIDByFilename',$filename); } ;
-		if(!defined($@)){ $ConnectionError=undef;last;}else{$ConnectionError=$@;}
-	}
+	$idArray2= serverCall('metadataInfo.getSOLRIDByFilename',$filename);
 	if(defined($ConnectionError) and $ConnectionError ne ""){ $logger->logdie("Error contacting server $ConnectionError");}
 	foreach my $id2( @$idArray2){
 		$logger->info("Document id $id2: The field $field will be updated and the new value $updateValue will be added.");
-		for(my $r=0; $r< $retries; $r++){
-			eval{ $server->call('metadataInfo.updateFieldBySOLRID',$field, $updateValue, $id2); } ;
-			if(!defined($@)){ $ConnectionError=undef;last;}else{$ConnectionError=$@;}
-		}	
-		if(defined($ConnectionError) and $ConnectionError ne ""){ $logger->logdie("Error contacting server $ConnectionError");}
+		
+		serverCall('metadataInfo.updateFieldBySOLRID',$field, $updateValue, $id2); 
 	}
 }
 
 exit(0);
+
+sub serverCall{
+	my ($function, @arguments)=@_;
+	my $retArray;
+	for(my $r=1; $r<= $retries; $r++){
+		eval{ $retArray=$server->call($function,@arguments); } ;
+		
+		if(!defined($@) or $@ eq ''){ 
+			last;
+		}else{
+			$ConnectionError=$@;
+			$logger->warn("Attempt $r to connect server failed with error [$ConnectionError]");
+			
+			if( $r==$retries){
+				$logger->logdie("Cannot contact server. Aborting !!!")
+			}
+			
+		}
+	}
+	return( $retArray );	
+}
+
 
 
 sub getAbsPath{
