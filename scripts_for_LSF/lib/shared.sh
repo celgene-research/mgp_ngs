@@ -13,26 +13,26 @@ function setLogging(){
 	da=$3
 	
 	NGS_LOG_DIR=$(echo $NGS_LOG_DIR | sed 's|/${step}||g' )
-	echo "Logging: Step is set to $step"
+	echo "Logging: Step is set to $step" 1>&2
 	if [ -z "${da}" ] ;then
 		NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
 	else
 		NGS_LOG_DIR=$(echo $NGS_LOG_DIR | sed 's|/${da}||g' )
 		NGS_LOG_DIR=${NGS_LOG_DIR}/${da}/${step}
-		echo "Logging: Data assets is set to  $da"
+		echo "Logging: Data assets is set to  $da" 1>&2
 	fi
 	NGS_LOG_DIR=$(echo $NGS_LOG_DIR | sed 's|//|/|g' )
 	mkdir -p $NGS_LOG_DIR
-	echo "Logging: Created directory $NGS_LOG_DIR"
+	echo "Logging: Created directory $NGS_LOG_DIR" 1>&2
 	export MASTER_LOGFILE=${NGS_LOG_DIR}/${stem}.${step}.log
 	export STAGEFILE_LOGFILE=${MASTER_LOGFILE}
 	export CELGENE_EXEC_LOGFILE=${MASTER_LOGFILE}
 	if [ -e $CELGENE_EXEC_LOGFILE ] ; then
 			rm -f $CELGENE_EXEC_LOGFILE	
 	fi
-	echo "Logging: Master log file is set to $MASTER_LOGFILE"
-	echo "Logging: Stage file is set to $STAGEFILE_LOGFILE"
-	echo "Logging: CelgeneExec log file is set to $CELGENE_EXEC_LOGFILE"
+	echo "Logging: Master log file is set to $MASTER_LOGFILE" 1>&2
+	echo "Logging: Stage file is set to $STAGEFILE_LOGFILE" 1>&2
+	echo "Logging: CelgeneExec log file is set to $CELGENE_EXEC_LOGFILE" 1>&2
 }
 
 function checkfile(){
