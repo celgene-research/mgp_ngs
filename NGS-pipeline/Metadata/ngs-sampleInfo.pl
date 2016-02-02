@@ -119,7 +119,7 @@ if($field eq 'bait_set'){
 
 
 
-$logger->info("Searching for [$field] information for $filename")
+$logger->info("Searching for [$field] information for $filename");
 
 my $idArray = serverCall('metadataInfo.getSampleIDByFilename',$filename);
 $logger->trace(Dumper($idArray));
