@@ -10,6 +10,9 @@ use Cwd;
 use Celgene::Utils::SVNversion;
 use Getopt::Long;
 use Log::Log4perl;
+use FindBin;
+use lib $FindBin::RealBin."/lib";
+use metadataFunc;
 
 my $version=Celgene::Utils::SVNversion::version( '$Date: 2015-09-16 14:31:45 -0700 (Wed, 16 Sep 2015) $ $Revision: 1645 $ by $Author: kmavrommatis $' );
 
@@ -108,8 +111,8 @@ if(defined($updateValue)){
 
 $filename=getAbsPath( $filename );
 $logger->debug( "Getting sample information for file $filename\n");
-my $server_url = $ENV{ NGS_SERVER_URL };
-my $server = Frontier::Client->new('url' => $server_url.'/RPC2');
+
+my $server = metadataFunc::getServer();
 #print "Connecting to server $server_url\n";
 
 
@@ -162,29 +165,7 @@ if(defined($updateValue)){
 
 exit(0);
 
-sub serverCall{
-	my ($function, @arguments)=@_;
-	my $retArray;
-	for(my $r=1; $r<= $retries; $r++){
-		$retArray=eval{$server->call($function,@arguments); } ;
-		
-		if($@){
-			$logger->warn("Attempt $r to connect server failed with error [$@]");
-			
-			if( $r==$retries){
-				$logger->logdie("Cannot contact server. Aborting !!!")
-			}
-			
-		}else{
-			if($r>1){
-                $logger->info("Attempt $r was successful");
-            }
-            last;
-			
-		}
-	}
-	return( $retArray );	
-}
+
 
 
 

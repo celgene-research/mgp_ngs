@@ -12,7 +12,8 @@ use lib $FindBin::RealBin;
 use Getopt::Long;
 use Cwd;
 use Celgene::Utils::SVNversion;
-
+use lib $FindBin::RealBin."/lib";
+use metadataFunc;
 
 my $version=Celgene::Utils::SVNversion::version( '$Date: 2015-06-26 12:39:03 -0700 (Fri, 26 Jun 2015) $ $Revision: 1622 $ by $Author: kmavrommatis $' );
 
@@ -39,19 +40,16 @@ if(defined($help)){ printHelp(); exit 0 ; }
 my ($oldFilename,$newFilename)=@ARGV;
 
 
-if(!defined($ENV{NGS_SERVER_URL})){
-	$logger->logdie("Cannot find the environment variable \$NGS_SERVER_URL");
-}
+
 if(!defined($oldFilename) or !defined($newFilename)){
 	printHelp() ; 
 	$logger->logdie("Please provide the oldFilename and newFilename");
 	exit(1);
 }
 
-my $server_url = $ENV{ NGS_SERVER_URL };
 
-$logger->debug("Found server at $server_url");
-my $server = Frontier::Client->new('url' => $server_url."/RPC2");
+
+my $server = metadataFunc::getServer();
 
 
 $oldFilename =sanitizeFilename( $oldFilename );
@@ -205,20 +203,20 @@ sub updateSOLR{
 	# add the old value as FilePath (used for older entries that don't have this setup);
 	foreach my $r( @$result){
 		$logger->debug( "Updating id:$r from $old to $new\n");
-		$server->call("metadataInfo.updateFieldBySOLRID",
+		serverCall("metadataInfo.updateFieldBySOLRID",
 		"FilePath",
 		$old,
 		$r) if (defined( $absOldFilename) and $absOldFilename ne "" );
-		$server->call("metadataInfo.updateFieldBySOLRID",
+		serverCall("metadataInfo.updateFieldBySOLRID",
 		"FilePath",
 		$absOldFilename2,
 		$r) if (defined($absOldFilename2) and $absOldFilename2 ne "");
 		#add the new filepath
-		$server->call("metadataInfo.updateFieldBySOLRID",
+		serverCall("metadataInfo.updateFieldBySOLRID",
 		"FilePath",
 		$absNewFilename,
 		$r) if(defined($absNewFilename)and $absNewFilename ne "");
-		$server->call("metadataInfo.updateFieldBySOLRID",
+		serverCall("metadataInfo.updateFieldBySOLRID",
 		"FilePath",
 		$absNewFilename2,
 		$r) if(defined($absNewFilename2) and $absNewFilename2 ne "");
@@ -278,9 +276,9 @@ sub sanitizeFilename{
 
 sub getSOLRID{
 		my( $absOldFilename, $absOldFilename2)=@_;
-		my $result=[]; $result=$server->call("metadataInfo.getSOLRIDByFilename",
+		my $result=[]; $result=serverCall("metadataInfo.getSOLRIDByFilename",
 		$absOldFilename )if defined($absOldFilename);
-		my $result2=[]; $result2=$server->call("metadataInfo.getSOLRIDByFilename",
+		my $result2=[]; $result2=serverCall("metadataInfo.getSOLRIDByFilename",
 		$absOldFilename2 ) if defined($absOldFilename2);
 		@$result=(@$result,@$result2);
 		$result=Celgene::Utils::ArrayFunc::unique($result);
