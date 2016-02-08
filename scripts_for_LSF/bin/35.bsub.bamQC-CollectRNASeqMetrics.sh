@@ -62,13 +62,13 @@ if [ "$strand" == 'FORWARD' ]; then
 fi
 
 
-initiateJob $stem $step $1
 cores=$(fullcores)
 
 memory=32000
 stem=$(fileStem $input)
 
 
+initiateJob $stem $step $1
 header=$(bsubHeader $stem $step $memory $cores)
 echo \
 "$header
