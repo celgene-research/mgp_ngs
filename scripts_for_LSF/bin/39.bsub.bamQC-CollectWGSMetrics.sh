@@ -40,14 +40,12 @@ fi
 
 
 
-NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
 
 cores=$(fullcores)
 
 memory=16000
 stem=$(fileStem $input)
-
-mkdir -p $NGS_LOG_DIR
+initiateJob $stem $step $1
 
 header=$(bsubHeader $stem $step $memory $cores)
 echo \

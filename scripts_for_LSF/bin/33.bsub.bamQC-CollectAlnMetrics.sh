@@ -40,8 +40,7 @@ fi
 
 
 
-NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
-
+initiateJob $stem $step $1
 cores=$(fullcores)
 
 memory=16000

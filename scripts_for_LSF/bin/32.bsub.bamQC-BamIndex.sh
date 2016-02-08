@@ -8,13 +8,11 @@ checkfile $input
 
 index=$(echo $input|sed 's/bam$/bai/');
 
-NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
+
 cores=4
 memory=16000
 stem=$(fileStem $input)
-
-mkdir -p $NGS_LOG_DIR
-
+initiateJob $stem $step $1
 header=$(bsubHeader $stem $step $memory $cores)
 echo \
 "$header

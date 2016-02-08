@@ -62,14 +62,12 @@ if [ "$strand" == 'FORWARD' ]; then
 fi
 
 
-NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
-
+initiateJob $stem $step $1
 cores=$(fullcores)
 
 memory=32000
 stem=$(fileStem $input)
 
-mkdir -p $NGS_LOG_DIR
 
 header=$(bsubHeader $stem $step $memory $cores)
 echo \

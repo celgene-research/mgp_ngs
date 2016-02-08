@@ -44,14 +44,13 @@ if [ -n "$2" ] ; then
 genomefile=$2
 fi
 
-
-NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
+initiateJob $stem $step $1
 cores=$(fullcores)
 
 memory=16000
 stem=$(fileStem $input)
 
-mkdir -p $NGS_LOG_DIR
+
 header=$(bsubHeader $stem $step $memory $cores)
 
 echo \

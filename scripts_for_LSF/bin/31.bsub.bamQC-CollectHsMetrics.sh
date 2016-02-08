@@ -35,7 +35,7 @@ fi
 
 
 strand=$( ngs-sampleInfo.pl $input stranded )
-NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
+initiateJob $stem $step $1
 #####
 # check if exome set baitsfile and captureKit
 
