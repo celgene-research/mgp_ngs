@@ -52,8 +52,8 @@ if [ -z "$refgenome" -o "$refgenome" == "" ]; then
 	exit 1
 fi
 
-export NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
-mkdir -p $NGS_LOG_DIR
+initiateJob $stem $step $1
+
 cores=$(fullcores)
 
 header=$(bsubHeader $stem $step $memory $cores)

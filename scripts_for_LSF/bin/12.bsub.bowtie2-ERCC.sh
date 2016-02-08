@@ -13,7 +13,8 @@ stem=$(fileStem $input1)
 
 database=${ercc_bowtieidx}
 
-NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
+initiateJob $stem $step $1
+
 
 # end of command arguments
 ##########################
@@ -23,7 +24,7 @@ if [ $sample_id == "NA" ]; then
 fi
 memory=24000
 cores=4
-mkdir -p $NGS_LOG_DIR
+
 
 header=$(bsubHeader $stem $step $memory $cores)
 echo \

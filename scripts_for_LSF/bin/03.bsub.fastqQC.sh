@@ -15,7 +15,9 @@ fi
 
 step="FastQC"
 stem=$(fileStem $input)
-NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
+
+initiateJob $stem $step $1
+
 memory=8000
 cores=2
 

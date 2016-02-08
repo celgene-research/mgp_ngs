@@ -37,8 +37,8 @@ fi
 cores=$( fullcores )
 forks=$((cores/5))
 memory=16000
-export NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
-mkdir -p $NGS_LOG_DIR
+initiateJob $stem $step $1
+
 header=$(bsubHeader $stem $step $memory $cores)
 echo \
 "$header

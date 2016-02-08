@@ -58,8 +58,8 @@ if [ -z "$refgenome" -o "$refgenome" == "" ]; then
 fi
 
 
-NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
-mkdir -p $NGS_LOG_DIR
+initiateJob $stem $step $1
+
 # end of command arguments
 ##########################
 sample_id=$(ngs-sampleInfo.pl $input1 sample_id )

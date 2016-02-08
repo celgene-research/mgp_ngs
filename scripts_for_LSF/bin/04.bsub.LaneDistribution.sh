@@ -13,11 +13,11 @@ fi
 #for step in MarkDuplicates CollectAlnSummary CollectInsertSize CollectRNASeqMetrics BamIndex LibraryComplexity
 step="LaneDistribution"
 stem=$(fileStem $input)
+initiateJob $stem $step $1
 
 memory=8000
 cores=1
-NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
-mkdir -p $NGS_LOG_DIR
+
 header=$(bsubHeader $stem $step $memory $cores)
 echo \
 "$header

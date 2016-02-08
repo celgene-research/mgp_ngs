@@ -37,8 +37,8 @@ strandness=$( ngs-sampleInfo.pl $input1 stranded )
 
 cores=$( fullcores )
 memory=16000
-export NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
-mkdir -p $NGS_LOG_DIR
+initiateJob $stem $step $1
+
 header=$(bsubHeader $stem $step $memory $cores)
 echo \
 "$header

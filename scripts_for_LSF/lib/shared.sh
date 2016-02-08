@@ -12,16 +12,16 @@ function setLogging(){
 	step=$2
 	da=$3
 	
-	NGS_LOG_DIR=$(echo $NGS_LOG_DIR | sed 's|/${step}||g' )
+	NGS_LOG_DIR=$(echo $NGS_LOG_DIR | sed 's|/'${step}'||g' )
 	echo "Logging: Step is set to $step" 1>&2
 	if [ -z "${da}" ] ;then
 		NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
 	else
-		NGS_LOG_DIR=$(echo $NGS_LOG_DIR | sed 's|/${da}||g' )
+		NGS_LOG_DIR=$(echo $NGS_LOG_DIR | sed 's|/'${da}'||g' )
 		NGS_LOG_DIR=${NGS_LOG_DIR}/${da}/${step}
 		echo "Logging: Data assets is set to  $da" 1>&2
 	fi
-	NGS_LOG_DIR=$(echo $NGS_LOG_DIR | sed 's|//|/|g' )
+	export NGS_LOG_DIR=$(echo $NGS_LOG_DIR | sed 's|//|/|g' )
 	mkdir -p $NGS_LOG_DIR
 	echo "Logging: Created directory $NGS_LOG_DIR" 1>&2
 	export MASTER_LOGFILE=${NGS_LOG_DIR}/${stem}.${step}.log
@@ -33,6 +33,8 @@ function setLogging(){
 	echo "Logging: Master log file is set to $MASTER_LOGFILE" 1>&2
 	echo "Logging: Stage file is set to $STAGEFILE_LOGFILE" 1>&2
 	echo "Logging: CelgeneExec log file is set to $CELGENE_EXEC_LOGFILE" 1>&2
+	
+	echo $NGS_LOG_DIR
 }
 
 function checkfile(){
@@ -95,6 +97,7 @@ function bsubHeader(){
 	step=$2	
 	memory=$3
 	cores=$4
+	
 	if [ -z "$cores" ]; then
 		cores=1
 	fi
@@ -208,11 +211,8 @@ function initiateJob(){
 	date
 	echo "on host " $(hostname)
 	if [ -e $LSB_ERRORFILE ] ;then
-		if [ "$LSB_RESTART" == "Y" ]; then
-			echo "Restarting job"
-		else
-			rm -f $LSB_ERRORFILE
-		fi
+		rm -f $LSB_ERRORFILE
+	
 	fi
 	
 }
@@ -221,6 +221,7 @@ function closeJob(){
 	rm -rf $NGS_TMP_DIR
 	echo "$NGS_TMP_DIR was removed"
 	export NGS_TMP_DIR=${NGS_TMP_DIR_ORIGINAL}	
+	
 	
 	echo "End of job"
 	echo "######################"

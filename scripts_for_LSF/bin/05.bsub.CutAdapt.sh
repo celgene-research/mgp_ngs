@@ -40,9 +40,9 @@ memory=8000
 cores=4 # one for cutadapt and 3 for gzip processes
 
 
+initiateJob $stem $step $1
 
-export NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
-mkdir -p $NGS_LOG_DIR
+
 header=$(bsubHeader $stem $step $memory $cores)
 echo \
 "$header
