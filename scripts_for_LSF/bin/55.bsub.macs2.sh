@@ -123,9 +123,12 @@ $macs2bin callpeak \
  --gsize 2.7e9 \
  --mfold 5 80 \
  --bw 200 \
- --bdg \
+ --bdg --SPMR \
  --keep-dup auto\
-$commandArguments \"
+$commandArguments ; \
+$macs2bin bdgcmp -t \${outputDirectory}/${stem}_treat_pileup.bdg -c \${outputDirectory}/${stem}_control_lambda.bdg  -o \${outputDirectory}/${stem}_FE.bdg -m FE ; \
+$macs2bin bdgcmp -t \${outputDirectory}/${stem}_treat_pileup.bdg -c \${outputDirectory}/${stem}_control_lambda.bdg  -o \${outputDirectory}/${stem}_FE.bdg -m logLR -p 0.00001 \
+"
 touch \${outputDirectory}/${stem}.macs2/${display}-${controlDisplay}-${peaktype}
 chromInfo=\${outputDirectory}/${stem}.macs2/chromInfo.txt
 $samtoolsbin view -H \$inputTag | grep '^@SQ' | cut -f2,3 | sed 's%SN:%%' | sed 's%LN:%%' > \$chromInfo
