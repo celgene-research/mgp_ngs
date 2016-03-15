@@ -12,7 +12,7 @@ NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
 mkdir -p $NGS_LOG_DIR
 stem=$(fileStem $inputListBAM )
 step="GATK.HaplotypeCallerCombinedCalls"
-
+initiateJob $stem $step $1
 output=${stem}.${step}.vcf
 
 genomeDatabase=${humanGenomeDir}/genome.fa

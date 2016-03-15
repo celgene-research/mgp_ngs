@@ -8,6 +8,8 @@ step="GATK.Recalibrate"
 NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
 mkdir -p $NGS_LOG_DIR
 stem=$( fileStem $input )
+
+initiateJob $stem $step $1
 output=${stem}.${step}.bam
 cores=2 # although this process requires only one core we use two in order to make it lighter for I/O
 

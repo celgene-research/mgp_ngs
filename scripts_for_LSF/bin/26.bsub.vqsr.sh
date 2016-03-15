@@ -5,7 +5,7 @@ inputVCF=$1
 analysistask=95
 step="GATK.VariantRecalibration"
 stem=$( fileStem $inputVCF )
-
+initiateJob $stem $step $1
 NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
 mkdir -p $NGS_LOG_DIR
 output=${stem}.${step}

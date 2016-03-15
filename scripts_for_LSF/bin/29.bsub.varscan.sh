@@ -9,7 +9,7 @@ input=$1
 index=$(echo $input|sed 's/bam$/bai/');
 analysistask=92
 step="Varscan2"
-
+initiateJob $stem $step $1
 NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
 mkdir -p $NGS_LOG_DIR
 stem=$( fileStem $input )

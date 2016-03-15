@@ -6,7 +6,7 @@ step="GATK.Haplotype_gvcf"
 analysistask=94
 NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
 mkdir -p $NGS_LOG_DIR
-
+initiateJob $stem $step $1
 output=${stem}.g.vcf
 genomeDatabase=${humanGenomeDir}/genome.fa
 genomeIndex=$(echo $genomeDatabase | sed 's%.fa%.dict%') 
