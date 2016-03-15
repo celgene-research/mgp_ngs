@@ -62,8 +62,7 @@ fi
 # RealignerTargetCreator
 # IndelRealigner
 
-celgeneExec.pl --analysistask $analysistask \" \
-java -Xmx${memory}m -jar ${gatkbin} \
+celgeneExec.pl --analysistask $analysistask \"java -Xmx${memory}m -jar ${gatkbin} \
 -T RealignerTargetCreator \
 $fixQual \
 -R \${genomeDatabase} \
