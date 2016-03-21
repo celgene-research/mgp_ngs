@@ -48,7 +48,7 @@ if [[  \"$experimentType\" =~ ^DNA-Seq ]] ; then
 	
 celgeneExec.pl --analysistask $analysistask \"\
 java -Xmx${memory}m -jar ${gatkbin} \
--T HaplotypeCaller -nct $cores \
+-T HaplotypeCaller \
 -R \${genomeDatabase} \
 -I \${inputBAM} \
 --dbsnp \${knownMuts1} \
@@ -68,7 +68,6 @@ elif [[ \"$experimentType\" =~ ^RNA-Seq ]] ; then
 celgeneExec.pl --analysistask $analysistask \"\
 java -Xmx${memory}m -jar ${gatkbin} \
 -T HaplotypeCaller \
--nct $cores \
 -R \${genomeDatabase} \
 -I \${inputBAM} \
 --max_alternate_alleles 20 \
