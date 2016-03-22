@@ -182,6 +182,11 @@ function fullcores(){
 				fc=$maxCores
 		fi
 	fi
+	
+	if [ -n "$NGS_CORE_NUM" ] ; then
+		fc=${NGS_CORE_NUM}
+	fi
+	 
 	echo $fc				
 							
 }
@@ -246,7 +251,7 @@ function replaceDirNames(){
 	directoryName=$1
 	# for data that is on the cloud
 	
-	local newDirectoryName=$(  echo ${directoryName}  | sed 's%SRC%Processed%'| sed 's%src%Processed%'| sed 's%RawData%Processed%' | sed 's%Raw_Data%Processed%'| sed 's%rawdata%Processed%' | sed 's%raw_data%Processed%' )
+	local newDirectoryName=$(  echo ${directoryName}  | sed 's%/SRC%/Processed%'| sed 's%/src%/Processed%'| sed 's%/RawData%/Processed%' | sed 's%/Raw_Data%/Processed%'| sed 's%/rawdata%/Processed%' | sed 's%/raw_data%/Processed%' )
 	
 	echo $newDirectoryName
 }

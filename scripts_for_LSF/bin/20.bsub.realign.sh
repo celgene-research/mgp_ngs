@@ -71,7 +71,7 @@ $fixQual \
 -known \${knownMuts2} \
 -I \${input} \
 --filter_bases_not_stored --filter_bases_not_stored \
--o \${outputDirectory}/${stem}.intervals 
+-o \${outputDirectory}/${stem}.intervals \
 -nt $cores; \
 java -Xmx${memory}m -jar ${gatkbin} \
 -T IndelRealigner -R \${genomeDatabase} \

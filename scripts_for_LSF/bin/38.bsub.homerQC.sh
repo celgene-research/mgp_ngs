@@ -3,6 +3,7 @@
 # use this script to generate a tags directory used with HOMER (http://homer.salk.edu/homer/ngs/index.html)
 # The input of the script is a bam file (preferably a file with marked duplicates)
 # The output of the script will be in the bamQC directory
+echo 'Homer requires a lot of disk space. It is highly recommended to use this script on a i2.2xlarge instance'
 
 scriptDir=$( dirname $0 ); source $scriptDir/../lib/shared.sh
 inputBAM=$1
@@ -38,7 +39,7 @@ outputDirectory=\$( setOutput \$inputBAM \$newDir/${step} )
 output=\${outputDirectory}/${stem}.${step}.qcstats
 mkdir -p \${outputDirectory}/tmp
 
-celgeneExec.pl --analysistask ${analysistask} \"
+celgeneExec.pl --analysistask ${analysistask} \"\
 makeTagDirectory  \
 	\${outputDirectory}/tmp \
 	-format sam \
