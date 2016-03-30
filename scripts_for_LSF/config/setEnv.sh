@@ -53,10 +53,10 @@ if [ "$CELGENE_AWS" == "true" -o "$FACTER_ENV" == "RCE" ]; then
 	export JAVA_HOME=/usr/
 elif [ "$FACTER_ENV" == "MMGP" ] ; then
 	export NGS_SERVER_PORT=8082
-	export NGS_SERVER_IP=10.130.0.26
+	export NGS_SERVER_IP=192.168.8.44
 	export OODT_FILEMGR_PORT=9000
-	export OODT_FILEMGR_IP=10.130.0.26
-	export SOLR_SERVER_IP=10.130.0.26
+	export OODT_FILEMGR_IP=192.168.8.44
+	export SOLR_SERVER_IP=192.168.8.44
 	export SOLR_SERVER_PORT=8983	
 	export CELGENE_NGS_BUCKET=s3://celgene.rnd.combio.mmgp.external
 
