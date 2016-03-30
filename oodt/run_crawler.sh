@@ -14,9 +14,26 @@ cd $BINDIR
 
 if [ -n "$filesOrDirs" ]; then
 echo "Ingesting directories"
-./crawler_launcher --operation --launchAutoCrawler --productPath $FILEPATH --filemgrUrl $OODT_FILEMGR_URL --clientTransferer org.apache.oodt.cas.filemgr.datatransfer.InPlaceDataTransferFactory  --mimeExtractorRepo ../policy/mime-extractor-map.xml --noRecur --crawlForDirs 2>&1 |tee $FILEPATH/cas-crawler-${CURRDATE}.log 
+./crawler_launcher \
+--operation \
+--launchAutoCrawler \
+--productPath $FILEPATH \
+--filemgrUrl $OODT_FILEMGR_URL \
+--clientTransferer org.apache.oodt.cas.filemgr.datatransfer.InPlaceDataTransferFactory \
+--mimeExtractorRepo ../policy/mime-extractor-map.xml \
+--noRecur \
+--crawlForDirs 2>&1 |\
+tee $FILEPATH/cas-crawler-${CURRDATE}.log 
 else
-./crawler_launcher --operation --launchAutoCrawler --productPath $FILEPATH --filemgrUrl $OODT_FILEMGR_URL --clientTransferer org.apache.oodt.cas.filemgr.datatransfer.InPlaceDataTransferFactory  --mimeExtractorRepo ../policy/mime-extractor-map.xml --noRecur 2>&1 |tee $FILEPATH/cas-crawler-${CURRDATE}.log
+./crawler_launcher \
+--operation \
+--launchAutoCrawler \
+--productPath $FILEPATH \
+--filemgrUrl $OODT_FILEMGR_URL \
+--clientTransferer org.apache.oodt.cas.filemgr.datatransfer.InPlaceDataTransferFactory  \
+--mimeExtractorRepo ../policy/mime-extractor-map.xml \
+--noRecur 2>&1 |\
+tee $FILEPATH/cas-crawler-${CURRDATE}.log
 fi
 
 cd $FILEPATH
