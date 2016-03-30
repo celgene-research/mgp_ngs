@@ -25,16 +25,61 @@
 #############################
 #############################
 
-# NGS SERVER SETTINGS 
-export NGS_SERVER_PORT=8082
-export NGS_SERVER_IP=10.130.0.26
-export OODT_FILEMGR_PORT=9000
-export OODT_FILEMGR_IP=10.130.0.26
-export SOLR_SERVER_IP=10.130.0.26
-export SOLR_SERVER_PORT=8983
-export OODT_FILEMGR_URL=http://${OODT_FILEMGR_IP}:${OODT_FILEMGR_PORT}
-# the NGS_SERVER_URL became a SSL based  (has to wait until this connection is enabled)
-export NGS_SERVER_URL=http://${NGS_SERVER_IP}:${NGS_SERVER_PORT}
+# default NGS SERVER SETTINGS 
+
+
+
+
+
+
+
+###############################
+# settings specific to AWS
+if [ "$CELGENE_AWS" == "true" -o "$FACTER_ENV" == "RCE" ]; then
+	export NGS_SERVER_PORT=8082
+	export NGS_SERVER_IP=10.130.0.26
+	export OODT_FILEMGR_PORT=9000
+	export OODT_FILEMGR_IP=10.130.0.26
+	export SOLR_SERVER_IP=10.130.0.26
+	export SOLR_SERVER_PORT=8983
+	export CELGENE_NGS_BUCKET=s3://celgene-src-bucket
+
+	export NGS_LOG_DIR=/celgene/software/LOGS/
+	if [ -d /scratch ];then
+		export NGS_TMP_DIR=/scratch/tmp/${USER}
+	else
+		export NGS_TMP_DIR=/celgene/tmp/${USER}
+	fi
+	export JAVA_HOME=/usr/
+else if [ "$FACTER_ENV" == "MMGP" ] ; then
+	export NGS_SERVER_PORT=8082
+	export NGS_SERVER_IP=10.130.0.26
+	export OODT_FILEMGR_PORT=9000
+	export OODT_FILEMGR_IP=10.130.0.26
+	export SOLR_SERVER_IP=10.130.0.26
+	export SOLR_SERVER_PORT=8983	
+	export CELGENE_NGS_BUCKET=s3://celgene.rnd.combio.mmgp.external
+
+	export NGS_LOG_DIR=/celgene/software/${USER}/LOGS/
+	if [ -d /scratch ];then
+		export NGS_TMP_DIR=/scratch/tmp/${USER}
+	else
+		export NGS_TMP_DIR=/celgene/tmp/${USER}
+	fi
+	
+	export JAVA_HOME=/usr/
+else
+	export NGS_SERVER_PORT=8082
+	export NGS_SERVER_IP=10.130.0.26
+	export OODT_FILEMGR_PORT=9000
+	export OODT_FILEMGR_IP=10.130.0.26
+	export SOLR_SERVER_IP=10.130.0.26
+	export SOLR_SERVER_PORT=8983
+	export JAVA_HOME=/celgene/software/java/latest/
+	export NGS_TMP_DIR=/celgene/scratch/RED/tmp/${USER}
+	export NGS_LOG_DIR=$NGS_BASE_DIR/scratch/RED/LOGS/${USER}
+fi
+###############################
 
 ##############################
 # Settings specific for each environment
@@ -44,31 +89,17 @@ export NGS_BASE_DIR=/celgene/
 export NGS_APPLICATION_DIR=$NGS_BASE_DIR/software
 export NGS_LSF_SCRIPTS=${NGS_APPLICATION_DIR}/scripts_for_LSF
 export NGS_BINARIES_DIR=$NGS_BASE_DIR/software/bin
-export NGS_LOG_DIR=$NGS_BASE_DIR/scratch/RED/LOGS/${USER}
+
 export NGS_USR_DATA_DIR=$NGS_BASE_DIR/reference
 export genomeDatabase=$NGS_USR_DATA_DIR/genomes
-export NGS_TMP_DIR=/celgene/scratch/RED/tmp/${USER}
 
-export JAVA_HOME=/celgene/software/java/latest/
 
-###############################
-# settings specific to AWS
-if [ "$CELGENE_AWS" == "true" ]; then
-	export CELGENE_NGS_BUCKET=s3://celgene-src-bucket
-
-	export NGS_LOG_DIR=/celgene/software/LOGS/
-	if [ -d /scratch ];then
-		export NGS_TMP_DIR=/scratch/tmp
-	else
-		export NGS_TMP_DIR=/celgene/tmp
-	fi
-	export JAVA_HOME=/usr/
-fi
-###############################
-
+export OODT_FILEMGR_URL=http://${OODT_FILEMGR_IP}:${OODT_FILEMGR_PORT}
+# the NGS_SERVER_URL became a SSL based  (has to wait until this connection is enabled)
+export NGS_SERVER_URL=http://${NGS_SERVER_IP}:${NGS_SERVER_PORT}
 
 mkdir -p $NGS_TMP_DIR
-export TMPDIR=$NGS_TMP_DIR/tmp
+export TMPDIR=$NGS_TMP_DIR
 mkdir -p $TMPDIR
 chmod 1777 $TMPDIR 2>/dev/null
  
