@@ -51,7 +51,7 @@ if [ "$CELGENE_AWS" == "true" -o "$FACTER_ENV" == "RCE" ]; then
 		export NGS_TMP_DIR=/celgene/tmp/${USER}
 	fi
 	export JAVA_HOME=/usr/
-else if [ "$FACTER_ENV" == "MMGP" ] ; then
+elif [ "$FACTER_ENV" == "MMGP" ] ; then
 	export NGS_SERVER_PORT=8082
 	export NGS_SERVER_IP=10.130.0.26
 	export OODT_FILEMGR_PORT=9000
