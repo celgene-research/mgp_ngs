@@ -24,6 +24,7 @@ rsync -avq  ${file}.met ${NGS_TMP_DIR}/crawler_$$/$(basename $file).met
 
 
 cd ${NGS_TMP_DIR}/crawler_$$
+chmod -R 644 *
 ${BINDIR}/run_crawler.sh
 updateSOLR.pl --recursive ${NGS_TMP_DIR}/crawler_$$/$(basename $file) $file
 tar -cvvf cas-crawler.tar *.met 

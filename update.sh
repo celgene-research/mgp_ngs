@@ -15,9 +15,11 @@ DD=/celgene/software
 
 rsync -avq --recursive $scriptDir/scripts_for_LSF/ ${DD}/scripts_for_LSF/
 rsync -avq --recursive $scriptDir/NGS-pipeline/ ${DD}/NGS-pipeline/
+rsync -avq --recursive $scriptDir/oodt/ ${DD}/oodt/
 rsync -avq --recursive $scriptDir/Celgene/ ${DD}/perl/lib/perl5/Celgene/
 
 for i in `find $DD/scripts_for_LSF/  | grep sh$`; do chmod 755 $i; done
 for i in `find $DD/NGS-pipeline/  | grep pl$`; do chmod 755 $i; done
 for i in `find $DD/NGS-pipeline/  | grep sh$`; do chmod 755 $i; done
 for i in `find $DD/NGS-pipeline/  | grep R$`; do chmod 755 $i; done
+for i in `find $DD/oodt/  | grep sh$`; do chmod 755 $i; ln -s $i /celgene/sofware/bin/; done
