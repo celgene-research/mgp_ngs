@@ -2,9 +2,6 @@
 
 echo "This script is running the GenotypeGVCF tool"
 echo "it requires as input a file with the list of gvcf filenames to compare"
-echo "NOTE: On AWS this script is better to be run on a single node cluster "
-echo " since the home directories (where the bsub file is stored) are not shared "
-echo " between the nodes"
 
 
 scriptDir=$( dirname $0 ); source $scriptDir/../lib/shared.sh
@@ -76,6 +73,6 @@ closeJob
 "> $stem.$step.bsub
 
 
-bash $stem.$step.bsub
-#bsub < $stem.$step.bsub
+#bash $stem.$step.bsub
+bsub < $stem.$step.bsub
 #rm $$.tmp

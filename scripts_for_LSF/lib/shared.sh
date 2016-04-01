@@ -90,6 +90,20 @@ function res_memory(){
 	
 	
 }
+
+# get the queue name based on the application running
+function getQueue(){
+	step=$1
+	queue="normal"
+			
+	if [ "$step" == "GATK.GenotypeGVCFs" ]; then
+		queue="bigmem"
+	fi
+	
+	echo $queue
+}
+
+
 # return the string that goes at the top of a bsub script with
 # the name of teh job, stderr and stdout etc
 function bsubHeader(){
@@ -115,6 +129,7 @@ function bsubHeader(){
 	fi
 	
 	
+	queue_name=$(getQueue $step)
 	
 	
 echo "#!/bin/bash"
@@ -123,6 +138,7 @@ echo "#BSUB -o ${NGS_LOG_DIR}/${stem}.${step}.bsub.stdout"
 echo "#BSUB -J ${stem}.${step}.bsub"
 echo "#BSUB -r"
 echo "#BSUB -E \"$scriptDir/../lib/stageReference.sh $step\""
+echo "#BSUB -q \"${queue_name}\""
 resourceString $memory $cores
 suffix=$( getStdSuffix $step )
 echo "export suffix=${suffix}"
