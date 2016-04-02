@@ -188,9 +188,11 @@ sub _getFullFile{
 	my($self)=@_;
 	
 	my $file=$self->filename();
-	
-	
-	$file=File::Spec->rel2abs( $file);
+	if($file =~/^s3:/){
+	}else{
+		$file=File::Spec->rel2abs( $file);
+		
+	}
 	#$file=Cwd::abs_path( $file );
 	$self->absFilename($file);
 	
