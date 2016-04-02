@@ -3,6 +3,7 @@ use strict;
 use warnings;
 use Log::Log4perl;
 use Data::Dumper;
+use File::Basename;
 use HTML::Entities;
 # package to prepare a file that can be further used for ingestion of meta data to a
 # data management system like iRODs or OODT
@@ -33,6 +34,10 @@ sub loadFileIRODS{
 }
 sub loadFileOODT{
 	my($self,$filename)=@_;
+	if($filename =~/^s3:/){
+		system( "aws s3 cp $filename /tmp/". basename($filename) );
+		$filename="/tmp/". basename($filename);
+	}
 	open(my $rfh, $filename) or die "Cannot open $filename\n";
 	my $line=<$rfh>;
 	if($line !~/<cas:metadata xmlns:cas/){
@@ -52,6 +57,9 @@ sub loadFileOODT{
 	}
 	
 	close($rfh);
+	if($filename =~/^s3:/){
+		unlink($filename);
+	}
 }
 
 sub addMetadata{
@@ -95,6 +103,11 @@ sub storeIRODS{
 
 sub storeOODT{
 	my($self,$filename)=@_;
+	my $originalFilename=$filename;
+	if($filename =~/^s3:/){
+		$filename="/tmp/". basename($filename);
+	}
+	
 	open(my $wfh,">". $filename) or die "Cannot open $filename for writing\n";
 	
 	print $wfh "<cas:metadata xmlns:cas=\"http://oodt.jpl.nasa.gov/1.0/cas\">\n";
@@ -117,6 +130,10 @@ sub storeOODT{
 	
 	print $wfh "</cas:metadata>\n";
 	close($wfh);
+	if($originalFilename =~/^s3:/){
+		system( "aws s3 cp $filename $originalFilename -sse" );
+		unlink($filename);
+	}
 }
 
 
