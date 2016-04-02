@@ -28,7 +28,7 @@ sub fileNameParse{
 	$logger->debug("fileNameParse: file [$file], discard the [$updir] lower directory nodes");
 	# form the absolute path
 	my $absPath="";
-	if( File::Spec->file_name_is_absolute( $file )){ $absPath=$file;}
+	if( File::Spec->file_name_is_absolute( $file ) or $file =~/^s3/ ){ $absPath=$file;}
 	else{ $absPath= File::Spec->rel2abs($file); }
 	# make sure there are not ../ directories in the absolute path
 	my @dirs=File::Spec->splitdir( $absPath );
