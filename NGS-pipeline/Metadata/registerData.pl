@@ -193,7 +193,8 @@ while(my $line= shift @filelines){
 		
 		my $fobj=fileObj->new( $filenames[$i] , "regular", "on");
 		
-		if(! -e $fobj->absFilename() ){
+		
+		if(! -e $fobj->absFilename() and $fobj->absFilename() !~ /^s3:/ ){
 			$logger->logdie("File [$filenames[$i]] aka [".$fobj->absFilename()."] does not exist");
 		}
 		
