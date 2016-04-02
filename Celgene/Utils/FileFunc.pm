@@ -59,6 +59,9 @@ sub fileNameParse{
 	# recreate the information we need
 	
 	$directory=File::Spec->catdir( @directories[ $updir .. (scalar(@directories)-1) ]);
+	if( $directory = ~/^s3:/){
+		$directory=~s/s3:\//s3:\/\//;
+	}
 	$logger->debug("The directory listing wanted is [$directory] \n\tcoming from entries [$updir] to [", scalar(@directories)-1,"]");
 	return($fname,$directory,$suffix);
 	

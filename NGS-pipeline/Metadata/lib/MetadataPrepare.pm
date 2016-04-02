@@ -131,7 +131,8 @@ sub storeOODT{
 	print $wfh "</cas:metadata>\n";
 	close($wfh);
 	if($originalFilename =~/^s3:/){
-		system( "aws s3 cp $filename $originalFilename -sse" );
+
+		system( "aws s3 cp $filename $originalFilename --sse" );
 		unlink($filename);
 	}
 }
