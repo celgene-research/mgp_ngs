@@ -20,15 +20,17 @@ use FindBin qw($RealBin);
 use sampleInfo;
 use metadataInfo;
 use analysisTaskInfo;
+use Config::Simple;
 use Getopt::Long;
 
-my($logLevel,$logFile,$ip,$help, $stop, $restart);
+my($logLevel,$logFile,$ip,$help, $stop, $restart,$config);
 GetOptions(
 	"loglevel=s"=>\$logLevel,
 	"logfile=s"=>\$logFile,
 	"forcePort=s"=>\$ip,
 	"stop!"=>\$stop,
 	"restart!"=>\$restart,
+	"config=s"=>\$config,
 	"help"=>\$help
 );
 
@@ -36,8 +38,12 @@ if(defined($help)){
 	printUsage();
 	exit(0);
 }
+if(!defined($config)){
+	$config="ngs-db.server.config";
+}
 
 
+my $configuration=new Config::Simple( $config );
 if( defined($stop)){ my $pid=getPID(); kill 'KILL', $pid; exit(0);} 
 if( defined($restart)){  my $pid=getPID(); kill 'KILL', $pid; }
 storePID();
@@ -62,6 +68,7 @@ sub printUsage{
 	"--stop/restart stops or restarts the server. Assumes pid that is stored in the file ngs-server.pid\n".
 	"--forcePort force to use a different port than the default [8082]\n".
 	"--help this page\n".
+	"--config <configuration file> [ngs-db.server.config]".
 	
 	"This script is using the Frontier package for managing the XML-RPC calls. Due to the inability of Frontier to handle\n".
 	"secure connections (i.e. https) stunnel can be used to wrap the functionality of this script in a secure protocol\n".
@@ -72,7 +79,9 @@ sub printUsage{
 }
 
 # list of available functions and what they do:
+if(!defined($logFile)){ $logFile= $configuration->param('logfile');}
 if(!defined($logFile)){ $logFile=$RealBin."/ngs-db.log";}
+if(!defined($logLevel)){$logLevel=$configuration->param('loglevel');}
 if(!defined($logLevel)){$logLevel="INFO";}
 my $logger=setupLog();
 no warnings 'uninitialized';
@@ -165,15 +174,17 @@ my $methods = {
 			 	'geneInfo.getGeneAnnotation'=>\&getGeneAnnotation};
 			 	
 
-my $port=8082;
+my $port=$configuration->param('ngs_server_port');
 if(defined($ip)){$port=$ip}
-elsif(defined($ENV{NGS_SERVER_PORT})){ 
-	$port= $ENV{NGS_SERVER_PORT};
-}
 
-my $host=hostname;
-my @addresses = gethostbyname($host);
-my @ips = map { inet_ntoa($_) } @addresses[4 .. $#addresses];
+
+my $ip=$configuration->param('ngs_server_ip');
+
+
+$ENV{ POSTGRES_SERVER_IP }=$configuration->param('ngs_server_ip');
+$ENV{ POSTGRES_SERVER_PORT }=$configuration->param('ngs_server_port');
+$ENV{ SOLR_IP }=$configuration->param('solr_server_ip');
+$ENV{ SOLR_PORT}= $configuration->param('solr_server_port');
 
 sub alive{
 	# function to indicate that the server is alive
@@ -187,7 +198,7 @@ sub alive{
 
 
 $logger->info("You can access the ngs server at");
-$logger->info("http://".$ips[0].":".$port);
+$logger->info("http://".$ip.":".$port);
 
 Frontier::Daemon->new(
 	LocalPort => $port, 
