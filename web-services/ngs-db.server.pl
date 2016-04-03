@@ -195,6 +195,12 @@ sub alive{
 	
 }
 
+# testing connection to database
+my $d=Celgene::Utils::DatabaseFunc::connectDB();
+if(!defined($d)){
+$logger->logdie("Cannot establish connection to the sql database server");
+}
+Celgene::Utils::DatabaseFunc::disconnectDB();
 
 
 $logger->info("You can access the ngs server at");
