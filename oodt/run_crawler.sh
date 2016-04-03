@@ -1,12 +1,14 @@
 #!/bin/bash
-BINDIR=/celgene/software/apache-oodt-0.6/cas-crawler/bin
+BINDIR=/celgene/software/apache-oodt/crawler/bin
 CURRDATE=$( date +"%m-%d-%y")
 FILEPATH=$(pwd)
 filesOrDirs=$1
+TEMPLOG=$NGS_LOG_DIR/crawler-${CURRDATE}.log
+echo "Processing $FILEPATH "> $TEMPLOG
+echo "Data       $CURRDATE" >> $TEMPLOG
 
-
-if [ -e cas-crawler-${CURRDATE}.tar.gz ]; then
-	echo "This directory has been processed before. Remove cas-crawler-${CURRDATE}.tar.gz to proceed."
+if [ -e $TEMPLOG ]; then
+	echo "This directory has been processed before. Remove $TEMPLOG to proceed."
 	exit
 fi
 
@@ -23,7 +25,7 @@ echo "Ingesting directories"
 --mimeExtractorRepo ../policy/mime-extractor-map.xml \
 --noRecur \
 --crawlForDirs 2>&1 |\
-tee $FILEPATH/cas-crawler-${CURRDATE}.log 
+tee -a $TEMPLOG 
 else
 ./crawler_launcher \
 --operation \
@@ -33,13 +35,15 @@ else
 --clientTransferer org.apache.oodt.cas.filemgr.datatransfer.InPlaceDataTransferFactory  \
 --mimeExtractorRepo ../policy/mime-extractor-map.xml \
 --noRecur 2>&1 |\
-tee $FILEPATH/cas-crawler-${CURRDATE}.log
+tee -a $TEMPLOG 
 fi
 
 cd $FILEPATH
 
 
-tar -cvvzf cas-crawler-${CURRDATE}.tar.gz *.met 
-gzip cas-crawler-${CURRDATE}.log
+tar -cvvzf ${TEMPLOG}_met.tar *.met 
+
 #rm *.met
+cp $TEMPLOG $FILEPATH
+cp ${TEMPLOG}_met.tar.gz $FILEPATH
 echo "Finished scanning $FILEPATH"
