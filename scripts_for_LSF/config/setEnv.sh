@@ -60,7 +60,7 @@ elif [ "$MMGP_AWS" == "true" -o "$FACTER_ENV" == "MMGP" ] ; then
 	export SOLR_SERVER_PORT=8983	
 	export CELGENE_NGS_BUCKET=s3://celgene.rnd.combio.mmgp.external
 
-	export NGS_LOG_DIR=/celgene/software/LOGS-${USER}/
+	export NGS_LOG_DIR=/celgene/software/LOGS/${USER}/
 	if [ -d /scratch ];then
 		export NGS_TMP_DIR=/scratch/tmp/${USER}
 	else
@@ -77,7 +77,7 @@ else
 	export SOLR_SERVER_PORT=8983
 	export JAVA_HOME=/celgene/software/java/latest/
 	export NGS_TMP_DIR=/celgene/scratch/RED/tmp/${USER}
-	export NGS_LOG_DIR=$NGS_BASE_DIR/scratch/RED/LOGS-${USER}
+	export NGS_LOG_DIR=$NGS_BASE_DIR/scratch/RED/LOGS/${USER}
 fi
 ###############################
 
