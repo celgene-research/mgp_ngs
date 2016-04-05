@@ -11,7 +11,7 @@ function setLogging(){
 	stem=$1
 	step=$2
 	da=$3
-	
+	q=$(getQueue $step)
 	NGS_LOG_DIR=$(echo $NGS_LOG_DIR | sed 's|/'${step}'||g' )
 	echo "Logging: Step is set to $step" 1>&2
 	if [ -z "${da}" ] ;then
@@ -33,7 +33,9 @@ function setLogging(){
 	echo "Logging: Master log file is set to $MASTER_LOGFILE" 1>&2
 	echo "Logging: Stage file is set to $STAGEFILE_LOGFILE" 1>&2
 	echo "Logging: CelgeneExec log file is set to $CELGENE_EXEC_LOGFILE" 1>&2
-	
+	echo "Logging: desired queue for this job is $q"
+	echo "Logging: max CPU for this queue is set to $NGS_CORE_NUM"
+	echo "Logging: max memory (MB) for this queue is set to $NGS_MEM_NUM" 
 	echo $NGS_LOG_DIR
 }
 
@@ -59,7 +61,8 @@ function setTemp(){
 # get the scheduler type
 function getScheduler(){
 	clusterString=$(lsid| head -1)
-if [[ "$clusterString" =~ 'LSF' ]]
+	clusterString=$(echo $clusterString | tr '[:upper:]' '[:lower:]')
+if [[ "$clusterString" =~ 'lsf' ]]
 	then echo "LSF"
 elif [[ "$clusterString" =~ 'openlava' ]]
 	then echo "openlava"
@@ -95,11 +98,11 @@ function res_memory(){
 function getQueue(){
 	step=$1
 	queue="normal"
+
 			
 	if [ "$step" == "GATK.GenotypeGVCFs" ]; then
 		queue="bigmem"
 	fi
-	
 	echo $queue
 }
 
@@ -111,26 +114,39 @@ function bsubHeader(){
 	step=$2	
 	memory=$3
 	cores=$4
+
+
+
 	
+	queue_name=$(getQueue $step)
 	if [ -z "$cores" ]; then
 		cores=1
 	fi
 	
 	#if the requested cores are more than the cores the system can provide
 	# then downsize to as many cores the node has
-	fc=$(nproc)
+	fc=$( fullcores )
 	if [ "$cores" -gt "$fc" ] ; then
 		cores=$fc
 	fi 
-	
 	
 	if [ -z "$memory" ]; then 
 		memory=$(( 4000*$cores))
 	fi
 	
+	fm=$( fullmemory )
+	if [ "$memory" -gt "$fm" ] ; then
+		memory=$fm
+	fi
+
+
+	mem=$(res_memory $memory $cores)
 	
-	queue_name=$(getQueue $step)
 	
+echo "bsubHeader: stem=${stem}, \
+step=${step}, \
+memory=${memory}, mem=${mem}\
+cores=${cores}" >&2
 	
 echo "#!/bin/bash"
 echo "#BSUB -e ${NGS_LOG_DIR}/${stem}.${step}.bsub.stderr"
@@ -139,7 +155,8 @@ echo "#BSUB -J ${stem}.${step}.bsub"
 echo "#BSUB -r"
 echo "#BSUB -E \"$scriptDir/../lib/stageReference.sh $step\""
 echo "#BSUB -q \"${queue_name}\""
-resourceString $memory $cores
+echo "#BSUB -n $cores"
+echo "#BSUB -R \"span[ptile=$cores] rusage[mem=$mem]\" "
 suffix=$( getStdSuffix $step )
 echo "export suffix=${suffix}"
 }
@@ -178,15 +195,6 @@ echo $suffix
 	
 
 }
-# return the string that is appended at the top of a bsub script
-# ask for the full memory and all the cores needed
-function resourceString(){
-	memory=$1
-	cores=$2		
-	mem=$(res_memory $memory $cores)
-echo "#BSUB -n $cores"
-echo "#BSUB -R \"span[ptile=$cores] rusage[mem=$mem]\" "
-}
 
 function fullcores(){
 	maxCores=11 
@@ -208,10 +216,12 @@ function fullcores(){
 }
 
 function fullmemory(){
-	
-	var=$(free | awk '/^Mem:/{print $2}')
-	var=$(( $var - 4000 ))
-	
+	if [ -n "$NGS_MAXMEM_NUM"  ] ; then
+		$var=${NGS_MAXMEM_NUM}
+	else
+		var=$(free | awk '/^Mem:/{print $2}')
+		var=$(( $var - 4000 ))
+	fi
 	echo $var
 	
 }
@@ -222,7 +232,7 @@ function initiateJob(){
 	filename=$3
 	
 	da=$( getDataAssets $filename  )
-	
+	q=$(getQueue $step )
 	setLogging $stem $step $da
 	setTemp $step				
 	
