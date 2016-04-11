@@ -97,11 +97,24 @@ function res_memory(){
 # get the queue name based on the application running
 function getQueue(){
 	step=$1
-	queue="normal"
 
-			
-	if [ "$step" == "GATK.GenotypeGVCFs" ]; then
-		queue="bigmem"
+# assotiative array to place all the known steps and their requirements in queues
+# normal = 
+# bigdisk = i2.2xlarge: 8cores, 61GB RAM, 2 x 800 HD 
+# bigmem  = r3.2xlarge: 8cores, 61GB RAM, 1 x 160 HD
+# hugemem = r3.4xlarge:16cores,	122GB RAM, 1 x 320 HD
+	declare -A queues
+	queues["GATK.GenotypeGVCFs"]="bigdisk"
+	queues["STARaln.xenograft"]="bigmem"
+	
+
+# decide the queue -
+# in the future perhaps a more sophisticated method will be used to take into consideration
+#       the size of the input file
+	queue=${queues["${step}"]}
+	
+	if [ -z "$queue" ] ; then 
+		queue="normal"
 	fi
 	echo $queue
 }

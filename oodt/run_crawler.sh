@@ -4,13 +4,13 @@ CURRDATE=$( date +"%m-%d-%y")
 FILEPATH=$(pwd)
 filesOrDirs=$1
 TEMPLOG=$NGS_LOG_DIR/crawler-${CURRDATE}.log
-echo "Processing $FILEPATH "> $TEMPLOG
-echo "Data       $CURRDATE" >> $TEMPLOG
 
 if [ -e $TEMPLOG ]; then
 	echo "This directory has been processed before. Remove $TEMPLOG to proceed."
 	exit
 fi
+echo "Processing $FILEPATH "> $TEMPLOG
+echo "Data       $CURRDATE" >> $TEMPLOG
 
 cd $BINDIR
 
