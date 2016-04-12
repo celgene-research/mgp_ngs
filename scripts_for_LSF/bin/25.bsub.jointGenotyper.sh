@@ -6,12 +6,20 @@ echo "it requires as input a file with the list of gvcf filenames to compare"
 
 scriptDir=$( dirname $0 ); source $scriptDir/../lib/shared.sh
 inputListGVCF=$1
+
+if [ -z "$inputListGVCF" ] ; then
+	echo "Please provide the input file with the list of g.vcf files to process" 
+	exit 1
+fi
+
 stem=$(fileStem $inputListGVCF )
 step="GATK.GenotypeGVCFs"
 analysistask=96
 NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
 mkdir -p $NGS_LOG_DIR
 initiateJob $stem $step $1
+
+
 output=${stem}.${step}.vcf
 genomeDatabase=${humanGenomeDir}/genome.fa
 genomeIndex=$(echo $genomeDatabase | sed 's%.fa%.dict%') 

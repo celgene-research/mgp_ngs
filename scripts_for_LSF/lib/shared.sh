@@ -5,13 +5,28 @@
 # sets the log directory
 # sets the temp directory
 # sets the log file 
-
+declare -A queues
+declare -A queueMem
+declare -A queueCores
+declare queue_name
+# queue     instance type: cores, RAM, scratch space
+# normal  = c3.4xlarge:16cores, 30GB RAM, 2 x 160 HD 
+# bigdisk = i2.2xlarge: 8cores, 61GB RAM, 2 x 800 HD 
+# bigmem  = r3.2xlarge: 8cores, 61GB RAM, 1 x 160 HD
+# hugemem = r3.4xlarge:16cores,	122GB RAM, 1 x 320 HD
+queueCores["normal"]=16
+queueCores["bigdisk"]=8
+queueCores["bigmem"]=8
+queueCores["hugemem"]=16
+queueMem["normal"]=30
+queueMem["bigdisk"]=61
+queueMem["bigmem"]=61
+queueMem["hugemem"]=122
 
 function setLogging(){
 	stem=$1
 	step=$2
 	da=$3
-	q=$(getQueue $step)
 	NGS_LOG_DIR=$(echo $NGS_LOG_DIR | sed 's|/'${step}'||g' )
 	echo "Logging: Step is set to $step" 1>&2
 	if [ -z "${da}" ] ;then
@@ -34,8 +49,8 @@ function setLogging(){
 	echo "Logging: Stage file is set to $STAGEFILE_LOGFILE" 1>&2
 	echo "Logging: CelgeneExec log file is set to $CELGENE_EXEC_LOGFILE" 1>&2
 	echo "Logging: desired queue for this job is $q"
-	echo "Logging: max CPU for this queue is set to $NGS_CORE_NUM"
-	echo "Logging: max memory (MB) for this queue is set to $NGS_MEM_NUM" 
+	echo "Logging: max CPU for this queue is set to ${queueCores[$queue_name]}"
+	echo "Logging: max memory (MB) for this queue is set to ${queueMem[$queue_name]}" 
 	echo $NGS_LOG_DIR
 }
 
@@ -99,11 +114,9 @@ function getQueue(){
 	step=$1
 
 # assotiative array to place all the known steps and their requirements in queues
-# normal = 
-# bigdisk = i2.2xlarge: 8cores, 61GB RAM, 2 x 800 HD 
-# bigmem  = r3.2xlarge: 8cores, 61GB RAM, 1 x 160 HD
-# hugemem = r3.4xlarge:16cores,	122GB RAM, 1 x 320 HD
-	declare -A queues
+
+	
+	
 	queues["GATK.GenotypeGVCFs"]="bigdisk"
 	queues["STARaln.xenograft"]="bigmem"
 	
@@ -111,12 +124,14 @@ function getQueue(){
 # decide the queue -
 # in the future perhaps a more sophisticated method will be used to take into consideration
 #       the size of the input file
-	queue=${queues["${step}"]}
+	queue_name=${queues["${step}"]}
 	
-	if [ -z "$queue" ] ; then 
-		queue="normal"
+	if [ -z "$queue_name" ] ; then 
+		queue_name="normal"
 	fi
-	echo $queue
+	
+	echo "getQueue: queue is set to $queue_name" 1>&2
+	echo $queue_name
 }
 
 
@@ -128,10 +143,8 @@ function bsubHeader(){
 	memory=$3
 	cores=$4
 
+#echo "bsubHeader: stem=$stem, step=$step, memory=$memory, cores=$cores" 1>&2
 
-
-	
-	queue_name=$(getQueue $step)
 	if [ -z "$cores" ]; then
 		cores=1
 	fi
@@ -141,25 +154,28 @@ function bsubHeader(){
 	fc=$( fullcores )
 	if [ "$cores" -gt "$fc" ] ; then
 		cores=$fc
+		echo "The requested cores $cores is larger than what the system can provide $fc. Reverting to $fc" 1>&2
 	fi 
 	
 	if [ -z "$memory" ]; then 
 		memory=$(( 4000*$cores))
+		echo "Since memory wasn not provided setting to $memory" 2>&1
 	fi
 	
 	fm=$( fullmemory )
 	if [ "$memory" -gt "$fm" ] ; then
 		memory=$fm
+		echo "The requested memory $memory is larger than what the system can provide $fm. Reverting to $fm" 1>&2
 	fi
 
 
 	mem=$(res_memory $memory $cores)
 	
 	
-echo "bsubHeader: stem=${stem}, \
-step=${step}, \
-memory=${memory}, mem=${mem}\
-cores=${cores}" >&2
+#echo "bsubHeader: stem=${stem}, \
+#step=${step}, \
+#memory=${memory}, mem=${mem}\
+#cores=${cores}" >&2
 	
 echo "#!/bin/bash"
 echo "#BSUB -e ${NGS_LOG_DIR}/${stem}.${step}.bsub.stderr"
@@ -210,14 +226,15 @@ echo $suffix
 }
 
 function fullcores(){
+	
 	maxCores=11 
+	instanceCores=${queueCores[$queue_name]}
 	if [ "$NEWCLUSTER" == "1" ] ; then
 		fc=$maxCores
+		#echo "fullCores: Setting max core usage to $maxCores on NEWCLUSTER" 1>&2
 	else
-		fc=$(nproc)
-		if [ "$fc" -gt "$maxCores" ] ; then 
-				fc=$maxCores
-		fi
+		fc=${instanceCores}
+		#echo "fullCores: Setting max core usage to $instanceCores on queue $queue_name" 1>&2
 	fi
 	
 	if [ -n "$NGS_CORE_NUM" ] ; then
@@ -229,11 +246,18 @@ function fullcores(){
 }
 
 function fullmemory(){
+	
+	#memory on head node
+	maxMem=$(free | awk '/^Mem:/{print $2}')
+	maxMem=$(( $maxMem - 4000 ))
+	#memory on instance
+	instanceMem=${queueMem[$queue_name]}
+	instanceMem=$(( $instanceMem * 1000 - 4000 ))
+
+	var=$instanceMem
+	
 	if [ -n "$NGS_MAXMEM_NUM"  ] ; then
-		$var=${NGS_MAXMEM_NUM}
-	else
-		var=$(free | awk '/^Mem:/{print $2}')
-		var=$(( $var - 4000 ))
+		var=${NGS_MAXMEM_NUM}
 	fi
 	echo $var
 	
@@ -245,7 +269,7 @@ function initiateJob(){
 	filename=$3
 	
 	da=$( getDataAssets $filename  )
-	q=$(getQueue $step )
+	getQueue $step 
 	setLogging $stem $step $da
 	setTemp $step				
 	
@@ -259,6 +283,10 @@ function initiateJob(){
 	
 	fi
 	
+	
+	#echo "initiateJob: Setting environment for this job" 2>&1
+	#echo "stem=$step, step=$step, filename=$filename" 2>&1
+	#echo "da=$da, queue=$queue_name" 2>&1
 }
 
 function closeJob(){
