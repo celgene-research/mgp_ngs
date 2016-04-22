@@ -49,7 +49,11 @@ my %supportedFields =( 'stranded'=>1,
 						'technology'=>1,
 						'display_name'=>1,
 						'antibody_target'=>1,
-						'cell_line'=>1
+						'cell_line'=>1,
+						'encoding'=>1,
+						'encoding_base'=>1,
+						'command_line'=>1,
+						'derived_from'=>1
 			);
 			
 			
@@ -133,14 +137,37 @@ foreach my $id ( @{$idArray}){
 	if(defined($id)){
 		$logger->trace("Getting data for id:$id");
 		my $data;
-		$data=serverCall('sampleInfo.getSampleByID', $id);
+		if($field eq 'command_line'){
+			$logger->logdie("This function is not implemented yet");
+		}elsif($field eq 'derived_from'){	
+			$data=serverCall('metadataInfo.getDerivedFromByFilename', $filename);
+		}elsif ($field eq 'encoding' or $field eq 'encoding_base'){
+			$data=serverCall('sampleInfo.getSampleFastQCByID', $id);
+		}else{
+			$data=serverCall('sampleInfo.getSampleByID', $id);
+		}
 		if(defined($ConnectionError) and $ConnectionError ne ""){ $logger->logdie("Error contacting server $ConnectionError");}
 		$logger->trace(Dumper( $data ));
 		if(!defined( $data ) or $data eq ''){next;} 
-		my $retVal= $data->{ $field };
-		$retVal =~s/\s/_/g;
-		$retVal =~s/[()]//g;
-		push @retVals, $retVal;
+		if( ref $data eq 'HASH' ){
+			
+			# some massaging of encoding_base
+			if($field eq 'encoding_base'){
+				$field='encoding';
+				if($data->{$field} eq 'Sanger / Illumina 1.9'){ $data->{$field}=33;}
+				if($data->{$field} eq 'Illumina 1.5'){ $data->{$field}=64;}
+			}
+			
+			
+			my $retVal= $data->{ $field };
+			$retVal =~s/\s/_/g;
+			$retVal =~s/[()]//g;
+			push @retVals, $retVal;
+		}elsif( ref $data eq 'ARRAY' ){
+			@retVals=@$data;
+		}else{
+			$logger->logdie("Cannot recognize  the type of data returned from the database");
+		}
 	}
 }	
 if(scalar(@retVals)==0){print 'NA';}
