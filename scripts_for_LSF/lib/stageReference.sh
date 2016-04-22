@@ -144,7 +144,10 @@ case "$option" in
 	dispatch $humanGenomeDirAWS $humanGenomeDir
 	
 ;;
-
+"controlFreec.human" )
+	dispatch $humanChromosomesDirAWS $humanChromosomesDir
+	dispatch $humanGenomeDirAWS $humanGenomeDir
+;;
 # Download the reference variant dbs for human
 "human-variants" | \
 "Vannot" )

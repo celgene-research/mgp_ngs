@@ -48,7 +48,7 @@ function setLogging(){
 	echo "Logging: Master log file is set to $MASTER_LOGFILE" 1>&2
 	echo "Logging: Stage file is set to $STAGEFILE_LOGFILE" 1>&2
 	echo "Logging: CelgeneExec log file is set to $CELGENE_EXEC_LOGFILE" 1>&2
-	echo "Logging: desired queue for this job is $q"
+	echo "Logging: desired queue for this job is $queue_name"
 	echo "Logging: max CPU for this queue is set to ${queueCores[$queue_name]}"
 	echo "Logging: max memory (MB) for this queue is set to ${queueMem[$queue_name]}" 
 	echo $NGS_LOG_DIR
@@ -118,7 +118,14 @@ function getQueue(){
 	
 	
 	queues["GATK.GenotypeGVCFs"]="bigdisk"
+	queues["controlFreec.human"]="bigdisk"
 	queues["STARaln.xenograft"]="bigmem"
+	queues["MarkDuplicates"]="bigmem"
+	queues["LibraryComplexity"]="bigmem"
+	queues["BWAmem"]="bigmem"
+	queues["Bismark"]="bigdisk"
+	queues["HomerQC"]="bigdisk"
+	queues["MACS2"]="bigdisk"
 	
 
 # decide the queue -
@@ -330,7 +337,7 @@ function replaceDirNames(){
 function setOutput(){
 	input=$1
 	newDir=$2
-	
+	skipmkdir=$3
 	
 	if [ -z "$input" ]; then
 		echo "setOutput: input directory was not provided. Exiting" 1>&2
@@ -373,8 +380,11 @@ function setOutput(){
 	
 	outputDirectory="/${outputDirectory}_${suffix}"
 
-	
-	mkdir -p $outputDirectory
+	if [ -n "$skipmkdir" ] ; then
+		echo "Output directory $outputDirectory will not be created" 1>&2
+	else
+		mkdir -p $outputDirectory
+	fi
 	echo "setOutput: output directory is set to $outputDirectory" 1>&2
 	echo $outputDirectory
 }
