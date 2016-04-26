@@ -208,7 +208,10 @@ sub getAbsPath{
 
 
 sub setUpLog{
-	my ($logLevel,$logFile)=("INFO","$ENV{HOME}/ngs-sampleInfo.log");
+	use Sys::Hostname;
+    my $hostname=hostname;
+    my ($logLevel,$logFile)=("FATAL","$ENV{HOME}/ngs-sampleInfo.${hostname}.log");
+
 	if(defined($log_file)){$logFile=$log_file}
 	if(defined($log_level)){$logLevel=$log_level}
 	my $logConf=qq{

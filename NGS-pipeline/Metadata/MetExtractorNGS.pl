@@ -14,7 +14,7 @@ use Celgene::Utils::ArrayFunc;
 use File::Spec;
 use Cwd;
 use Data::Dumper;
-
+my $filehost=hostname;
 # if the .met file contains sample_id information typically this program will
 # keep it and append with additional information coming from the derived_from files
 my $ignoreExistingSample_id;
@@ -23,7 +23,7 @@ my $ignoreExistingSample_id;
 if(defined($ENV{ 'IGNORE_MET_SAMPLEID' })){ $ignoreExistingSample_id=1;}
 my $NGS_LOG_DIR=$ENV{NGS_LOG_DIR};
 if(!defined($NGS_LOG_DIR)){$NGS_LOG_DIR= $FindBin::RealBin;}
-my ($logLevel,$logFile)=("DEBUG",$NGS_LOG_DIR."/ExtractMetadata.log");
+my ($logLevel,$logFile)=("FATAL",$NGS_LOG_DIR."/ExtractMetadata-${filehost}.log");
 my $logConf=qq{
 	log4perl.rootLogger          = $logLevel, Logfile,Screen
     log4perl.appender.Logfile          = Log::Log4perl::Appender::File
@@ -57,7 +57,7 @@ if($inputFn =~/.met$/){
 my $ngsServerURL=$ENV{ NGS_SERVER_URL };
 $ngsServerURL.="/RPC2";
 $logger->debug("Accessing NGS server at $ngsServerURL");
-my $filehost=hostname;
+
 my $ingestUser= $ENV{LOGNAME} || $ENV{USER} || getpwuid($<);
 
 if(defined($ignoreExistingSample_id)){

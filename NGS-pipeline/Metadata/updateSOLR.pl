@@ -14,6 +14,7 @@ use Cwd;
 use Celgene::Utils::SVNversion;
 use lib $FindBin::RealBin."/lib";
 use metadataFunc;
+use Sys::Hostname;
 
 my $version=Celgene::Utils::SVNversion::version( '$Date: 2015-06-26 12:39:03 -0700 (Fri, 26 Jun 2015) $ $Revision: 1622 $ by $Author: kmavrommatis $' );
 
@@ -230,11 +231,11 @@ exit(0);
 
 
 sub setUpLog{
-	
+	my $hostname=hostname;
 	if(defined($ENV{ UPDATESOLR_LOGFILE } ) ){ $logFile = $ENV{ UPDATESOLR_LOGFILE } ; }
 	if(defined($ENV{ UPDATESOLR_LOGLEVEL } ) ){ $logLevel = $ENV{ UPDATESOLR_LOGLEVEL } ; }
-	if(!defined($logLevel)){$logLevel="INFO";}
-	if(!defined($logFile)){$logFile="$ENV{HOME}/updateSOLR.log";}
+	if(!defined($logLevel)){$logLevel="FATAL";}
+	if(!defined($logFile)){$logFile="$ENV{HOME}/updateSOLR-${hostname}.log";}
 	my $logConf=qq{
 		log4perl.rootLogger          = $logLevel, Logfile, Screen
 	    log4perl.appender.Logfile          = Log::Log4perl::Appender::File
