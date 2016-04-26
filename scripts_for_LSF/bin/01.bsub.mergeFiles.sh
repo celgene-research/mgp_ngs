@@ -39,8 +39,8 @@ for i in "$inputDirectory" ;do
 	extension=\${filestr1##*.}
 done
 uncompressBin=\"cat\"
-if [ \"$extension\" == \"bz2\" ] ; then uncompressBin=\"bzcat\" ; fi
-if [ \"$extension\" == \"gz\" ] ; then uncompressBin=\"gunzip -c\" ;  fi
+if [ \"\$extension\" == \"bz2\" ] ; then uncompressBin=\"bzcat\" ; fi
+if [ \"\$extension\" == \"gz\" ] ; then uncompressBin=\"gunzip -c\" ;  fi
 
 outputDirectory=\$( setOutput \$i ${step} )
 
