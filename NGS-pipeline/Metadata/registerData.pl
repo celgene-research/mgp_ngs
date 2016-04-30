@@ -40,7 +40,7 @@ my $server = Frontier::Client->new('url' => $server_url);
 
 
 
-my ($logLevel,$logFile,$help,$nocommit,$irodsonly,$ignoremet)=('INFO',undef,undef,undef,undef);
+my ($logLevel,$logFile,$help,$nocommit,$irodsonly,$ignoremet,$awsArguments)=('INFO',undef,undef,undef,undef,undef);
 my ($file,$user);
 $user=$ENV{USER};
 GetOptions(
@@ -50,6 +50,7 @@ GetOptions(
 	"logfile=s"=>\$logFile,
 	"help!"=>\$help,
 	"ignoremet!"=>\$ignoremet,
+	"aws=s"=>\$awsArguments,
 	"nocommit!"=>\$nocommit
 );
 my @outputDirectories;
@@ -69,6 +70,7 @@ sub printHelp{
 	"             use this option if you have received errors from previous runs of the script for the same import file\n".
 	" --logLevel/--logFile standard logger arguments\n".
 	" --nocommit Debugging option. Runs the script but does not commit changes to the database\n".
+	" --aws Additional arguments to pass to the aws s3 cp command if the files are on the cloud\n".
 	" --help this screen\n".
 	"\n";
 }
@@ -408,6 +410,7 @@ while(my $line= shift @filelines){
 		my($f,$d,$s)=Celgene::Utils::FileFunc::fileNameParse($fobj->absFilename(),0);
 		my $metadataFile="$d/$f.met";
 		my $metadataStore=MetadataPrepare->new();
+		$metadataStore->awsArguments( $awsArguments ) if defined( $awsArguments);
 		
 		# filetype data can be handled by the OODT MetExtractor
 #		my $filetype=$metadataStore->getFileType($f);

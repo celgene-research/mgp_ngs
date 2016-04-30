@@ -13,10 +13,21 @@ sub new{
     my $self = {};
     bless $self, $class;
     
+    
     $self->{logger}=Log::Log4perl->get_logger("metadataPrepare");
    	$self->{ metadata }={};
     return $self;
 }
+
+
+sub awsArguments{
+	my($self,$args)=@_;
+	if( defined($args) ){
+		$self->{awsCommandArgument}=$args;
+	}
+	return $self->{awsCommandArgument};	
+}
+
 
 sub loadFileIRODS{
 	my($self,$filename)=@_;
@@ -35,8 +46,11 @@ sub loadFileIRODS{
 sub loadFileOODT{
 	my($self,$filename)=@_;
 	if($filename =~/^s3:/){
-		system( "aws s3 cp $filename /tmp/". basename($filename) );
-		$filename="/tmp/". basename($filename);
+		my $tmp=$ENV{TMPDIR};
+		my $command="aws s3 cp $filename $tmp". basename($filename) ." $self->{awsCommandArgument}" ;
+		$self->logger->trace("loadFileOODT: executing command $command");
+		system( $command );
+		$filename="$tmp". basename($filename);
 	}
 	open(my $rfh, $filename) or die "Cannot open $filename\n";
 	my $line=<$rfh>;
@@ -131,8 +145,9 @@ sub storeOODT{
 	print $wfh "</cas:metadata>\n";
 	close($wfh);
 	if($originalFilename =~/^s3:/){
-
-		system( "aws s3 cp $filename $originalFilename --sse" );
+		my $command="aws s3 cp $filename $originalFilename  $self->{awsCommandArgument}";
+		$self->{logger}->trace("storeOODT: executing command $command");
+		system( $command );
 		unlink($filename);
 	}
 }
