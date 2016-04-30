@@ -66,7 +66,7 @@ sample_id=$(ngs-sampleInfo.pl $input1 sample_id )
 if [ $sample_id == "NA" ]; then
 	sample_id=0
 fi
-memory=24000
+memory=$(fullmemory)
 cores=$(fullcores)
 
 

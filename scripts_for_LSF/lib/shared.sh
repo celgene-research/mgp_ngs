@@ -118,6 +118,7 @@ function getQueue(){
 	
 	
 	queues["GATK.GenotypeGVCFs"]="bigdisk"
+	queues["GATK.VariantRecalibration"]="bigdisk"
 	queues["controlFreec.human"]="bigdisk"
 	queues["STARaln.xenograft"]="bigmem"
 	queues["MarkDuplicates"]="bigmem"
@@ -126,14 +127,15 @@ function getQueue(){
 	queues["Bismark"]="bigdisk"
 	queues["HomerQC"]="bigdisk"
 	queues["MACS2"]="bigdisk"
+	queues["Bowtie2.human"]="bigmem"
 	
 
 # decide the queue -
 # in the future perhaps a more sophisticated method will be used to take into consideration
 #       the size of the input file
-	queue_name=${queues["${step}"]}
-	
-	if [ -z "$queue_name" ] ; then 
+if [ ${queues["${step}"]+_} ] ; then
+		queue_name=${queues["${step}"]}
+	else
 		queue_name="normal"
 	fi
 	
@@ -418,6 +420,9 @@ function fileStem(){
 	stem=$(echo $stem| sed 's%Realign%%'|sed 's%Recalibrate%%' | sed 's%HaplotypeCallerCombinedCalls%%' | sed 's%Haplotype_gvcf%%')
 	stem=$(echo $stem| sed 's%VariantRecalibration%%'| sed 's%GenotypeGVCFs%%' | sed 's%SplitNCigarReads%%')
 	
+	if [ -n "${NGS_STEM_DISPLAYNAME}" ] ; then
+		stem=$( ngs-sampleInfo.pl $input display_name )
+	fi
 
 	echo $stem	
 }

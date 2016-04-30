@@ -55,7 +55,11 @@ in order to store the output to
 s3://celgene-src-bucket/DA0000124/RNA-Seq/Processed/SEM_Reads_1.fastq.something
 we need to set the NGS_PROCESSED_DIRECTORY to ../../../ (only three levels up since the last level -Fastq- will be removed anyway)
 
-All the directories that are provided as enviroment variables will be stripped off of starting and trailing slashesOC
+All the directories that are provided as enviroment variables will be stripped off of starting and trailing slashes
+
+The resulting files typically have a filename that is derived from the input filename. One can change that to be derived from the display name (as it has been set in the database at the time of processing) of these files using the env variable **$NGS_STEM_DISPLAYNAME**. The resulting files will have a filename of the form _displayname_.relevantextension.
+Although this makes the files more easily to comprehent, caution should be taken since the display name of a sample may change in the database.
+
 
 ##Help and other information
 

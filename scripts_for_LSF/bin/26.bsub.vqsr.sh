@@ -18,7 +18,7 @@ resource2=${f1000g_omni_gatk}
 resource3=${f1000g_snps_gatk}
 resource4=${dbsnp}
 resource5=${mills}
-memory=6000
+memory=$(fullmemory)
 experimentType=$(ngs-sampleInfo.pl $inputVCF experiment_type);
 if [[  \"$experimentType\" =~ ^DNA-Seq ]] ; then
 echo "The input file comes from a DNA-Seq experiment and VariantRecalibration (VQSR) will be used"
