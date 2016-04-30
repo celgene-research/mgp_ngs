@@ -25,6 +25,10 @@ sub awsArguments{
 	if( defined($args) ){
 		$self->{awsCommandArgument}=$args;
 	}
+	if(!defined($self->{awsCommandArgument})){
+		$self->{awsCommandArgument}= " ";
+	}
+	
 	return $self->{awsCommandArgument};	
 }
 
