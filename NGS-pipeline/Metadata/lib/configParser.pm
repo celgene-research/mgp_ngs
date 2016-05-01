@@ -50,9 +50,12 @@ sub loadFile{
 		if($line=~/^#/ or $line=~/^;/){ $self->{logger}->trace("loadFile: skipping comment line");next; }
 		
 		my($key,$value)=split('=',$line);
-		
+		if(!defined($key) or !defined($value)){next;}
+		$self->{logger}->trace("loadFile: key [$key], value [$value]");
 		$self->{$key}=$value;
 		
 	}
 	close($fh);
 }
+
+1;

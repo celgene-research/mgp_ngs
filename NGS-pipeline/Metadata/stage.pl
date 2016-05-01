@@ -320,7 +320,7 @@ sub syncFilesCloud{
 #                    print $wfh "\t\tFile has already been copied by a different process\n";
              	}else{
 					my $res=mkpath( $destination );
-	                $CMD=$configuration->{copy_dir_from_aws}" $source/ $destination/  1>&2" ;
+	                $CMD=$configuration->{copy_dir_from_aws}." $source/ $destination/  1>&2" ;
 	                $ret=runCmd($CMD);
              	}
              }
@@ -328,8 +328,8 @@ sub syncFilesCloud{
         }
         if($dest=~/^s3:/){
         	$logger->info("Final file location detected on the cloud");
-                $CMD=$configuration->{copy_file_to_aws}" $src $dest  1>&2"  if $type eq 'file';
-                $CMD=$configuration->{copy_dir_to_aws}" $source/ $destination/  1>&2" if $type eq 'directory';
+                $CMD=$configuration->{copy_file_to_aws}." $src $dest  1>&2"  if $type eq 'file';
+                $CMD=$configuration->{copy_dir_to_aws}." $source/ $destination/  1>&2" if $type eq 'directory';
                 $ret=runCmd($CMD);
                 #unlink( $src ) if $type eq 'file';
                 #rmtree( $src ) if $type eq 'directory';
