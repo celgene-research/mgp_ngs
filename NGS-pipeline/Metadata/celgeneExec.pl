@@ -209,6 +209,7 @@ $hash->{end_execution}=scalar(localtime($end));chomp($hash->{end_execution});
 if(scalar(@output_file)>0){
 	foreach my $o( @output_file){
 		my $outputObj=fileObj->new( $o, "regular");
+		$logger->debug("Adding $o in the list of possible files");
 		push @possibleFiles, $outputObj
 	}
 }
@@ -275,6 +276,7 @@ $logger->debug("Finished running $originalCommand");
 
 
 sub setUpLog{
+	
 	my ($logLevel,$logFile)=("INFO","$ENV{HOME}/celgeneExec.log");
 	if(defined($ENV{ CELGENE_EXEC_LOGFILE } ) ){ $logFile = $ENV{ CELGENE_EXEC_LOGFILE } ; }
 	if(defined($ENV{ CELGENE_EXEC_LOGLEVEL } ) ){ $logLevel = $ENV{ CELGENE_EXEC_LOGLEVEL } ; }

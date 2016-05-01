@@ -10,7 +10,7 @@ echo "Example: cd ~/ngs; git pull; bash update.sh"
 # script that updates the running copy of the pipeline with the contents of this version
 scriptDir=$( dirname $0 );
 DD=/celgene/software
-
+BIN=/celgene/software/bin
 
 
 rsync -avq --recursive $scriptDir/scripts_for_LSF/ ${DD}/scripts_for_LSF/
@@ -22,7 +22,7 @@ rsync -avq --recursive $scriptDir/Celgene/ ${DD}/perl/lib/perl5/Celgene/
 
 chmod -R ug+rwx $DD/scripts_for_LSF/; chmod -R g-w $DD/scripts_for_LSF/; chmod -R o-rx $DD/scripts_for_LSF/
 
-for i in `find $DD/NGS-pipeline/  | grep pl$`; do chmod 755 $i; ln -s  $i /celgene/software/bin/$(basename $i); done
-for i in `find $DD/NGS-pipeline/  | grep sh$`; do chmod 755 $i; ln -s $i /celgene/software/bin/$(basename $i)  ; done
+for i in `find $DD/NGS-pipeline/  | grep pl$`; do chmod 755 $i; ln -s  $i $BIN/$(basename $i); done
+for i in `find $DD/NGS-pipeline/  | grep sh$`; do chmod 755 $i; ln -s $i $BIN/$(basename $i)  ; done
 for i in `find $DD/NGS-pipeline/  | grep R$`; do chmod 755 $i; done
-for i in `find $DD/oodt/  | grep sh$`; do chmod 755 $i; ln -s $i /celgene/sofware/bin/$(basename $i)  ; done
+for i in `find $DD/oodt/  | grep sh$`; do chmod 755 $i; ln -s $i $BIN/$(basename $i)  ; done

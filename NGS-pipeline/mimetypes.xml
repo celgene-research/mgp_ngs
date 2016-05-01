@@ -47,6 +47,15 @@ After updating this file make sure that is copied in the
 		<sub-class-of type="text/referencedb"/>
 	</mime-type>
 	
+	<mime-type type="text/databundle">
+		<glob pattern="*.targz"/>
+		<sub-class-of type="text/plain"/>
+	</mime-type>
+	
+	<mime-type type="text/plain">
+		<glob pattern="*"/>
+	</mime-type>
+	
 
 	<mime-type type="text/clinvar">
 		<glob pattern="clinvar*.vcf"/>

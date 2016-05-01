@@ -9,6 +9,8 @@ use Cwd;
 use Log::Log4perl;
 use FindBin;
 use lib $FindBin::RealBin;
+use lib $FindBin::RealBin."/lib";
+use configParser;
 use Getopt::Long;
 use Cwd;
 use Celgene::Utils::SVNversion;
@@ -70,6 +72,7 @@ my $logger=setUpLog();
 $logger->info("##########################");
 $logger->info("File staging utility by K.Mavrommatis");
 
+my $configuration=configParser->new();
 
 sub getFullFilePath{
 	my($file)=@_;
@@ -197,7 +200,7 @@ sub getObjectPath{
 	my($object)=@_;
 	$logger->debug("getObjectPath: received $object");
 	my $isS3='no';
-	if($object =~/(^s3:\/\/[a-z,A-Z,\-]+)/  ){
+	if($object =~/(^s3:\/\/[a-z,A-Z,\-,\.]+)/  ){
 
                 $isS3='yes';
                 my $object_bucket=$1;
@@ -306,7 +309,7 @@ sub syncFilesCloud{
 #                        print $wfh "\t\tFile has already been copied by a different process\n"
                 }else{
                         #$CMD="s3-mp-download.py -f -np 4 -f -t 3 $source $destination 1>&2 " if $type eq 'file'; # use this to take advandage of parallel transers
-                        $CMD="s3cmd --force get $source $destination 1>&2" if $type eq 'file'; # use s3cmd because s3-mp-download gives error ERROR:s3-mp-download:do_part_download() takes exactly 1 argument (9 given) which I have not managed to figure out
+                        $CMD=$configuration->{copy_file_from_aws}." $source $destination 1>&2" if $type eq 'file'; # use s3cmd because s3-mp-download gives error ERROR:s3-mp-download:do_part_download() takes exactly 1 argument (9 given) which I have not managed to figure out
                         
                         $ret=runCmd($CMD);
                 }
@@ -317,7 +320,7 @@ sub syncFilesCloud{
 #                    print $wfh "\t\tFile has already been copied by a different process\n";
              	}else{
 					my $res=mkpath( $destination );
-	                $CMD="s3cmd sync $source/ $destination/  1>&2" ;
+	                $CMD=$configuration->{copy_dir_from_aws}" $source/ $destination/  1>&2" ;
 	                $ret=runCmd($CMD);
              	}
              }
@@ -325,8 +328,8 @@ sub syncFilesCloud{
         }
         if($dest=~/^s3:/){
         	$logger->info("Final file location detected on the cloud");
-                $CMD="s3-mp-upload.py -f -np 4 -t 3 $src $dest  1>&2"  if $type eq 'file';
-                $CMD="s3cmd sync $source/ $destination/  1>&2" if $type eq 'directory';
+                $CMD=$configuration->{copy_file_to_aws}" $src $dest  1>&2"  if $type eq 'file';
+                $CMD=$configuration->{copy_dir_to_aws}" $source/ $destination/  1>&2" if $type eq 'directory';
                 $ret=runCmd($CMD);
                 #unlink( $src ) if $type eq 'file';
                 #rmtree( $src ) if $type eq 'directory';

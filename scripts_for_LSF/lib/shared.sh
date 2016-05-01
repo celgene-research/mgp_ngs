@@ -427,28 +427,40 @@ function fileStem(){
 	echo $stem	
 }
 
+
+
+# process Directory can be eiher
+# blank (NULL) which means that the script will process all files in the directory
+# 'yes' which means that will ingest the directory as a whole
+# 'r
 function ingestDirectory(){
 
-	outputDirectory=$1    # this is the directory to ingest
-	processDirectory=$2
+	local outputDirectory=$1    # this is the directory to ingest
+	local processDirectory=$2
 	if [ -z "$outputDirectory" ];then
 		echo "Please provide the full path of a directory to ingest"
 		exit 2;
 	fi
 	
-	currentDirectory=$PWD
+	local currentDirectory=$PWD
 	echo "Ingesting data in directory $outputDirectory"
 	cd $outputDirectory
 	
 	echo "Updating OODT with the data files"
-	
+	if [ "$processDirectory"="recursive" ]; then
+		echo "Ingesting subdirectories recursively"
+		for subdir in `find $1 -type d` ; do
+			ingestDirectory $subdir none
+		done 
+	fi
 	echo "Ingesting files only"
 	run_crawler.sh &> $LSB_JOBID.crawler.log
 	rm -f cas-crawler*
-	if [ -n "$processDirectory" ]; then
+	if [ "$processDirectory"="yes" ]; then
 		echo "Ingesting full directories"
 		run_crawler.sh $processDirectory &> $LSB_JOBID.crawler.log
 	fi
+	
 	
 	echo "OODT updated successfully"
 	

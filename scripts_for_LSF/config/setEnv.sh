@@ -97,7 +97,7 @@ export genomeDatabase=$NGS_USR_DATA_DIR/genomes
 export OODT_FILEMGR_URL=http://${OODT_FILEMGR_IP}:${OODT_FILEMGR_PORT}
 # the NGS_SERVER_URL became a SSL based  (has to wait until this connection is enabled)
 export NGS_SERVER_URL=http://${NGS_SERVER_IP}:${NGS_SERVER_PORT}
-
+mkdir -p $NGS_LOG_DIR
 mkdir -p $NGS_TMP_DIR
 export TMPDIR=$NGS_TMP_DIR
 mkdir -p $TMPDIR
