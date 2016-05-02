@@ -447,7 +447,7 @@ function ingestDirectory(){
 	cd $outputDirectory
 	
 	echo "Updating OODT with the data files"
-	if [ "$processDirectory"="recursive" ]; then
+	if [ "$processDirectory" == "recursive" ]; then
 		echo "Ingesting subdirectories recursively"
 		for subdir in `find $1 -type d` ; do
 			ingestDirectory $subdir none
@@ -456,7 +456,7 @@ function ingestDirectory(){
 	echo "Ingesting files only"
 	run_crawler.sh &> $LSB_JOBID.crawler.log
 	rm -f cas-crawler*
-	if [ "$processDirectory"="yes" ]; then
+	if [ "$processDirectory" == "yes" ]; then
 		echo "Ingesting full directories"
 		run_crawler.sh $processDirectory &> $LSB_JOBID.crawler.log
 	fi

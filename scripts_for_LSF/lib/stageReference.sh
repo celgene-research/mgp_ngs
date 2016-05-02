@@ -134,6 +134,7 @@ case "$option" in
 ;;
 # Download reference sequences for human
 "CalculateHsMetrics.human" | \
+"MergeBamAlignment.human" | \
 "CalculateAlnMetrics.human" | \
 "InsertSize.human" | \
 "CollectRNASeqMetrics.human" | \

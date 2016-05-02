@@ -10,7 +10,7 @@ export NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
 cores=1
 memory=6000
 mkdir -p $NGS_LOG_DIR
-
+initiateJob $stem $step $1
 header=$(bsubHeader $stem $step $memory $cores)
 echo \
 "$header
