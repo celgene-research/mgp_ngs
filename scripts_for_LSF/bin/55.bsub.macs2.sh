@@ -33,6 +33,8 @@ export NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
 mkdir -p $NGS_LOG_DIR
 cores=1 #MACS does not need many cores, but when run many instances on the same machine there are crashes.
 memory=3000
+
+initiateJob $stem $step $1
 header=$(bsubHeader $stem $step $memory $cores)
 
 peaktype=$( ngs-sampleInfo.pl $inputTag antibody_target )
@@ -128,7 +130,7 @@ $macs2bin callpeak \
 $commandArguments ; \
 $macs2bin bdgcmp -t \${outputDirectory}/${stem}_treat_pileup.bdg -c \${outputDirectory}/${stem}_control_lambda.bdg  -o \${outputDirectory}/${stem}_FE.bdg -m FE ; \
 $macs2bin bdgcmp -t \${outputDirectory}/${stem}_treat_pileup.bdg -c \${outputDirectory}/${stem}_control_lambda.bdg  -o \${outputDirectory}/${stem}_FE.bdg -m logLR -p 0.00001 \
-"
+\"
 touch \${outputDirectory}/${stem}.macs2/${display}-${controlDisplay}-${peaktype}
 chromInfo=\${outputDirectory}/${stem}.macs2/chromInfo.txt
 $samtoolsbin view -H \$inputTag | grep '^@SQ' | cut -f2,3 | sed 's%SN:%%' | sed 's%LN:%%' > \$chromInfo
