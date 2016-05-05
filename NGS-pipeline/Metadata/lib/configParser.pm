@@ -11,7 +11,7 @@ use File::stat;
 use threads;
 use Exporter;
 
-
+use Cwd 'abs_path';
 
 sub new
 {
@@ -28,11 +28,13 @@ sub new
    	# or in the same directory where the script is look for metadata config
    	
    	my $home=$ENV{HOME};
-   	$self->{logger}->debug("configParser: looking for config file");
+   	$self->{logger}->debug("configParser: looking for config file in \n".
+   							"\t\t$home/.metadata.config \n".
+   							"\t\t".File::Basename::dirname( abs_path($0) )."/metadata.config");
    	if( -e "$home/.metadata.config"){
    		$self->loadFile( "$home/.metadata.config");
-   	}elsif ( -e File::Basename::dirname( $0 )."/metadata.config"){
-   		$self->loadFile(File::Basename::dirname( $0 )."/metadata.config");
+   	}elsif ( -e File::Basename::dirname(abs_path( $0 ))."/metadata.config"){
+   		$self->loadFile(File::Basename::dirname( abs_path($0) )."/metadata.config");
    	}
    	
     return $self;
