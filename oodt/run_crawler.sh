@@ -1,18 +1,17 @@
 #!/bin/bash
-BINDIR=/celgene/software/apache-oodt/crawler/bin
+BINDIR=/celgene/software/apache-oodt-0.6/bin
 CURRDATE=$( date +"%m-%d-%y")
 FILEPATH=$(pwd)
 filesOrDirs=$1
-TEMPLOG=$NGS_LOG_DIR/crawler-${CURRDATE}.log
+TEMPLOG=$FILEPATH/crawler-${CURRDATE}.log
 
-if [ -e $TEMPLOG ]; then
-	echo "This directory has been processed before. Remove $TEMPLOG to proceed."
-	exit
-fi
+
 echo "Processing $FILEPATH "> $TEMPLOG
 echo "Data       $CURRDATE" >> $TEMPLOG
 
 cd $BINDIR
+
+mkdir -p ${HOME}/oodt-logs/
 
 if [ -n "$filesOrDirs" ]; then
 echo "Ingesting directories"
@@ -41,9 +40,8 @@ fi
 cd $FILEPATH
 
 
-tar -cvvzf ${TEMPLOG}_met.tar *.met 
+#tar -cvvzf $FILEPATH/crawler-${CURRDATE}.tar *.met 
 
 #rm *.met
-cp $TEMPLOG $FILEPATH
-cp ${TEMPLOG}_met.tar.gz $FILEPATH
+
 echo "Finished scanning $FILEPATH"
