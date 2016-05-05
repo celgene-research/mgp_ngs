@@ -4,19 +4,20 @@ scriptDir=$( dirname $0 ); source $scriptDir/../lib/shared.sh
 
 cores=$( fullcores )
 # use this script to prepare and run files that were procesed by MACS or bam files
-processType='bam' #='macs'
+processType='bam' #='peaks'
 
 # use this sscript to call ChromHMM on peak files that have been produced by MACS
 # what is the location of the files?
 # all files with peaks called by MACS should be under this directory and should have the extension xls
 #peaksDirectory=$1
-peaksDirectory="/home/kmavrommatis/celgene-src-bucket/DA0000096/ChIP-Seq-2/Processed/MACS2-peaks_1449703420/"
-bamDirectory="/home/kmavrommatis/celgene-src-bucket/DA0000096/ChIP-Seq-2/Processed/Bowtie2.human-bamfiles_1447913850"
+peaksDirectory="/mnt/celgene-src-bucket/DA0000096/ChIP-Seq-2/Processed/MACS2-peaks_1449703420/"
+bamDirectory="/mnt/celgene-src-bucket/DA0000096/ChIP-Seq-2/Processed/Bowtie2.human-bamfiles_1447913850"
 step="ChromHMM"
 analysistask=$step
 if [ "$processType" == "bam" ] ; then
 inDirectory=$bamDirectory
-else
+fi
+if [ "$processType" == "peaks" ] ; then
 inDirectory=$peaksDirectory
 fi
 
@@ -43,33 +44,39 @@ fi
 # `aws s3 ls $inDirectory --recursive | grep broadPeak$| rev| cut -f1 -d ' '| rev` \
 # `aws s3 ls $inDirectory --recursive | grep narrowPeak$| rev| cut -f1 -d ' '| rev` \
 # `aws s3 ls $inDirectory --recursive | grep coord.bam$| rev| cut -f1 -d ' '| rev`
-
+if [ "$processType" == "peaks" ] ; then
 for i in \
 `find $peaksDirectory  | grep broadPeak$` \
 `find $peaksDirectory  | grep narrowPeak$` 
 do  
-	f=$(echo ${i} | sed 's|/home/kmavrommatis/|s3://|'); 
+	f=$(echo ${i} | sed 's|/mnt/|s3://|'); 
 	#echo $f; 
 	
 	cell_type=$( ngs-sampleInfo.pl ${f} display_name | cut -f1 -d ' ')
 	mark=$( ngs-sampleInfo.pl ${f} antibody_target | cut -f1 -d ' ' )
+	sid=$( ngs-sampleInfo.pl ${f} sample_id  )
 	#s3cmd get --force $f $(basename $f)	
 	ln -s $i $( basename $i )
-echo "${cell_type}	${mark}	"$(basename $i)  >> cellmarkfiletable.peaks
+echo "${cell_type}	${mark}	"$(basename $i)"	$sid" >> cellmarkfiletable.peaks
 done 
+fi
 
+
+if [ "$processType" == "bam" ] ; then
 for i in \
 `find $bamDirectory  | grep coord.bam$` 
 do  
-	f=$(echo ${i} | sed 's|/home/kmavrommatis/|s3://|'); 
+	f=$(echo ${i} | sed 's|/mnt/|s3://|'); 
 	#echo $f; 
 	
-	cell_type=$( ngs-sampleInfo.pl ${f} display_name | cut -f1 -d ' ')
+	cell_type=$( ngs-sampleInfo.pl ${f} cell_line | cut -f1 -d ' ')
 	mark=$( ngs-sampleInfo.pl ${f} antibody_target | cut -f1 -d ' ' )
-	ln -s $i $( basename $i )
+	sid=$( ngs-sampleInfo.pl ${f} sample_id  )
+	#ln -s $i $( basename $i )
 	#s3cmd get --force $f $(basename $f)	
-echo "${cell_type}	${mark}	"$(basename $i)  >> cellmarkfiletable.bam
+echo "${cell_type}	${mark}	"$(basename $i)"	$sid"  >> cellmarkfiletable.bam
 done 
+fi
 grep -v Input cellmarkfiletable.bam  | sort -k1,2> marks.txt
 grep  Input cellmarkfiletable.bam  | sort -k1,2> input.txt  
 join -t '	' -o 1.1 1.2 1.3 2.3 marks.txt input.txt > cellmarkfiletable.bam
@@ -86,7 +93,13 @@ done
 
 exit
 
-models=5
+
+# apply any additional filter 
+
+
+
+
+models=4
 
 celgeneExec.pl --analysistask ${analysistask} "\
 java -Xmx4000M \
@@ -101,10 +114,10 @@ $outputDirectory/BinarizeBed $outputDirectory/Model.Bed_${models} $models hg19 ;
 
 
 celgeneExec.pl --analysistask ${analysistask} "\
-java -Xmx4000M \
+java -Xmx4g \
 -jar $chromhmmbin BinarizeBam \
 -b 200  \
-chromInfo.txt $PWD cellmarkfiletable $PWD $outputDirectory/BinarizeBam ; \
+chromInfo.txt $PWD cellmarkfiletable $outputDirectory/BinarizeBam ; \
 java -Xmx4g \
 -jar $chromhmmbin LearnModel \
 -b 200 -l chromInfo.txt -p $cores \

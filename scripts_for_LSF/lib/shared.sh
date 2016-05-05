@@ -235,7 +235,10 @@ echo $suffix
 }
 
 function fullcores(){
-	
+	if [ -z "$queue_name" ] ;then
+		echo "Queue name is not defined for this step. Has the job been initiated in the bsub script?"
+		echo 'Check if line "initiateJob $stem $step $1" appears in the script before the line header=$(bsubHeader $stem $step $memory $cores)'
+	fi
 	maxCores=11 
 	instanceCores=${queueCores[$queue_name]}
 	if [ "$NEWCLUSTER" == "1" ] ; then
@@ -255,7 +258,10 @@ function fullcores(){
 }
 
 function fullmemory(){
-	
+	if [ -z "$queue_name" ] ;then
+		echo "Queue name is not defined for this step. Has the job been initiated in the bsub script?"
+		echo 'Check if line "initiateJob $stem $step $1" appears in the script before the line header=$(bsubHeader $stem $step $memory $cores)'
+	fi
 	#memory on head node
 	maxMem=$(free | awk '/^Mem:/{print $2}')
 	maxMem=$(( $maxMem - 4000 ))
@@ -327,7 +333,7 @@ function replaceDirNames(){
 	directoryName=$1
 	# for data that is on the cloud
 	
-	local newDirectoryName=$(  echo ${directoryName}  | sed 's%/SRC%/Processed%'| sed 's%/src%/Processed%'| sed 's%/RawData%/Processed%' | sed 's%/Raw_Data%/Processed%'| sed 's%/rawdata%/Processed%' | sed 's%/raw_data%/Processed%' | sed 's%/OriginalData/ProcessedData/%' )
+	local newDirectoryName=$(  echo ${directoryName}  | sed 's%/SRC%/Processed%'| sed 's%/src%/Processed%'| sed 's%/RawData%/Processed%' | sed 's%/Raw_Data%/Processed%'| sed 's%/rawdata%/Processed%' | sed 's%/raw_data%/Processed%' | sed 's%/OriginalData%/ProcessedData%' )
 	
 	echo $newDirectoryName
 }
@@ -453,9 +459,14 @@ function ingestDirectory(){
 			ingestDirectory $subdir none
 		done 
 	fi
+	
+	# Ingesting only files. Run the script run_crawler.sh and store the output
+	# in a log file in the outputDirectory with the lsf job id as prefix
 	echo "Ingesting files only"
 	run_crawler.sh &> $LSB_JOBID.crawler.log
 	rm -f cas-crawler*
+	# Ingesting the contents of a directory. Run the script run_crawler.sh and store the output
+	# in a log file in the outputDirectory with the lsf job id as prefix	
 	if [ "$processDirectory" == "yes" ]; then
 		echo "Ingesting full directories"
 		run_crawler.sh $processDirectory &> $LSB_JOBID.crawler.log

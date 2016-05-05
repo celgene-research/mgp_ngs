@@ -44,7 +44,7 @@ if [ "$CELGENE_AWS" == "true" -o "$FACTER_ENV" == "RCE" ]; then
 	export SOLR_SERVER_PORT=8983
 	export CELGENE_NGS_BUCKET=s3://celgene-src-bucket
 
-	export NGS_LOG_DIR=/celgene/software/LOGS/
+	export NGS_LOG_DIR=/celgene/software/LOGS/${USER}/
 	if [ -d /scratch ];then
 		export NGS_TMP_DIR=/scratch/tmp/${USER}
 	else
