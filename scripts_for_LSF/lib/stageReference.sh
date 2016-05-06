@@ -112,6 +112,9 @@ case "$option" in
 "Bismark.human" )
 	dispatch $humanbismarkidxAWS $humanbismarkidx
 ;;
+"BismarkExtractor.human" )
+	dispatch $humanGenomeDirAWS $humanGenomeDir
+;;
 "Express.human" )
 	dispatch $humanrsemidxAWS $humanrsemidx
 ;;

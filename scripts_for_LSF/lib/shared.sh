@@ -125,6 +125,7 @@ function getQueue(){
 	queues["LibraryComplexity"]="bigmem"
 	queues["BWAmem"]="bigmem"
 	queues["Bismark"]="bigdisk"
+	queues["BismarkExtractor"]="bigdisk"
 	queues["HomerQC"]="bigdisk"
 	queues["MACS2"]="bigdisk"
 	queues["Bowtie2.human"]="bigmem"
