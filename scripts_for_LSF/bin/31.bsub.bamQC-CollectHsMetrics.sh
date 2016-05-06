@@ -109,7 +109,7 @@ outputDirectory=\$( setOutput \$input \$newDir/${step} )
 
 
 celgeneExec.pl --analysistask ${analysistask} \"\
-java -Xmx${memory}m -jar ${PICARD_BASE}/picard.jar CalculateHsMetrics \
+java -Xmx${memory}m -jar ${PICARDBASE}/picard.jar CalculateHsMetrics \
   VERBOSITY=WARNING \
   INPUT=\$input \
   TMP_DIR=\${NGS_TMP_DIR}	\

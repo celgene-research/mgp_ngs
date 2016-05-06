@@ -32,7 +32,7 @@ outputDirectory=\$( setOutput \$input fastq )
 
 
 celgeneExec.pl --analysistask $analysistask \"\
-java -Xmx6g -jar ${PICARD_BASE}/picard.jar SamToFastq INPUT=\${input} \
+java -Xmx6g -jar ${PICARDBASE}/picard.jar SamToFastq INPUT=\${input} \
   FASTQ=\${outputDirectory}/${stem}_R1.fastq \
   SECOND_END_FASTQ=\${outputDirectory}/${stem}_R2.fastq \
   UNPAIRED_FASTQ=\${outputDirectory}/${stem}_unpaired.fastq  \

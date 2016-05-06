@@ -34,7 +34,7 @@ outputDirectory=\$( setOutput \$input \$newDir/${step} )
 
 
 celgeneExec.pl --analysistask ${analysistask} \"\
-java -Xmx${memory}m -jar ${PICARD_BASE}/picard.jar BamIndexStats \
+java -Xmx${memory}m -jar ${PICARDBASE}/picard.jar BamIndexStats \
   VERBOSITY=WARNING INPUT=\$input \
   TMP_DIR=\${NGS_TMP_DIR}	\
   VALIDATION_STRINGENCY=SILENT >\

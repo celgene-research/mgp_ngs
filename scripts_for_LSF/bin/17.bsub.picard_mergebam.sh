@@ -23,7 +23,6 @@ initiateJob $stem $step $1
 cores=1 # this is done to provide lighter operations on the nodes
 memory=6000
 
-initiateJob $stem $step $1
 header=$(bsubHeader $stem $step $memory $cores)
 echo \
 "$header
@@ -46,13 +45,13 @@ outputDirectory=\$( setOutput \$inputaln $step )
 
 
 celgeneExec.pl --analysistask $step \"\
-java -Xmx6g -jar ${PICARD_BASE}/picard.jar MergeSamFiles \
+java -Xmx6g -jar ${PICARDBASE}/picard.jar MergeSamFiles \
   \${filestr1} \
   OUTPUT=\${outputDirectory}/${stem}.coord.bam \
-  SORT_ORDER=coordinate \ 
+  SORT_ORDER=coordinate \
   VERBOSITY=WARNING  \
   VALIDATION_STRINGENCY=SILENT\
-  " 
+\" 
 if [ \$? != 0 ] ; then
 	echo \"Failed to execute command\"
 	exit 1

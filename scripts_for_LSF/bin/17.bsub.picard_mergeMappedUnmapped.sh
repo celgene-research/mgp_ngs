@@ -65,7 +65,7 @@ outputDirectory=\$( setOutput \$inputaln $step )
 
 
 celgeneExec.pl --analysistask $step \"\
-java -Xmx6g -jar ${PICARD_BASE}/picard.jar MergeBamAlignment \
+java -Xmx6g -jar ${PICARDBASE}/picard.jar MergeBamAlignment \
   ALIGNED=\${inputaln} \
   UNMAPPED=\${inputump} \
   REFERENCE_SEQUENCE=\$genomefile \

@@ -73,7 +73,7 @@ outputDirectory=\$( setOutput \$input \$newDir/${step} )
 
 
 celgeneExec.pl --analysistask ${analysistask} \"\
-java -Xmx${memory}m -jar ${PICARD_BASE}/picard.jar CollectAlignmentSummaryMetrics \
+java -Xmx${memory}m -jar ${PICARDBASE}/picard.jar CollectAlignmentSummaryMetrics \
  VERBOSITY=WARNING \
  INPUT=\$input \
  TMP_DIR=\${NGS_TMP_DIR} \

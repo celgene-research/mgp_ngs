@@ -37,7 +37,7 @@ outputDirectoryBam=\$( setOutput \$input \$newDir )
 
 
 
-celgeneExec.pl --analysistask ${analysistask} \"java -Xmx${memory}m -jar ${PICARD_BASE}/picard.jar MarkDuplicates VERBOSITY=WARNING INPUT=\$input TMP_DIR=\${NGS_TMP_DIR} M=\${outputDirectory}/${stem}.${step}.qcstats CREATE_INDEX=TRUE AS=TRUE O=\${outputDirectoryBam}/${stem}.${step}.mdup.bam VALIDATION_STRINGENCY=SILENT \"
+celgeneExec.pl --analysistask ${analysistask} \"java -Xmx${memory}m -jar ${PICARDBASE}/picard.jar MarkDuplicates VERBOSITY=WARNING INPUT=\$input TMP_DIR=\${NGS_TMP_DIR} M=\${outputDirectory}/${stem}.${step}.qcstats CREATE_INDEX=TRUE AS=TRUE O=\${outputDirectoryBam}/${stem}.${step}.mdup.bam VALIDATION_STRINGENCY=SILENT \"
  if [ \$? != 0 ] ; then
 	echo "Failed to execute command"
 	exit 1

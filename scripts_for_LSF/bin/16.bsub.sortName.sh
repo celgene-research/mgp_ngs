@@ -40,7 +40,7 @@ newDir=\$( lastDir \$input | sed 's%bamfiles%bamfiles-SortByReadname%'|| sed 's%
 outputDirectory=\$( setOutput \$input \$newDir )
 
 celgeneExec.pl --analysistask ${analysistask} \"\
-java -Xmx${memory}m -jar ${PICARD_BASE}/picard.jar SortSam VERBOSITY=WARNING INPUT=\$input \
+java -Xmx${memory}m -jar ${PICARDBASE}/picard.jar SortSam VERBOSITY=WARNING INPUT=\$input \
   TMP_DIR=\${NGS_TMP_DIR} SORT_ORDER=queryname O=\${outputDirectory}/$stem.name.bam VALIDATION_STRINGENCY=SILENT \"
  if [ \$? != 0 ] ; then
 	echo "Failed to run command"

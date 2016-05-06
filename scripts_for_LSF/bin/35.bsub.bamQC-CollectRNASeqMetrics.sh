@@ -93,7 +93,7 @@ outputDirectory=\$( setOutput \$input \$newDir/${step} )
 
 
 celgeneExec.pl --analysistask ${analysistask} \"\
-java -Xmx${memory}m -jar ${PICARD_BASE}/picard.jar CollectRnaSeqMetrics \
+java -Xmx${memory}m -jar ${PICARDBASE}/picard.jar CollectRnaSeqMetrics \
  VERBOSITY=WARNING \
  INPUT=\$input \
  TMP_DIR=\${NGS_TMP_DIR} \
