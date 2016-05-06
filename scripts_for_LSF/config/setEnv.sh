@@ -36,6 +36,11 @@
 ###############################
 # settings specific to AWS
 if [ "$CELGENE_AWS" == "true" -o "$FACTER_ENV" == "RCE" ]; then
+	export TMPDIR=/scratch/tmp
+	export TMP=$TMPDIR
+	export TEMP=$TMPDIR
+	
+	
 	export NGS_SERVER_PORT=8082
 	export NGS_SERVER_IP=10.130.0.26
 	export OODT_FILEMGR_PORT=9000
@@ -52,6 +57,11 @@ if [ "$CELGENE_AWS" == "true" -o "$FACTER_ENV" == "RCE" ]; then
 	fi
 	export JAVA_HOME=/usr/
 elif [ "$MMGP_AWS" == "true" -o "$FACTER_ENV" == "MMGP" ] ; then
+	export TMPDIR=/scratch/tmp
+	export TMP=$TMPDIR
+	export TEMP=$TMPDIR
+	
+	
 	export NGS_SERVER_PORT=8082
 	export NGS_SERVER_IP=192.168.8.44
 	export OODT_FILEMGR_PORT=9000
