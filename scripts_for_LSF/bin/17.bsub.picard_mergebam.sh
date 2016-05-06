@@ -34,14 +34,16 @@ set -e
 
 
 filestr1=\"\"
+fn=\"\"
 for i in "$inputDirectory" ;do
 	i=\$( stage.pl --type file --operation out \${i} )
+	fn=\${i}
 	filestr1=\"\${filestr1} I=\${i} \"
 done
 
 
 
-outputDirectory=\$( setOutput \$inputaln $step )
+outputDirectory=\$( setOutput \$fn $step )
 
 
 celgeneExec.pl --analysistask $step \"\

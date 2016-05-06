@@ -2,7 +2,7 @@
 # it is basically a dispatcher that depending on the arguments provided by the user initially decides what to stage
 # all the data is copied to $ NGS_USR_DATA_DIR
 
-if [ -z "$CELGENE_AWS" -o "$CELGENE_AWS" != "true" ] ;then
+if [ -z "$CELGENE_AWS" ] ;then
 	echo 'This is not an AWS environment. Assuming HPC'
 	exit 0
 fi
