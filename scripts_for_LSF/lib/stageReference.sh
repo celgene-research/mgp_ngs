@@ -40,7 +40,7 @@ function stageDirectory(){
 			
 	mkdir -p $localDirectory
 	touch $localDirectory/LOCKFILE
-	s3cmd sync $awsDirectory/ $localDirectory/  &> $localDirectory/transfer.$$.log
+	aws s3 cp --recursive $awsDirectory/ $localDirectory/  &> $localDirectory/transfer.$$.log
 	
 	if [ $? -ne 0 ] ; then
 		echo "Failed to run command"
