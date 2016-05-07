@@ -28,9 +28,6 @@ step="MACS2"
 
 analysistask=38
 
- 
-export NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
-mkdir -p $NGS_LOG_DIR
 cores=1 #MACS does not need many cores, but when run many instances on the same machine there are crashes.
 memory=3000
 
@@ -114,7 +111,7 @@ if [ \$inputTag == \"FAILED\" -o \$inputControl == \"FAILED\"  ] ; then
 fi
 
 outputDirectory=\$( setOutput \$inputTag ${step}-peaks )
-
+outputDirectory2=\$( setOutput \$inputTag ${step}-bedgraph )
 
 celgeneExec.pl --analysistask ${analysistask} \"\
 $macs2bin callpeak \
@@ -128,8 +125,8 @@ $macs2bin callpeak \
  --bdg --SPMR \
  --keep-dup auto\
 $commandArguments ; \
-$macs2bin bdgcmp -t \${outputDirectory}/${stem}_treat_pileup.bdg -c \${outputDirectory}/${stem}_control_lambda.bdg  -o \${outputDirectory}/${stem}_FE.bdg -m FE ; \
-$macs2bin bdgcmp -t \${outputDirectory}/${stem}_treat_pileup.bdg -c \${outputDirectory}/${stem}_control_lambda.bdg  -o \${outputDirectory}/${stem}_FE.bdg -m logLR -p 0.00001 \
+$macs2bin bdgcmp -t \${outputDirectory}/${stem}.macs2/${stem}_treat_pileup.bdg -c \${outputDirectory}/${stem}.macs2/${stem}_control_lambda.bdg  -o \${outputDirectory2}/${stem}.macs2/${stem}_FE.bdg -m FE ; \
+$macs2bin bdgcmp -t \${outputDirectory}/${stem}.macs2/${stem}_treat_pileup.bdg -c \${outputDirectory}/${stem}.macs2/${stem}_control_lambda.bdg  -o \${outputDirector2y}/${stem}.macs2/${stem}_FE.bdg -m logLR -p 0.00001 \
 \"
 touch \${outputDirectory}/${stem}.macs2/${display}-${controlDisplay}-${peaktype}
 chromInfo=\${outputDirectory}/${stem}.macs2/chromInfo.txt
