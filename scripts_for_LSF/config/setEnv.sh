@@ -36,9 +36,7 @@
 ###############################
 # settings specific to AWS
 if [ "$CELGENE_AWS" == "true" -o "$FACTER_ENV" == "RCE" ]; then
-	export TMPDIR=/scratch/tmp
-	export TMP=$TMPDIR
-	export TEMP=$TMPDIR
+	
 	
 	
 	export NGS_SERVER_PORT=8082
@@ -57,9 +55,7 @@ if [ "$CELGENE_AWS" == "true" -o "$FACTER_ENV" == "RCE" ]; then
 	fi
 	export JAVA_HOME=/usr/
 elif [ "$MMGP_AWS" == "true" -o "$FACTER_ENV" == "MMGP" ] ; then
-	export TMPDIR=/scratch/tmp
-	export TMP=$TMPDIR
-	export TEMP=$TMPDIR
+
 	
 	
 	export NGS_SERVER_PORT=8082
@@ -107,8 +103,11 @@ export genomeDatabase=$NGS_USR_DATA_DIR/genomes
 export OODT_FILEMGR_URL=http://${OODT_FILEMGR_IP}:${OODT_FILEMGR_PORT}
 # the NGS_SERVER_URL became a SSL based  (has to wait until this connection is enabled)
 export NGS_SERVER_URL=http://${NGS_SERVER_IP}:${NGS_SERVER_PORT}
+
 mkdir -p $NGS_LOG_DIR
 mkdir -p $NGS_TMP_DIR
+
+
 export TMPDIR=$NGS_TMP_DIR
 mkdir -p $TMPDIR
 chmod 1777 $TMPDIR 2>/dev/null
