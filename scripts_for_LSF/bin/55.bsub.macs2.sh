@@ -125,11 +125,19 @@ $macs2bin callpeak \
  --bdg --SPMR \
  --keep-dup auto\
 $commandArguments ; \
-$macs2bin bdgcmp -t \${outputDirectory}/${stem}/${stem}_treat_pileup.bdg -c \${outputDirectory}/${stem}/${stem}_control_lambda.bdg  -o \${outputDirectory2}/${stem}_FE.bdg -m FE ; \
-$macs2bin bdgcmp -t \${outputDirectory}/${stem}/${stem}_treat_pileup.bdg -c \${outputDirectory}/${stem}/${stem}_control_lambda.bdg  -o \${outputDirectory2}/${stem}_LR.bdg -m logLR -p 0.00001 \
+$macs2bin bdgcmp \
+ -t \${outputDirectory}/${stem}/${stem}_treat_pileup.bdg \
+ -c \${outputDirectory}/${stem}/${stem}_control_lambda.bdg  \
+ -o \${outputDirectory}/${stem}/${stem}_FE.bdg -m FE ; \
+$macs2bin bdgcmp \
+ -t \${outputDirectory}/${stem}/${stem}_treat_pileup.bdg \
+ -c \${outputDirectory}/${stem}/${stem}_control_lambda.bdg  \
+ -o \${outputDirectory}/${stem}/${stem}_LR.bdg -m logLR -p 0.00001 \
 \"
-touch \${outputDirectory}/${stem}.macs2/${display}-${controlDisplay}-${peaktype}
-chromInfo=\${outputDirectory}/${stem}.macs2/chromInfo.txt
+
+touch \${outputDirectory}/${stem}/${display}-${controlDisplay}-${peaktype}
+
+chromInfo=\${outputDirectory}/${stem}/chromInfo.txt
 $samtoolsbin view -H \$inputTag | grep '^@SQ' | cut -f2,3 | sed 's%SN:%%' | sed 's%LN:%%' > \$chromInfo
 
 ingestDirectory \$outputDirectory yes
@@ -137,11 +145,7 @@ if [ \$? -ne 0 ] ; then
 	echo \"Failed to ingest data\"
 	exit 1
 fi 
-ingestDirectory \$outputDirectory2 yes
-if [ \$? -ne 0 ] ; then
-	echo \"Failed to ingest data\"
-	exit 1
-fi 
+
 
 closeJob
 "> ${stem}.${step}.bsub
