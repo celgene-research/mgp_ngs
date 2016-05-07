@@ -46,7 +46,7 @@ if [ -n "$CELGENE_AWS" ] ; then
 		export SOLR_SERVER_IP=192.168.8.44
 		export SOLR_SERVER_PORT=8983	
 		export CELGENE_NGS_BUCKET=s3://celgene.rnd.combio.mmgp.external
-	
+		export CELGENE_NGS_BUCKET_DATA=s3://celgene.rnd.combio.mmgp.external
 		export NGS_LOG_DIR=/celgene/software/LOGS/${USER}/
 		if [ -d /scratch ];then
 			export NGS_TMP_DIR=/scratch/tmp/${USER}
@@ -64,7 +64,7 @@ if [ -n "$CELGENE_AWS" ] ; then
 		export SOLR_SERVER_IP=10.130.0.26
 		export SOLR_SERVER_PORT=8983
 		export CELGENE_NGS_BUCKET=s3://celgene-src-bucket
-	
+		export CELGENE_NGS_BUCKET_DATA=s3://celgene-ngs-data
 		export NGS_LOG_DIR=/celgene/software/LOGS/${USER}/
 		if [ -d /scratch ];then
 			export NGS_TMP_DIR=/scratch/tmp/${USER}
