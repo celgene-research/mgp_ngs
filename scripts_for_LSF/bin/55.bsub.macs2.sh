@@ -23,7 +23,7 @@ inputControlIndex=$(echo $inputControl | sed 's/bam$/bai/')
 
 stem1=$(fileStem $inputTag)
 stem2=$(fileStem $inputControl)
-stem=${stem1}.cntr.${stem2}
+stem=tag.${stem1}.cntr.${stem2}
 step="MACS2"
 
 analysistask=38
@@ -118,15 +118,15 @@ $macs2bin callpeak \
  --treatment \${inputTag} \
  --control \${inputControl} \
  --name $stem \
- --outdir \${outputDirectory}/${stem}.macs2 \
+ --outdir \${outputDirectory}/${stem} \
  --gsize 2.7e9 \
  --mfold 5 80 \
  --bw 200 \
  --bdg --SPMR \
  --keep-dup auto\
 $commandArguments ; \
-$macs2bin bdgcmp -t \${outputDirectory}/${stem}.macs2/${stem}_treat_pileup.bdg -c \${outputDirectory}/${stem}.macs2/${stem}_control_lambda.bdg  -o \${outputDirectory2}/${stem}.macs2/${stem}_FE.bdg -m FE ; \
-$macs2bin bdgcmp -t \${outputDirectory}/${stem}.macs2/${stem}_treat_pileup.bdg -c \${outputDirectory}/${stem}.macs2/${stem}_control_lambda.bdg  -o \${outputDirector2y}/${stem}.macs2/${stem}_FE.bdg -m logLR -p 0.00001 \
+$macs2bin bdgcmp -t \${outputDirectory}/${stem}/${stem}_treat_pileup.bdg -c \${outputDirectory}/${stem}/${stem}_control_lambda.bdg  -o \${outputDirectory2}/${stem}_FE.bdg -m FE ; \
+$macs2bin bdgcmp -t \${outputDirectory}/${stem}/${stem}_treat_pileup.bdg -c \${outputDirectory}/${stem}/${stem}_control_lambda.bdg  -o \${outputDirectory2}/${stem}_LR.bdg -m logLR -p 0.00001 \
 \"
 touch \${outputDirectory}/${stem}.macs2/${display}-${controlDisplay}-${peaktype}
 chromInfo=\${outputDirectory}/${stem}.macs2/chromInfo.txt
@@ -137,7 +137,11 @@ if [ \$? -ne 0 ] ; then
 	echo \"Failed to ingest data\"
 	exit 1
 fi 
-
+ingestDirectory \$outputDirectory2 yes
+if [ \$? -ne 0 ] ; then
+	echo \"Failed to ingest data\"
+	exit 1
+fi 
 
 closeJob
 "> ${stem}.${step}.bsub
