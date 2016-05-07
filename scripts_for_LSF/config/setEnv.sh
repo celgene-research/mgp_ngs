@@ -35,46 +35,47 @@
 
 ###############################
 # settings specific to AWS
-if [ "$CELGENE_AWS" == "true" -o "$FACTER_ENV" == "RCE" ]; then
+# CELGENE_AWS is a general flag suggesting we are in the cloud
+if [ -n "$CELGENE_AWS" ] ; then
+	# settings specific for the MMGP
+	if [ "$MMGP_AWS" == "true" -o "$FACTER_ENV" == "MMGP" ] ; then
+		export NGS_SERVER_PORT=8082
+		export NGS_SERVER_IP=192.168.8.44
+		export OODT_FILEMGR_PORT=9000
+		export OODT_FILEMGR_IP=192.168.8.44
+		export SOLR_SERVER_IP=192.168.8.44
+		export SOLR_SERVER_PORT=8983	
+		export CELGENE_NGS_BUCKET=s3://celgene.rnd.combio.mmgp.external
 	
-	
-	
-	export NGS_SERVER_PORT=8082
-	export NGS_SERVER_IP=10.130.0.26
-	export OODT_FILEMGR_PORT=9000
-	export OODT_FILEMGR_IP=10.130.0.26
-	export SOLR_SERVER_IP=10.130.0.26
-	export SOLR_SERVER_PORT=8983
-	export CELGENE_NGS_BUCKET=s3://celgene-src-bucket
-
-	export NGS_LOG_DIR=/celgene/software/LOGS/${USER}/
-	if [ -d /scratch ];then
-		export NGS_TMP_DIR=/scratch/tmp/${USER}
+		export NGS_LOG_DIR=/celgene/software/LOGS/${USER}/
+		if [ -d /scratch ];then
+			export NGS_TMP_DIR=/scratch/tmp/${USER}
+		else
+			export NGS_TMP_DIR=/celgene/tmp/${USER}
+		fi
+		
+		export JAVA_HOME=/usr/
 	else
-		export NGS_TMP_DIR=/celgene/tmp/${USER}
-	fi
-	export JAVA_HOME=/usr/
-elif [ "$MMGP_AWS" == "true" -o "$FACTER_ENV" == "MMGP" ] ; then
-
+		# default settings (for the Celgene NGS VPC)
+		export NGS_SERVER_PORT=8082
+		export NGS_SERVER_IP=10.130.0.26
+		export OODT_FILEMGR_PORT=9000
+		export OODT_FILEMGR_IP=10.130.0.26
+		export SOLR_SERVER_IP=10.130.0.26
+		export SOLR_SERVER_PORT=8983
+		export CELGENE_NGS_BUCKET=s3://celgene-src-bucket
 	
-	
-	export NGS_SERVER_PORT=8082
-	export NGS_SERVER_IP=192.168.8.44
-	export OODT_FILEMGR_PORT=9000
-	export OODT_FILEMGR_IP=192.168.8.44
-	export SOLR_SERVER_IP=192.168.8.44
-	export SOLR_SERVER_PORT=8983	
-	export CELGENE_NGS_BUCKET=s3://celgene.rnd.combio.mmgp.external
-
-	export NGS_LOG_DIR=/celgene/software/LOGS/${USER}/
-	if [ -d /scratch ];then
-		export NGS_TMP_DIR=/scratch/tmp/${USER}
-	else
-		export NGS_TMP_DIR=/celgene/tmp/${USER}
+		export NGS_LOG_DIR=/celgene/software/LOGS/${USER}/
+		if [ -d /scratch ];then
+			export NGS_TMP_DIR=/scratch/tmp/${USER}
+		else
+			export NGS_TMP_DIR=/celgene/tmp/${USER}
+		fi
+		export JAVA_HOME=/usr/
 	fi
 	
-	export JAVA_HOME=/usr/
 else
+	# on premises cluster
 	export NGS_SERVER_PORT=8082
 	export NGS_SERVER_IP=10.130.0.26
 	export OODT_FILEMGR_PORT=9000
