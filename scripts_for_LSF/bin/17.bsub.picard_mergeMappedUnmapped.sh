@@ -7,7 +7,7 @@ step="MergeBamAlignment"
 
 stem=$( fileStem $inputaln )
 
-echo "$0 <aligned bam files in a comma separated list> <unmapped bam files in a comma separated list>"
+echo "$0 <aligned bam file> <unmapped bam file>"
 echo "Currently (May 2016) picard tools has two tools to merge bam files"
 echo "This script submits jobs that use the MergeBamAlignment tool which "
 echo "merges aligned bam files with unmapped bam files"
@@ -54,7 +54,7 @@ celgeneExec.pl --analysistask $step \"\
 java -Xmx6g -jar ${PICARDBASE}/picard.jar MergeBamAlignment \
   ALIGNED=\${inputaln} \
   UNMAPPED=\${inputump} \
-  REFERENCE_SEQUENCE=\$genomefile \
+  REFERENCE_SEQUENCE=$genomefile \
   OUTPUT=\${outputDirectory}/${stem}.coord.bam \
   SORT_ORDER=coordinate \
   VERBOSITY=WARNING  \
