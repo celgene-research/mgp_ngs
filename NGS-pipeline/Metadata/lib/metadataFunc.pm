@@ -45,7 +45,7 @@ sub serverCall{
 			}
 			
 		}else{
-			if($r>1){more
+			if($r>1){
                 $logger->info("serverCall: Attempt $r/$retries was successful");
             }else{
             	$logger->info("serverCall: Data retrieval from server was successful");
