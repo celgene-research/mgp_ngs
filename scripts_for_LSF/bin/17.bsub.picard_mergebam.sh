@@ -4,6 +4,9 @@ inputDirectory=$@
 
 analysistask=$step
 step="MergeSamFiles"
+
+
+
 stem=$( fileStem $1 )
 
 echo "$0 <aligned bam files in a space separated list> "
@@ -30,15 +33,11 @@ set -e
 
 
 filestr1=\"\"
-sortCommand=\"\"
 fn=\"\"
 for i in "$inputDirectory" ;do
 	i=\$( stage.pl --type file --operation out \${i} )
 	fn=\${i}
-	o=\$( basename \$fn | sed 's/.bam//' )
-	sortCommand=\"\${sortCommand} java -Xmx6g -jar ${PICARDBASE}/picard.jar SortSam I=${i} O=\${outputDirectory}/\${o}.name.bam SORT_ORDER=queryname ; \"
-	
-	filestr1=\"\${filestr1} I=\${outputDirectory}/\${o}.name.bam \"
+	filestr1=\"\${filestr1} I=\${i} \"
 done
 
 
@@ -47,7 +46,6 @@ outputDirectory=\$( setOutput \$fn $step )
 
 
 celgeneExec.pl --analysistask $step \"\
-${sortCommand}\
 java -Xmx6g -jar ${PICARDBASE}/picard.jar MergeSamFiles \
   \${filestr1} \
   OUTPUT=\${outputDirectory}/${stem}.coord.bam \
