@@ -53,15 +53,15 @@ outputDirectory=\$( setOutput \$inputaln $step )
 celgeneExec.pl --analysistask $step \"\
 java -Xmx6g -jar ${PICARDBASE}/picard.jar SortSam \
   I=\${inputaln} \
-  O=\${outputDirectory}/\${inputaln} \
+  O=\${outputDirectory}/${stem}.aln.bam \
   SORT_ORDER=queryname ; \
 java -Xmx6g -jar ${PICARDBASE}/picard.jar SortSam \
   I=\${inputump} \
-  O=\${outputDirectory}/\${inputump} \
+  O=\${outputDirectory}/${stem}.unmapped.bam \
   SORT_ORDER=queryname ; \
 java -Xmx6g -jar ${PICARDBASE}/picard.jar MergeBamAlignment \
-  ALIGNED=\${outputDirectory}/\${inputaln} \
-  UNMAPPED=\${outputDirectory}/\${inputump} \
+  ALIGNED=\${outputDirectory}/${stem}.aln.bam \
+  UNMAPPED=\${outputDirectory}/${stem}.unmapped.bam \
   REFERENCE_SEQUENCE=$genomefile \
   OUTPUT=\${outputDirectory}/${stem}.coord.bam \
   SORT_ORDER=coordinate \
