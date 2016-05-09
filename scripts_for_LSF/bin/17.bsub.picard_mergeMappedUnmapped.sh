@@ -53,11 +53,11 @@ outputDirectory=\$( setOutput \$inputaln $step )
 celgeneExec.pl --analysistask $step \"\
 java -Xmx6g -jar ${PICARDBASE}/picard.jar SortSam \
   I=\${inputaln} \
-  O=\${outputDirector}/\${inputaln} \
+  O=\${outputDirectory}/\${inputaln} \
   SORT_ORDER=queryname ; \
 java -Xmx6g -jar ${PICARDBASE}/picard.jar SortSam \
   I=\${inputump} \
-  O=\${outputDirector}/\${inputump} \
+  O=\${outputDirectory}/\${inputump} \
   SORT_ORDER=queryname ; \
 java -Xmx6g -jar ${PICARDBASE}/picard.jar MergeBamAlignment \
   ALIGNED=\${inputaln} \
