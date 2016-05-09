@@ -60,8 +60,8 @@ java -Xmx6g -jar ${PICARDBASE}/picard.jar SortSam \
   O=\${outputDirectory}/\${inputump} \
   SORT_ORDER=queryname ; \
 java -Xmx6g -jar ${PICARDBASE}/picard.jar MergeBamAlignment \
-  ALIGNED=\${inputaln} \
-  UNMAPPED=\${inputump} \
+  ALIGNED=\${outputDirectory}/\${inputaln} \
+  UNMAPPED=\${outputDirectory}/\${inputump} \
   REFERENCE_SEQUENCE=$genomefile \
   OUTPUT=\${outputDirectory}/${stem}.coord.bam \
   SORT_ORDER=coordinate \
