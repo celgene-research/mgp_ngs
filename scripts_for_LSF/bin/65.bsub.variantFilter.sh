@@ -13,10 +13,9 @@ fi
 
 memory=4000
 cores=1
-NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
+
 initiateJob $stem $step $1
 
-mkdir -p $NGS_LOG_DIR
 header=$(bsubHeader $stem $step $memory $cores)
 echo \
 "$header

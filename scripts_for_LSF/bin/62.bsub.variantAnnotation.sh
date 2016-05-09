@@ -9,7 +9,7 @@ analysistask=46
 snpeffGenomeVersion=$snpeffgenomeversion
 stem=$(fileStem $inputVCF)
 
-export NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
+
 snpeffBin=$snpeffbin
 snpeffConfig=${snpeffconfig}
 snpsiftBin=$snpsiftbin
@@ -25,7 +25,7 @@ snpsiftdbNSFP=${humanVariantsDir}/dbNSFP2.8_variants.gz
 snpsiftPhastCons=${SNPEFF_BASE}/../phastCons/
 msigdb=$msigdb
 
-
+initiateJob $stem $step $1
 memory=30000
 cores=2
 header=$(bsubHeader $stem $step $memory $cores)
