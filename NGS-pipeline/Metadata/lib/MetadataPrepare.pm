@@ -3,6 +3,7 @@ use strict;
 use warnings;
 use Log::Log4perl;
 use Data::Dumper;
+use configParser;
 use File::Basename;
 use HTML::Entities;
 # package to prepare a file that can be further used for ingestion of meta data to a
@@ -12,24 +13,26 @@ sub new{
 	my $class = shift;
     my $self = {};
     bless $self, $class;
-    
-    
+    # load the configuration from the config file
+    $self->{configuration}=configParser->new();
     $self->{logger}=Log::Log4perl->get_logger("metadataPrepare");
    	$self->{ metadata }={};
     return $self;
 }
 
-
+# this option is useless
 sub awsArguments{
 	my($self,$args)=@_;
-	if( defined($args) ){
-		$self->{awsCommandArgument}=$args;
-	}
-	if(!defined($self->{awsCommandArgument})){
-		$self->{awsCommandArgument}= " ";
-	}
-	
-	return $self->{awsCommandArgument};	
+	$self->{logger}->info("function awsArguments is deprecated");
+	return;
+	#if( defined($args) ){
+	#	$self->{awsCommandArgument}=$args;
+	#}
+	#if(!defined($self->{awsCommandArgument})){
+	#	$self->{awsCommandArgument}= " ";
+	#}
+	#
+	#return $self->{awsCommandArgument};	
 }
 
 
@@ -51,7 +54,7 @@ sub loadFileOODT{
 	my($self,$filename)=@_;
 	if($filename =~/^s3:/){
 		my $tmp=$ENV{TMPDIR};
-		my $command="aws s3 cp $filename $tmp". basename($filename) ." $self->{awsCommandArgument}" ;
+		my $command=$self->{configuration}->{copy_file_from_aws}." $filename $tmp". basename($filename)  ;
 		$self->logger->trace("loadFileOODT: executing command $command");
 		system( $command );
 		$filename="$tmp". basename($filename);
@@ -149,7 +152,7 @@ sub storeOODT{
 	print $wfh "</cas:metadata>\n";
 	close($wfh);
 	if($originalFilename =~/^s3:/){
-		my $command="aws s3 cp $filename $originalFilename  $self->{awsCommandArgument}";
+		my $command=$self->{configuration}->{copy_file_to_aws}. " $filename $originalFilename ";
 		$self->{logger}->trace("storeOODT: executing command $command");
 		system( $command );
 		unlink($filename);
