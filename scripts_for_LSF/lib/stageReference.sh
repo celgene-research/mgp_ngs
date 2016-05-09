@@ -48,6 +48,9 @@ function stageDirectory(){
 		touch $localDirectory/FAILED_TRANSFER
 		exit 102
 	fi
+	chmod -R 777 $localDirectory &>/dev/null
+	f=$localDirectory
+	while [[ $f != "/" ]]; do chmod 777 $f &>/dev/null; f=$(dirname $f); done;
 	rm $localDirectory/LOCKFILE
 	touch $localDirectory/DONETRANSFER
 				

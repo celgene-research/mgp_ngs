@@ -17,11 +17,9 @@ step="peak-wig"
 
 analysistask=38
 
- 
-export NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
-mkdir -p $NGS_LOG_DIR
 cores=2 #MACS does not need many cores, but when run many instances on the same machine there are crashes.
 memory=3000
+initiateJob $stem $step $1
 header=$(bsubHeader $stem $step $memory $cores)
 
 

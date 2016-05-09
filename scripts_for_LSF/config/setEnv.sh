@@ -106,12 +106,15 @@ export OODT_FILEMGR_URL=http://${OODT_FILEMGR_IP}:${OODT_FILEMGR_PORT}
 export NGS_SERVER_URL=http://${NGS_SERVER_IP}:${NGS_SERVER_PORT}
 
 mkdir -p $NGS_LOG_DIR
+f=$NGS_LOG_DIR
+	while [[ $f != "/" ]]; do chmod 777 $f &>/dev/null; f=$(dirname $f); done;
 mkdir -p $NGS_TMP_DIR
-
+f=$NGS_TMP_DIR
+	while [[ $f != "/" ]]; do chmod 777 $f &>/dev/null; f=$(dirname $f); done;
 
 export TMPDIR=$NGS_TMP_DIR
 mkdir -p $TMPDIR
-chmod 1777 $TMPDIR 2>/dev/null
+chmod 777 $TMPDIR 2>/dev/null
  
 export _JAVA_OPTIONS=-Djava.io.tmpdir=${NGS_TMP_DIR}
 	
