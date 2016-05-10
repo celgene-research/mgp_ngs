@@ -25,8 +25,8 @@ if [ $refgenome == 'Homo_sapiens' ] ; then
 fi
 
 initiateJob $stem $step $1
-cores=3 # this is done to provide lighter operations on the nodes
-memory=6000
+cores=8 # this is done to provide lighter operations on the nodes since some applications require a lot of memory and they write large files
+memory=1800
 
 header=$(bsubHeader $stem $step $memory $cores)
 echo \
@@ -58,7 +58,7 @@ java -Xmx2g -jar ${PICARDBASE}/picard.jar CleanSam \
 java -Xmx6g -jar ${PICARDBASE}/picard.jar SortSam \
   VALIDATION_STRINGENCY=SILENT \
   I=/dev/stdin \
-  O=\${outputDirectory}/${stem}.aln.bam \
+  O=\${outputDirectory}/accepted_hits.bam \
   SORT_ORDER=queryname ; \
 java -Xmx6g -jar ${PICARDBASE}/picard.jar CleanSam \
   VALIDATION_STRINGENCY=SILENT \
@@ -67,16 +67,18 @@ java -Xmx6g -jar ${PICARDBASE}/picard.jar CleanSam \
 java -Xmx6g -jar ${PICARDBASE}/picard.jar SortSam \
   VALIDATION_STRINGENCY=SILENT \
   I=/dev/stdin \
-  O=\${outputDirectory}/${stem}.unmapped.bam \
+  O=\${outputDirectory}/unmapped.bam \
   SORT_ORDER=queryname ; \
+tophat-recondition.py \${outputDirectory} ; \
 java -Xmx6g -jar ${PICARDBASE}/picard.jar MergeBamAlignment \
-  ALIGNED=\${outputDirectory}/${stem}.aln.bam \
-  UNMAPPED=\${outputDirectory}/${stem}.unmapped.bam \
+  ALIGNED=\${outputDirectory}/accepted_hits.bam \
+  UNMAPPED=\${outputDirectory}/unmapped_fixup.bam \
   REFERENCE_SEQUENCE=$genomefile \
   OUTPUT=\${outputDirectory}/${stem}.coord.bam \
   SORT_ORDER=coordinate \
   VERBOSITY=WARNING  \
   VALIDATION_STRINGENCY=SILENT \
+  CREATE_INDEX=true \
   \" 
 if [ \$? != 0 ] ; then
 	echo \"Failed to execute command\"
