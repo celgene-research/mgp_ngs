@@ -24,5 +24,6 @@ chmod -R ug+rwx $DD/scripts_for_LSF/; chmod -R g-w $DD/scripts_for_LSF/; chmod -
 
 for i in `find $DD/NGS-pipeline/  | grep pl$`; do chmod 755 $i; ln -s  $i $BIN/$(basename $i); done
 for i in `find $DD/NGS-pipeline/  | grep sh$`; do chmod 755 $i; ln -s $i $BIN/$(basename $i)  ; done
+for i in `find $DD/NGS-pipeline/  | grep py$`; do chmod 755 $i; ln -s $i $BIN/$(basename $i)  ; done
 for i in `find $DD/NGS-pipeline/  | grep R$`; do chmod 755 $i; done
 for i in `find $DD/oodt/  | grep sh$`; do chmod 755 $i; ln -s $i $BIN/$(basename $i)  ; done
