@@ -129,7 +129,7 @@ function getQueue(){
 	queues["HomerQC"]="bigdisk"
 	queues["MACS2"]="bigdisk"
 	queues["Bowtie2.human"]="bigmem"
-	
+	queues["STARaln.human"]="bigmem"
 
 # decide the queue -
 # in the future perhaps a more sophisticated method will be used to take into consideration

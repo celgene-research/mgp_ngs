@@ -157,7 +157,7 @@ fi
 
 outputDirectory=\$( setOutput \$input1 ${step}-bamfiles )
 
-
+if [ -d \${outputDirectory}/TMP ] ; then rm -rf \${outputDirectory}/TMP; fi
 celgeneExec.pl --analysistask ${analysistask} \"\
 $starbin \
  --genomeDir \$database $additionalCommand \$inputcmd \
