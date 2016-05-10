@@ -52,16 +52,20 @@ outputDirectory=\$( setOutput \$inputaln $step )
 
 celgeneExec.pl --analysistask $step \"\
 java -Xmx2g -jar ${PICARDBASE}/picard.jar CleanSam \
+  VALIDATION_STRINGENCY=SILENT \
   I=\${inputaln} \
   O=/dev/stdout |\
 java -Xmx6g -jar ${PICARDBASE}/picard.jar SortSam \
+  VALIDATION_STRINGENCY=SILENT \
   I=/dev/stdin \
   O=\${outputDirectory}/${stem}.aln.bam \
   SORT_ORDER=queryname ; \
 java -Xmx6g -jar ${PICARDBASE}/picard.jar CleanSam \
+  VALIDATION_STRINGENCY=SILENT \
   I=\${inputump} \
   O=/dev/stdout |\
 java -Xmx6g -jar ${PICARDBASE}/picard.jar SortSam \
+  VALIDATION_STRINGENCY=SILENT \
   I=/dev/stdin \
   O=\${outputDirectory}/${stem}.unmapped.bam \
   SORT_ORDER=queryname ; \
@@ -72,7 +76,7 @@ java -Xmx6g -jar ${PICARDBASE}/picard.jar MergeBamAlignment \
   OUTPUT=\${outputDirectory}/${stem}.coord.bam \
   SORT_ORDER=coordinate \
   VERBOSITY=WARNING  \
-  VALIDATION_STRINGENCY=SILENT\
+  VALIDATION_STRINGENCY=SILENT \
   \" 
 if [ \$? != 0 ] ; then
 	echo \"Failed to execute command\"
