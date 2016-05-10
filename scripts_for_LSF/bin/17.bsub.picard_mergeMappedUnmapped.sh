@@ -51,12 +51,18 @@ outputDirectory=\$( setOutput \$inputaln $step )
 
 
 celgeneExec.pl --analysistask $step \"\
-java -Xmx6g -jar ${PICARDBASE}/picard.jar SortSam \
+java -Xmx2g -jar ${PICARDBASE}/picard.jar CleanSam \
   I=\${inputaln} \
+  O=/dev/stdout |\
+java -Xmx6g -jar ${PICARDBASE}/picard.jar SortSam \
+  I=/dev/stdin \
   O=\${outputDirectory}/${stem}.aln.bam \
   SORT_ORDER=queryname ; \
-java -Xmx6g -jar ${PICARDBASE}/picard.jar SortSam \
+java -Xmx6g -jar ${PICARDBASE}/picard.jar CleanSam \
   I=\${inputump} \
+  O=/dev/stdout |\
+java -Xmx6g -jar ${PICARDBASE}/picard.jar SortSam \
+  I=/dev/stdin \
   O=\${outputDirectory}/${stem}.unmapped.bam \
   SORT_ORDER=queryname ; \
 java -Xmx6g -jar ${PICARDBASE}/picard.jar MergeBamAlignment \
