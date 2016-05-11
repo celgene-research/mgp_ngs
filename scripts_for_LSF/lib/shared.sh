@@ -119,6 +119,7 @@ function getQueue(){
 	
 	queues["GATK.GenotypeGVCFs"]="bigdisk"
 	queues["GATK.VariantRecalibration"]="bigdisk"
+	queues["mpileup"]="bigdisk"
 	queues["controlFreec.human"]="bigdisk"
 	queues["STARaln.xenograft"]="bigmem"
 	queues["MarkDuplicates"]="bigmem"
