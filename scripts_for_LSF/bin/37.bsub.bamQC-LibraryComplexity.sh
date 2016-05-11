@@ -8,14 +8,14 @@ analysistask=58
 step="LibraryComplexity"
 
 index=$(echo $input|sed 's/bam$/bai/');
-
-
+stem=$(fileStem $input)
+initiateJob $stem $step $1
 cores=$(fullcores)
 
 memory=55000
-stem=$(fileStem $input)
 
-initiateJob $stem $step $1
+
+
 header=$(bsubHeader $stem $step $memory $cores)
 echo \
 "$header

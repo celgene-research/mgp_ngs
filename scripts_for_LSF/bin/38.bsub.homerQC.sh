@@ -16,11 +16,11 @@ checkfile $inputBAM
 step="HomerQC"
 stem=$(fileStem $inputBAM)
 
+initiateJob $stem $step $1
 memory=8000
 cores=2
 genomeVersion="hg19"
 
-initiateJob $stem $step $1
 header=$(bsubHeader $stem $step $memory $cores)
 echo "$header
 

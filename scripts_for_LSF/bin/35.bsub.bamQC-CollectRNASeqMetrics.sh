@@ -61,14 +61,14 @@ if [ "$strand" == 'FORWARD' ]; then
 	strand='FIRST_READ_TRANSCRIPTION_STRAND'
 fi
 
-
+stem=$(fileStem $input)
+initiateJob $stem $step $1
 cores=$(fullcores)
 
 memory=32000
-stem=$(fileStem $input)
 
 
-initiateJob $stem $step $1
+
 header=$(bsubHeader $stem $step $memory $cores)
 echo \
 "$header

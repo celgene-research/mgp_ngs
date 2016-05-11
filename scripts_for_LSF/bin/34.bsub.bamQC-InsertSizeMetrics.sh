@@ -43,14 +43,15 @@ if [ -n "$2" ] ; then
 	echo "User provided custom reference genome"
 genomefile=$2
 fi
-
+stem=$(fileStem $input)
+initiateJob $stem $step $1
 cores=$(fullcores)
 
 memory=16000
-stem=$(fileStem $input)
 
 
-initiateJob $stem $step $1
+
+
 header=$(bsubHeader $stem $step $memory $cores)
 
 echo \

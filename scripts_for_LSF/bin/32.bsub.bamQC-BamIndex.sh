@@ -7,12 +7,12 @@ step="BamIndex"
 checkfile $input
 
 index=$(echo $input|sed 's/bam$/bai/');
-
-
-cores=4
-memory=16000
 stem=$(fileStem $input)
 initiateJob $stem $step $1
+cores=4
+memory=16000
+
+
 header=$(bsubHeader $stem $step $memory $cores)
 echo \
 "$header
