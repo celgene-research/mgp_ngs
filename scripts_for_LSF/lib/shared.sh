@@ -237,9 +237,10 @@ echo $suffix
 }
 
 function fullcores(){
-	if [ -z "$queue_name" ] ;then
-		echo "Queue name is not defined for this step. Has the job been initiated in the bsub script?"
-		echo 'Check if line "initiateJob $stem $step $1" appears in the script before the line header=$(bsubHeader $stem $step $memory $cores)'
+	#	if [ -z "$queue_name" ] ;then
+	#		echo "Queue name is not defined for this step. Has the job been initiated in the bsub script?" &>2
+	#	echo 'Check if line "initiateJob $stem $step $1" appears in the script before the line header=$(bsubHeader $stem $step $memory $cores)' &>2
+	#	exit
 	fi
 	maxCores=11 
 	instanceCores=${queueCores[$queue_name]}
