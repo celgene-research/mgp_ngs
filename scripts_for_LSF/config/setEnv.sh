@@ -48,11 +48,9 @@ if [ -n "$CELGENE_AWS" ] ; then
 		export CELGENE_NGS_BUCKET=s3://celgene.rnd.combio.mmgp.external
 		export CELGENE_NGS_BUCKET_DATA=s3://celgene.rnd.combio.mmgp.external
 		export NGS_LOG_DIR=/celgene/software/LOGS/${USER}/
-		if [ -d /scratch ];then
-			export NGS_TMP_DIR=/scratch/tmp/${USER}
-		else
-			export NGS_TMP_DIR=/celgene/tmp/${USER}
-		fi
+		
+		export NGS_TMP_DIR=/scratch/tmp/${USER}
+		
 		
 		export JAVA_HOME=/usr/
 	else
@@ -66,11 +64,9 @@ if [ -n "$CELGENE_AWS" ] ; then
 		export CELGENE_NGS_BUCKET=s3://celgene-src-bucket
 		export CELGENE_NGS_BUCKET_DATA=s3://celgene-ngs-data
 		export NGS_LOG_DIR=/celgene/software/LOGS/${USER}/
-		if [ -d /scratch ];then
-			export NGS_TMP_DIR=/scratch/tmp/${USER}
-		else
-			export NGS_TMP_DIR=/celgene/tmp/${USER}
-		fi
+		
+		export NGS_TMP_DIR=/scratch/tmp/${USER}
+		
 		export JAVA_HOME=/usr/
 	fi
 	
