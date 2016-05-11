@@ -48,7 +48,16 @@ After updating this file make sure that is copied in the
 	</mime-type>
 	
 	<mime-type type="text/databundle">
-		<glob pattern="*.targz"/>
+		<glob pattern="*.tar.gz"/>
+		<sub-class-of type="text/plain"/>
+	</mime-type>
+	
+	
+	<mime-type type="text/pileup">
+		<glob pattern="*.pileup.gz"/>
+		<glob pattern="*.mpileup.gz"/>
+		<glob pattern="*.pileup"/>
+		<glob pattern="*.mpileup"/>
 		<sub-class-of type="text/plain"/>
 	</mime-type>
 	
