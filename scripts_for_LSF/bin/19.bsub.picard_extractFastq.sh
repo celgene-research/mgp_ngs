@@ -5,11 +5,10 @@ analysistask=75
 step="ExtractFastq"
 stem=$( fileStem $input )
 
-export NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
 
-cores=1
+cores=5 # done to make sure that there 
 memory=6000
-mkdir -p $NGS_LOG_DIR
+
 initiateJob $stem $step $1
 header=$(bsubHeader $stem $step $memory $cores)
 echo \
