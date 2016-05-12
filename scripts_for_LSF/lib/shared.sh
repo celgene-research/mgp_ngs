@@ -116,7 +116,7 @@ function getQueue(){
 # assotiative array to place all the known steps and their requirements in queues
 
 	
-	
+	queues["ExtractFastqBed"]="small"
 	queues["GATK.GenotypeGVCFs"]="bigdisk"
 	queues["GATK.VariantRecalibration"]="bigdisk"
 	queues["mpileup"]="bigdisk"
