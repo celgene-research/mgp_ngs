@@ -9,11 +9,11 @@ analysistask=59
 step="ExtractFields"
 stem=$(fileStem $inputVCF)
 
-
+initiateJob $stem $step $1
 memory=4000
 cores=1
 
-initiateJob $stem $step $1
+
 
 header=$(bsubHeader $stem $step $memory $cores)
 echo \
