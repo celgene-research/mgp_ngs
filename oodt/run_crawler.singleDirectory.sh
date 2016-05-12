@@ -10,7 +10,7 @@ if [ "$lastchar" == "/" ] ; then
 	directory=${directory:0:${#directory}-1}
 fi
 
-BINDIR=/celgene/software/apache-oodt-0.6/cas-crawler/bin
+BINDIR=/celgene/software/apache-oodt-0.6/bin
 
 FILEPATH=$(pwd)
 
