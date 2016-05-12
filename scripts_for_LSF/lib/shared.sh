@@ -18,10 +18,12 @@ queueCores["normal"]=16
 queueCores["bigdisk"]=8
 queueCores["bigmem"]=8
 queueCores["hugemem"]=16
+queueCores["small"]=8
 queueMem["normal"]=30
 queueMem["bigdisk"]=61
 queueMem["bigmem"]=61
 queueMem["hugemem"]=122
+queueMem["small"]=14
 
 function setLogging(){
 	stem=$1
@@ -261,10 +263,7 @@ function fullcores(){
 }
 
 function fullmemory(){
-	if [ -z "$queue_name" ] ;then
-		echo "Queue name is not defined for this step. Has the job been initiated in the bsub script?"
-		echo 'Check if line "initiateJob $stem $step $1" appears in the script before the line header=$(bsubHeader $stem $step $memory $cores)'
-	fi
+
 	#memory on head node
 	maxMem=$(free | awk '/^Mem:/{print $2}')
 	maxMem=$(( $maxMem - 4000 ))
