@@ -16,7 +16,7 @@ use File::Spec;
 use Cwd;
 use Data::Dumper;
 my $filehost=hostname;
-my $configuration=configParser->new();
+
 # if the .met file contains sample_id information typically this program will
 # keep it and append with additional information coming from the derived_from files
 my $ignoreExistingSample_id;
@@ -41,6 +41,7 @@ Log::Log4perl->init(\$logConf);
 my $logger=Log::Log4perl->get_logger("MetExtractorNGS");
 my($inputFn,$filetype)=@ARGV;
 my $output= $inputFn.".met";
+my $configuration=configParser->new();
 # initiate a metadata object
 my $oodt=MetadataPrepare->new();
 
@@ -72,11 +73,12 @@ $oodt->addMetadata('ingest_user',$ingestUser);
 my $fpath=getAbsPath($inputFn);
 if($configuration->{fileregex}){
 	my @frpath;
-	my @regex=split( ",",$configuration->{fileregex});
+	
 	foreach my $fn ( @$fpath){
-		for(my $r=0; $r<scalar( @regex ); $r+=2){
+		foreach my $source( keys  %{$configuration->{ fileregex }}){
+			my $target= $configuration->{ fileregex }->{ $source };
 			my $ttt=$fn;
-			$ttt=~s|$regex[$r]|$regex[$r+1]|;
+			$ttt=~s|$source|$target|;
 			push @frpath, $ttt;
 		}
 	}
@@ -84,7 +86,10 @@ if($configuration->{fileregex}){
 }
 
 $logger->debug("The file path is $fpath. It will be added under the FilePath metadata field");
+
+
 $oodt->addMetadata('FilePath', @{$fpath} );
+
 
 if(defined($ngsServerURL)){
 	my $server = Frontier::Client->new('url' => $ngsServerURL);

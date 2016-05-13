@@ -54,8 +54,15 @@ sub loadFile{
 		my($key,$value)=split('=',$line);
 		if(!defined($key) or !defined($value)){next;}
 		$self->{logger}->trace("loadFile: key [$key], value [$value]");
-		$self->{$key}=$value;
 		
+		# parse composite vlaues
+		if( $value =~/\,/ ){
+			my($innerKey,$innerValue)=split(",",$value);
+			$self->{logger}->trace("loadFile: Inner  key [$innerKey], value [$innerValue]");
+			$self->{$key}->{$innerKey}=$innerValue;
+		}else{
+			$self->{$key}=$value;
+		}	
 	}
 	close($fh);
 }
