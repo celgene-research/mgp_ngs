@@ -118,7 +118,7 @@ $macs2bin callpeak \
  --treatment \${inputTag} \
  --control \${inputControl} \
  --name $stem \
- --outdir \${outputDirectory}/${stem} \
+ --outdir \${outputDirectory}/${stem}.macs2 \
  --gsize 2.7e9 \
  --mfold 5 80 \
  --bw 200 \
@@ -126,18 +126,18 @@ $macs2bin callpeak \
  --keep-dup auto\
 $commandArguments ; \
 $macs2bin bdgcmp \
- -t \${outputDirectory}/${stem}/${stem}_treat_pileup.bdg \
- -c \${outputDirectory}/${stem}/${stem}_control_lambda.bdg  \
- -o \${outputDirectory}/${stem}/${stem}_FE.bdg -m FE ; \
+ -t \${outputDirectory}/${stem}.macs2/${stem}_treat_pileup.bdg \
+ -c \${outputDirectory}/${stem}.macs2/${stem}_control_lambda.bdg  \
+ -o \${outputDirectory}/${stem}.macs2/${stem}_FE.bdg -m FE ; \
 $macs2bin bdgcmp \
- -t \${outputDirectory}/${stem}/${stem}_treat_pileup.bdg \
- -c \${outputDirectory}/${stem}/${stem}_control_lambda.bdg  \
- -o \${outputDirectory}/${stem}/${stem}_LR.bdg -m logLR -p 0.00001 \
+ -t \${outputDirectory}/${stem}.macs2/${stem}_treat_pileup.bdg \
+ -c \${outputDirectory}/${stem}.macs2/${stem}_control_lambda.bdg  \
+ -o \${outputDirectory}/${stem}.macs2/${stem}_LR.bdg -m logLR -p 0.00001 \
 \"
 
-touch \${outputDirectory}/${stem}/${display}-${controlDisplay}-${peaktype}
+touch \${outputDirectory}/${stem}.macs2/${display}-${controlDisplay}-${peaktype}
 
-chromInfo=\${outputDirectory}/${stem}/chromInfo.txt
+chromInfo=\${outputDirectory}/${stem}.macs2/chromInfo.txt
 $samtoolsbin view -H \$inputTag | grep '^@SQ' | cut -f2,3 | sed 's%SN:%%' | sed 's%LN:%%' > \$chromInfo
 
 ingestDirectory \$outputDirectory yes
