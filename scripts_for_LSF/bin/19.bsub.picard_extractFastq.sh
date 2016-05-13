@@ -4,12 +4,12 @@ input=$1
 analysistask=75
 step="ExtractFastq"
 stem=$( fileStem $input )
-
-
-cores=5 # done to make sure that there 
-memory=6000
-
 initiateJob $stem $step $1
+
+cores=$(fullcores) # done to make sure that there 
+memory=$(fullmemory)
+
+
 header=$(bsubHeader $stem $step $memory $cores)
 echo \
 "$header

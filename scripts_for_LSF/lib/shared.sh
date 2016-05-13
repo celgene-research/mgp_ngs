@@ -119,6 +119,7 @@ function getQueue(){
 
 	
 	queues["ExtractFastqBed"]="small"
+	queues["ExtractFastq"]="small"
 	queues["GATK.GenotypeGVCFs"]="bigdisk"
 	queues["GATK.VariantRecalibration"]="bigdisk"
 	queues["mpileup"]="bigdisk"
