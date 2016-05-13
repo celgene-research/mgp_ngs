@@ -13,7 +13,8 @@ stem=$(fileStem $inputBam)
 step="mpileup"
 
 initiateJob $stem $step $1
-
+ref=${humanGenomeDir}/genome.fa
+inputIdx=$(echo $inputBam| sed 's/bam/bai/')
 cores=$(fullcores) # simply because we want the full node for its disk space
 memory=5000
 
@@ -26,12 +27,13 @@ source $scriptDir/../lib/shared.sh
 set -e
 initiateJob $stem $step $1
 
-ref=${humanGenomeDir}/genome.fa
+
 inputBam=\$(stage.pl --operation out --type file  $inputBam)
+inputIdx=\$(stage.pl --operation out --type file  $inputIdx)
 outputDirectory=\$( setOutput \$inputBam $step )
 
 celgeneExec.pl --analysistask=$step \"\
-$samtoolsbin mpileup -r $stem -f $ref \$inputBam | gzip > \${outputDirectory}/${stem}.pileup.gz\
+$samtoolsbin mpileup  -f $ref \$inputBam | gzip > \${outputDirectory}/${stem}.pileup.gz\
 \"
 
 if [ \$? != 0 ] ; then
