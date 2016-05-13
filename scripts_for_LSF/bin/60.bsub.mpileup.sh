@@ -14,7 +14,7 @@ step="mpileup"
 
 initiateJob $stem $step $1
 ref=${humanGenomeDir}/genome.fa
-inputIdx=$(echo $inputBam| sed 's/bam/bai/')
+inputIdx=$(echo $inputBam| sed 's/bam$/bai/')
 cores=$(fullcores) # simply because we want the full node for its disk space
 memory=5000
 

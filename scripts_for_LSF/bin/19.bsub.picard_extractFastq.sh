@@ -31,7 +31,8 @@ outputDirectory=\$( setOutput \$input fastq )
 
 
 celgeneExec.pl --analysistask $analysistask \"\
-java -Xmx6g -jar ${PICARDBASE}/picard.jar SamToFastq INPUT=\${input} \
+$samtoolsbin sort -@ $cores -n -o \${outputDirectory}/$stem.name.bam  \$input ; \
+java -Xmx6g -jar ${PICARDBASE}/picard.jar SamToFastq INPUT=\${outputDirectory}/$stem.name.bam \
   FASTQ=\${outputDirectory}/${stem}_R1.fastq \
   SECOND_END_FASTQ=\${outputDirectory}/${stem}_R2.fastq \
   UNPAIRED_FASTQ=\${outputDirectory}/${stem}_unpaired.fastq  \
@@ -40,7 +41,10 @@ java -Xmx6g -jar ${PICARDBASE}/picard.jar SamToFastq INPUT=\${input} \
 $makepairedreadsbin --input \${outputDirectory}/${stem}_unpaired.fastq  \
   --output1 \${outputDirectory}/${stem}_R1.fastq \
   --output2 \${outputDirectory}/${stem}_R2.fastq ; \
-gzip \${outputDirectory}/${stem}_R1.fastq ; gzip \${outputDirectory}/${stem}_R2.fastq \" 
+gzip \${outputDirectory}/${stem}_R1.fastq ; \
+gzip \${outputDirectory}/${stem}_R2.fastq ; \
+gzip \${outputDirectory}/${stem}_unpaired.fastq ; \
+" 
 if [ \$? != 0 ] ; then
 	echo \"Failed to execute command\"
 	exit 1

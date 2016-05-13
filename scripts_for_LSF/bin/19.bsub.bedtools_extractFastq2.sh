@@ -33,13 +33,10 @@ outputDirectory=\$( setOutput \$input fastq )
 
 
 celgeneExec.pl --analysistask $analysistask \"\
-$samtoolsbin sort -@ $cores -m 1.5g -n -o \${outputDirectory}/$stem.name.bam  \$input ; \
+$samtoolsbin sort -@ $cores -n -o \${outputDirectory}/$stem.name.bam  \$input ; \
 $bedtoolsbin bamtofastq -i \${outputDirectory}/$stem.name.bam \
   -fq \${outputDirectory}/${stem}_R1.fastq \
   -fq2 \${outputDirectory}/${stem}_R2.fastq; \
-$makepairedreadsbin --input \${outputDirectory}/${stem}_unpaired.fastq  \
-  --output1 \${outputDirectory}/${stem}_R1.fastq \
-  --output2 \${outputDirectory}/${stem}_R2.fastq ; \
 gzip \${outputDirectory}/${stem}_R1.fastq ; \
 gzip \${outputDirectory}/${stem}_R2.fastq ; \
 rm \${outputDirectory}/$stem.name.bam\" 
