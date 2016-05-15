@@ -273,14 +273,35 @@ sub getsampleid{
 
 sub getFromXMLserver{
 	my(@args)=@_;
-	
+	my $retArray;
 	my $result;
-	
+	my $retries = 10;
+	for(my $r=1; $r<= $retries; $r++){
+		$retArray=eval{$server->call( @args ); } ;
+		
+		if($@){
+			$logger->warn("getFromXMLserver: Attempt $r to connect server failed with error [$@]");
+			
+			if( $r==$retries){
+				$logger->logdie("getFromXMLserver: Cannot contact server. Aborting !!!")
+			}
+			
+		}else{
+			if($r>1){
+                $logger->info("getFromXMLserver: Attempt $r/$retries was successful");
+            }else{
+            	$logger->info("getFromXMLserver: Data retrieval from server was successful");
+            }
+            
+            last;
+			
+		}
+	}
 	#while( 1 ){
-		$result = $server->call( @args );
+	#	$result = $server->call( @args );
 		
 	#	$logger->warn("Got bad response from server [$result]. Retrying in 2 seconds");
 	#	sleep(2);
 	#}
-	return $result;
+	return $retArray;
 }
