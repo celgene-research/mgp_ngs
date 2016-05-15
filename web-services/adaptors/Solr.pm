@@ -1,5 +1,6 @@
 package adaptors::Solr;
 require XML::Simple;
+require LWP::ConnCache;
 require LWP::UserAgent;
 require HTTP::Request::Common;
 require URI::Escape;
@@ -27,6 +28,7 @@ sub new{
     $self->{'_SOLR_PING_URL'} = $self->{'_SOLR_ADMIN_URL'} . "/ping";
     $self->{'_CT_XML'} = { 'Content_Type' => 'text/xml; charset=utf-8' };
     $self->{'_CT_JSON'} = { 'Content_Type' => 'text/json'};
+    $self->{connectionPool}=LWP::ConnCache->new();
     bless $self, $class;
     return $self;
 }
@@ -319,7 +321,8 @@ sub _request
     my $out = {};
 
     # create a HTTP request
-    my $ua = LWP::UserAgent->new;
+    my $ua = LWP::UserAgent->new(keep_alive=>1);
+    $ua->conn_cache( $self->{connectionPool});
     my $request = HTTP::Request->new;
     $request->method($method);
     $request->uri($url);

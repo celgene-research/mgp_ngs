@@ -211,6 +211,7 @@ Frontier::Daemon->new(
 	methods => $methods,
 	Listen=>2000,
 	#ReuseAddr=>1,
-	ReusePort=>1
+	ReusePort=>1,
+	Reuse=>1
 	)
     or die "Couldn't start HTTP server: $!";
