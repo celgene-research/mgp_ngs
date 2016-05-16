@@ -583,6 +583,10 @@ sub parseBaseGC{
 		}else{
 			# newer fastqc output. they have %ages for each base separately
 			$self->{GC}->[$index]->[$base]=int( $GC[0] + $GC[3] );
+			
+		}
+		if( $self->{GC}->[$index]->[$base] eq 'nan'   ){
+			$self->{GC}->[$index]->[$base]=0;
 		}
 	}
 	return;
