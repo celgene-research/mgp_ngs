@@ -9,7 +9,7 @@ geneFeature=$2 # feature from gtf file to use as gene identifier in the output
 
 step="htseqGeneCount"
 index=$(echo $input|sed 's/bam$/bai/');
-
+stem=$(fileStem $input)
 
 
 initiateJob $stem $step $1
@@ -17,7 +17,7 @@ initiateJob $stem $step $1
 cores=2
 
 memory=4000
-stem=$(fileStem $input)
+
 
 strandness=$( ngs-sampleInfo.pl $input stranded )
 
@@ -99,10 +99,10 @@ outputDirectory=\$( setOutput \$input $step )
 # bam file (or filtered out) for counting
 
 
-celgeneExec.pl --analysistask ${analysistask} \" \
+celgeneExec.pl --analysistask ${step} \" \
  $samtoolsbin view \${input} |  \
  cut -f 1-14 | \
- $htseqCountBin -t exon  ${strandoption} -i $geneFeature - \${reference} >\
+ $htseqbin -t exon  ${strandoption} -i $geneFeature - \${reference} >\
   \${outputDirectory}/${stem}.htseq-count \"
 
  if [ \$? != 0 ] ; then
