@@ -43,8 +43,8 @@ $makepairedreadsbin --input \${outputDirectory}/${stem}_unpaired.fastq  \
   --output2 \${outputDirectory}/${stem}_R2.fastq ; \
 gzip \${outputDirectory}/${stem}_R1.fastq ; \
 gzip \${outputDirectory}/${stem}_R2.fastq ; \
-gzip \${outputDirectory}/${stem}_unpaired.fastq ; \
-" 
+gzip \${outputDirectory}/${stem}_unpaired.fastq \
+\" 
 if [ \$? != 0 ] ; then
 	echo \"Failed to execute command\"
 	exit 1

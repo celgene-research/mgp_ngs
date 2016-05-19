@@ -12,6 +12,7 @@ index=$(echo $input|sed 's/bam$/bai/');
 
 
 
+initiateJob $stem $step $1
 
 cores=2
 
