@@ -88,6 +88,25 @@ sub update
 #    print "XML:\n$doc\n";
     
     my $commit = $self->{_AUTOCOMMIT} ? 'true' : 'false';
+     
+    my $url = "$self->{_SOLR_POST_URL}?commit=" . $commit;
+#    print "URL:\n$url\n";
+    my $response = $self->_request($url, 'POST', undef, $self->{_CT_XML}, $doc);
+
+    return 1 if ($self->_parseResponse($response));
+    return 0;
+}
+
+# replace is the same as update but instead of add it uses set
+sub replace
+{
+    my ($self, $params, $update_field) = @_;
+    my $ds = $self->_rawDsToSolrDs($params);
+    my $doc = $self->_toXML($ds, 'add');
+    $doc=~s/"$update_field"/"$update_field" update="set"/g;
+#    print "XML:\n$doc\n";
+    
+    my $commit = $self->{_AUTOCOMMIT} ? 'true' : 'false';
     
     
     my $url = "$self->{_SOLR_POST_URL}?commit=" . $commit;
@@ -97,8 +116,6 @@ sub update
     return 1 if ($self->_parseResponse($response));
     return 0;
 }
-
-
 #
 # method: commit
 #    This method is used for commiting the transaction that was initiated.
