@@ -33,7 +33,7 @@ if [ $refgenome == 'Rattus_norvegicus' ] ;then
 	step=${step}".rat"
 fi
 
-
+stem=$(fileStem $input)
 strand=$( ngs-sampleInfo.pl $input stranded )
 initiateJob $stem $step $1
 #####
@@ -90,7 +90,7 @@ captureKit=${exomeSet}
 cores=2
 
 memory=6000
-stem=$(fileStem $input)
+
 
 mkdir -p $NGS_LOG_DIR
 
@@ -115,7 +115,7 @@ outputDirectory=\$( setOutput \$input \$newDir/${step} )
 
 
 celgeneExec.pl --analysistask ${analysistask} \"\
-java -Xmx${memory}m -jar ${PICARDBASE}/picard.jar CalculateHsMetrics \
+java -Xmx${memory}m -jar ${PICARDBASE}/picard.jar CollectHsMetrics \
   VERBOSITY=WARNING \
   INPUT=\$input \
   TMP_DIR=\${NGS_TMP_DIR}	\
