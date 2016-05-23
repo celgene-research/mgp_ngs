@@ -771,10 +771,10 @@ sub updateAlignmentQC{
  		$sqlh.="'{{". join(",", @{$bq->{wgs_coverage_abundance}}) ."},{". join(",", @{$bq->{wgs_coverage}})."}}', " if defined($bq->{ wgs_coverage } );
  		
 
-		if( substr ($sqlh , -1) eq ' ' ) { chop( $sqlh )}
+		if( substr ($sqlh , -1) eq ' ' ) { chop( $sqlh );}
         if( substr ($sqlh , -1) eq "," ) { chop( $sqlh);} #remove the last comma
 		
-		$sqlh.=")where sample_id=$sample_id and flag='$flag'
+		$sqlh.=") where sample_id=$sample_id and flag='$flag'
 		";
 		$logger->info("updateAlignmentQC: executing \n$sqlh");
 		$dbh->do( $sqlh );
