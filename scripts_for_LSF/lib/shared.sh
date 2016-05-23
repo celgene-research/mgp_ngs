@@ -70,7 +70,12 @@ file=$1
 function setTemp(){
 	step=$1
 	NGS_TMP_DIR_ORIGINAL=${NGS_TMP_DIR}
-	export NGS_TMP_DIR=${NGS_TMP_DIR_ORIGINAL}/${step}/${LSB_JOBID}	
+	if [ -n "$LSB_JOB_ID ] ; then
+		NGS_TMP_DIR=${NGS_TMP_DIR_ORIGINAL}/${step}/${LSB_JOBID}
+	else
+		NGS_TMP_DIR=${NGS_TMP_DIR_ORIGINAL}/${step}/TMP_$$
+	fi
+	export 	$NGS_TMP_DIR
 	mkdir -p $NGS_TMP_DIR
 }
 
@@ -223,7 +228,7 @@ echo "User has provided a directory suffix ${NGS_SUFFIX} for this run" 1>&2
 		
 	# if this suffix correspond to an older time (> 1h difference) 
 	# then we need to re-issue this suffix
-		cutoff=$(( $suffix + 3600 ))
+		cutoff=$(( $suffix + 10800 ))
 		if (( $cutoff < $(date +%s) )) ; then
 			touch ${step}_suffixer
 			suffix=$( stat -c %Y ${step}_suffixer )
