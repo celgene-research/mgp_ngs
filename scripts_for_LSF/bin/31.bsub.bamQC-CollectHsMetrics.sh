@@ -74,6 +74,12 @@ case  "${exomeSet}" in
 "SureSelect_Human_All_exon_v6+UTRs_58Mb_Agilent" )
 	baitsfile=${humanGenomeDir}/ExonCapture/S07604624_Covered.intervals.bed
 	;;
+"Agilent_50_Mb_V5_with_extra_content" )
+	baitsfile=${humanGenomeDir}/ExonCapture/morgan.exomeplus.v5.padded.bed
+	;;
+"Agilent_50_Mb_v3_with_extra_content" )
+	baitsfile=${humanGenomeDir}/ExonCapture/morgan.exomeplus.v3.padded.bed
+	;;
 * )
 	echo "Cannot recognize exome capture kit"
 	;;
