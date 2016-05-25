@@ -15,7 +15,7 @@ output=$stem
 database=${humanrsemidx}/genome.fa
 step=$step.human
 
-
+initiateJob $stem $step $1
 commandarguments=""
 paired_end=$(ngs-sampleInfo.pl $input1 paired_end)
 strandness=$( ngs-sampleInfo.pl $input1 stranded )

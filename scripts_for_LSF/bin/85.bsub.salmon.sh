@@ -15,9 +15,7 @@ output=$stem
 transcripts=${humanrsemidx}/genome.fa.idx.fa
 step=$step.human
 
-export NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
-mkdir -p $NGS_LOG_DIR
-
+initiateJob $stem $step $1
 
 
 paired_end=$(ngs-sampleInfo.pl $inputBAM paired_end)

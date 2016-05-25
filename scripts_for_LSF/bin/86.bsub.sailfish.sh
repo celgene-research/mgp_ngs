@@ -19,8 +19,7 @@ output=$stem
 database=${humanDir}/SailFish0.9_Index
 step=$step.human
 
-export NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
-mkdir -p $NGS_LOG_DIR
+initiateJob $stem $step $1
 
 
 
