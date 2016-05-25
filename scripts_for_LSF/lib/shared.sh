@@ -70,12 +70,12 @@ file=$1
 function setTemp(){
 	step=$1
 	NGS_TMP_DIR_ORIGINAL=${NGS_TMP_DIR}
-	if [ -n "$LSB_JOB_ID ] ; then
+	if [ -n "$LSB_JOB_ID" ] ; then
 		NGS_TMP_DIR=${NGS_TMP_DIR_ORIGINAL}/${step}/${LSB_JOBID}
 	else
 		NGS_TMP_DIR=${NGS_TMP_DIR_ORIGINAL}/${step}/TMP_$$
 	fi
-	export 	$NGS_TMP_DIR
+	export NGS_TMP_DIR
 	mkdir -p $NGS_TMP_DIR
 }
 
