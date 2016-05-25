@@ -7,7 +7,7 @@ use lib $FindBin::RealBin."/lib";
 use File::Basename;
 use Sys::Hostname;
 use configParser;
-
+use metadataFunc;
 use Log::Log4perl;
 use MetadataPrepare;
 use Frontier::Client;
@@ -56,10 +56,6 @@ if($inputFn =~/.met$/){
 	$logger->warn("Input file $inputFn will be ignored. .met files are not processed !");
 	exit(0);
 }
-# get the standard metadata that is added for all files
-my $ngsServerURL=$ENV{ NGS_SERVER_URL };
-$ngsServerURL.="/RPC2";
-$logger->debug("Accessing NGS server at $ngsServerURL");
 
 my $ingestUser= $ENV{LOGNAME} || $ENV{USER} || getpwuid($<);
 
@@ -71,66 +67,72 @@ $oodt->addMetadata('file_host',$filehost);
 $oodt->addMetadata('ProductType','GenericFile');
 $oodt->addMetadata('ingest_user',$ingestUser);
 my $fpath=getAbsPath($inputFn);
+
+
 if($configuration->{fileregex}){
 	my @frpath;
+	$logger->debug("Fileregex has been defined in the config file");
 	
 	foreach my $fn ( @$fpath){
 		foreach my $source( keys  %{$configuration->{ fileregex }}){
 			my $target= $configuration->{ fileregex }->{ $source };
+			$logger->debug("Based on fileregex we convert $source to $target");
 			my $ttt=$fn;
 			$ttt=~s|$source|$target|;
+			if($ttt eq $fn){next;}
+			$logger->debug("Converting \n\t$fn to \t$ttt");
+			
 			push @frpath, $ttt;
 		}
 	}
 	@$fpath=(@$fpath, @frpath);
 }
 
-$logger->debug("The file path is $fpath. It will be added under the FilePath metadata field");
+$logger->debug("The file path is \n". join("\n",@$fpath). ". It will be added under the FilePath metadata field");
 
 
-$oodt->addMetadata('FilePath', @{$fpath} );
+$oodt->addMetadata('FilePath', $fpath );
 
 
-if(defined($ngsServerURL)){
-	my $server = Frontier::Client->new('url' => $ngsServerURL);
-	my $derivedFrom=$oodt->getMetadata( 'derived_from');
-	foreach my $d(@$derivedFrom){
-				
-		$logger->debug("Getting information from the derived_from file(s) $d");
-		my $darray=getAbsPath($d);
-		my $sample_id=[];
-		my $reference_db=[];
-		foreach my $dfile (@{$darray}){
-		$logger->debug("Getting information for the derived_from file $dfile");
-			my $sampleId = $server->call('metadataInfo.getSampleIDByFilename', $dfile);
-			@{$sample_id}=( @$sample_id, @$sampleId) if (defined($sampleId) and scalar(@$sampleId)>0);
-			my $referenceDB = $server->call('metadataInfo.getReferenceInfoByFilename', $dfile);
-			if(!defined($referenceDB)){
-				my($v,$d2,$f)=File::Spec->splitpath($dfile);
-				$referenceDB=$server->call('metadataInfo.getReferenceInfoByFilename', $d2);
+my $server = metadataFunc::getServer();
+my $derivedFrom=$oodt->getMetadata( 'derived_from');
+foreach my $d(@$derivedFrom){
 			
-			}
-			@{$reference_db}= (@$reference_db, @$referenceDB) if( defined($referenceDB) and scalar(@$referenceDB) >0);
+	$logger->debug("Getting information from the derived_from file(s) $d");
+	my $darray=getAbsPath($d);
+	my $sample_id=[];
+	my $reference_db=[];
+	foreach my $dfile (@{$darray}){
+	$logger->debug("Getting information for the derived_from file $dfile");
+		my $sampleId = metadataFunc::serverCall('metadataInfo.getSampleIDByFilename', $dfile);
+		@{$sample_id}=( @$sample_id, @$sampleId) if (defined($sampleId) and scalar(@$sampleId)>0);
+		my $referenceDB = metadataFunc::serverCall('metadataInfo.getReferenceInfoByFilename', $dfile);
+		if(!defined($referenceDB)){
+			my($v,$d2,$f)=File::Spec->splitpath($dfile);
+			$referenceDB=metadataFunc::serverCall('metadataInfo.getReferenceInfoByFilename', $d2);
+		
 		}
-		$sample_id=Celgene::Utils::ArrayFunc::unique( $sample_id );
-		$reference_db=Celgene::Utils::ArrayFunc::unique( $reference_db );
-		if(defined($sample_id) and scalar(@$sample_id)>0){
-			$oodt->addMetadata('sample_id', $sample_id);
-			$logger->debug("Found sample_id =[", join(",",@$sample_id),"] from $d");
-			#print Dumper ($sampleId);
-		}else{
-			$logger->warn("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
-			$logger->warn("$inputFn: Could not find sample_id from $d");
-			$logger->warn("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
-		}
-		$logger->debug("Checking if derived_from is a reference database");
-		# sometimes the information for the reference database is not on the file but on the directory
-		if(defined($reference_db) and scalar(@$reference_db) > 0 ){
-			$oodt->addMetadata('reference_db', $reference_db);
-			$logger->debug("Found reference db [", join(",",@$reference_db),"]");
-		}
+		@{$reference_db}= (@$reference_db, @$referenceDB) if( defined($referenceDB) and scalar(@$referenceDB) >0);
+	}
+	$sample_id=Celgene::Utils::ArrayFunc::unique( $sample_id );
+	$reference_db=Celgene::Utils::ArrayFunc::unique( $reference_db );
+	if(defined($sample_id) and scalar(@$sample_id)>0){
+		$oodt->addMetadata('sample_id', $sample_id);
+		$logger->debug("Found sample_id =[", join(",",@$sample_id),"] from $d");
+		#print Dumper ($sampleId);
+	}else{
+		$logger->warn("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
+		$logger->warn("$inputFn: Could not find sample_id from $d");
+		$logger->warn("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
+	}
+	$logger->debug("Checking if derived_from is a reference database");
+	# sometimes the information for the reference database is not on the file but on the directory
+	if(defined($reference_db) and scalar(@$reference_db) > 0 ){
+		$oodt->addMetadata('reference_db', $reference_db);
+		$logger->debug("Found reference db [", join(",",@$reference_db),"]");
 	}
 }
+
 
 sub getAbsPath{
 	my($fn)=@_;

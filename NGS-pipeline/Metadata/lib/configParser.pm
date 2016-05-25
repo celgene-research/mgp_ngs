@@ -10,6 +10,7 @@ use Time::localtime;
 use File::stat;
 use threads;
 use Exporter;
+use Data::Dumper;
 
 use Cwd 'abs_path';
 
@@ -65,6 +66,8 @@ sub loadFile{
 		}	
 	}
 	close($fh);
+	
+	$self->{logger}->trace( Dumper( $self ) );
 }
 
 1;

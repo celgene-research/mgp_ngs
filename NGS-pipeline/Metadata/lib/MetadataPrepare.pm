@@ -85,8 +85,11 @@ sub loadFileOODT{
 
 sub addMetadata{
 	my($self,$key,$value)=@_;
-	if( ref($value) !~/ARRAY/){
-		$self->{logger}->debug("addMetadata: metadata for $key are not in array format.Converting..");
+	my $typeof=ref($value);
+	$self->{logger}->trace("addMetadata: received data as ". ref $value );
+	if( $typeof ne 'ARRAY'){
+		$self->{logger}->debug("addMetadata: metadata for $key are not in reference array format.Converting to array");#
+		$self->{logger}->trace( Dumper( $value ) );
 		my $t=$value;
 		$value=[];
 		push @$value, $t;
