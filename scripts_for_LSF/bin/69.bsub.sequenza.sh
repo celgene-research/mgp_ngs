@@ -13,16 +13,18 @@ analysistask=56
 stem=$(fileStem $inputBam)
 
 step="Sequenza"
-
+step=${step}".human"
 initiateJob $stem $step $1
+
+
 ref=${humanGenomeDir}/genome.fa
-seqref=${humanGenomeDir}/ExonCapture/hg19.gc50Base.txt.gz # this is the gc file for sequenza
+gcfile=${humanGenomeDir}/ExonCapture/hg19.gc50Base.txt.gz # this is the gc file for sequenza
 inputIdx=$(echo $inputBam| sed 's/bam$/bai/')
 inputIdxTumor=$(echo $inputBamTumor| sed 's/bam$/bai/')
 cores=$(fullcores) # they are used by the pileup section
 memory=5000
 
-step=${step}".human"
+
 header=$(bsubHeader $stem $step $memory $cores)
 echo \
 "$header
