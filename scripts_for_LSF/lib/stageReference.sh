@@ -116,7 +116,8 @@ case "$option" in
 	dispatch $humanbismarkidxAWS $humanbismarkidx
 ;;
 "BismarkExtractor.human" |\
-"mpileup" )
+"mpileup" |\
+"Sequenza.human" )
 	dispatch $humanGenomeDirAWS $humanGenomeDir
 ;;
 "Express.human" )
@@ -150,7 +151,6 @@ case "$option" in
 "htseqGeneCount.human" )
 	dispatch $humanAnnotationDirAWS $humanAnnotationDir
 	dispatch $humanGenomeDirAWS $humanGenomeDir
-	
 ;;
 "controlFreec.human" )
 	dispatch $humanChromosomesDirAWS $humanChromosomesDir

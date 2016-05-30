@@ -60,8 +60,6 @@ fi
 
 
 
-
-htseqCountBin=htseq-count
 header=$(bsubHeader $stem $step $memory $cores)
 echo \
 "$header

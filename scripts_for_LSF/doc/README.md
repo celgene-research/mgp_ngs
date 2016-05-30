@@ -16,6 +16,12 @@ versions of software and databases you want to use
 
 The pipeline is now set. You can run the scripts in the pipeline according to the project you are analyzing.
 
+After a pipeline task is run it stores the output (standard output in .stdout, standard error in .stderr and genera log in .log) in the log directory.
+The log directory can be found by using the $NGS_LOG_DIR variable. Typically the output of a task is stored under a subdirectory structure in $NGS_LOG_DIR which contains the DA number of the project and the tool used. 
+
+The standard s3 bucket used for processing the data can be found by using the $CELGENE_NGS_BUCKET.
+ 
+
 
 ##MAINTENANCE of the pipeline software
 Currently the software that is used by the pipeline (external applications) is installed in a semi-automatic fashion using masterless puppet.
