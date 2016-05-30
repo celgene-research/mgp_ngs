@@ -148,7 +148,10 @@ if [ ${queues["${step}"]+_} ] ; then
 	else
 		queue_name="normal"
 	fi
-	
+	if [ -n "$NGS_QUEUE" ] ; then
+		echo "User specified queue set to $NGS_QUEUE" 1>&2
+		queue_name="$NGS_QUEUE"
+	fi
 	echo "getQueue: queue is set to $queue_name" 1>&2
 	echo $queue_name
 }
