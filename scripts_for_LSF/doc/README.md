@@ -44,7 +44,7 @@ Although this can also be managed by a NGS_CONFIG_SYS_FILE env variable, it is r
 ##HIDDEN GEMS
 Some scripts need to know what the number of available cores is and use _all_ of them. They get this from calling the nproc command, but this runs on the head node (or more accurately on the node that submits the job)
 In clusters (eg. elastic clusters) where the submission node has a different number of cores than the worker node a user my use the **$NGS_CORE_NUM** variable to set teh number of cores that each job will use. Note that this number should not exceed the number of available cores on the worker nodes otherwise the jobs will never start.
-
+If for some reason the default queue of a script is not appropriate the user can specify the correct one with ehte variable **$NGS_QUEUE**
 
 Each output directory has a numeric suffix (which is the epoch of the time of the run). If you want to change this number you can set the **$NGS_SUFFIX** variable to the number you wish. This is useful if you want to run a script and add the output in an existing directory (e.g. if you realized that one file has not been processed)
 
@@ -65,6 +65,8 @@ All the directories that are provided as enviroment variables will be stripped o
 
 The resulting files typically have a filename that is derived from the input filename. One can change that to be derived from the display name (as it has been set in the database at the time of processing) of these files using the env variable **$NGS_STEM_DISPLAYNAME**. The resulting files will have a filename of the form _displayname_.relevantextension.
 Although this makes the files more easily to comprehent, caution should be taken since the display name of a sample may change in the database.
+
+
 
 
 ##Help and other information
