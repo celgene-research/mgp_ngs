@@ -83,12 +83,18 @@ suppressMessages( library("sequenza"))
 suppressMessages( library("parallel"))
 seqz.script= system.file("exec", "sequenza-utils.py", package="sequenza")
 
+# make sure that the output does not have the extension qcstats
+output= gsub(".qcstats$", "", output, fixed=TRUE)
+output= gsub(".seqz$", "", output, fixed=TRUE)
+
 #Workflow
 #1. Convert pileup to seqz format
 #2. Normalization of depth ratio
 #3. Allele-specific segmentation using the depth ratio and the B allele frequencies (BAFs)
 #4. Infer cellularity and ploidy by model fitting
 #5. Call CNV and variant allele
+
+
 
 
 #first prepare the reference
@@ -103,20 +109,23 @@ message("Converting pileup to seqz format")
 
 
 output.tmp=paste0(output,".seqz.tmp.gz")
-output.final=paste0(output,".seqz")
+output.final=file.path(dirname( output ), paste0(basename( output ) ,".seqz") )
 
 #mapper part
+
 chromosomes=paste0('chr',c(seq(1,22),'X','Y') )
 
 chrfiles=mclapply( chromosomes, FUN=function(chr){
+	output.tmp=file.path( dirname( output ), paste0( chr, "-",basename( output ) , ".seqz.tmp.gz" ) )
+	output.final=file.path( dirname( output ), paste0( chr, "-", basename( output ) , ".seqz" ) )
 	message("processing chromosome ", chr)
-	cmd=sprintf( "%s  bam2seqz -S %s -F %s -C %s -gc %s -n %s -t %s | gzip > %s-%s ; %s  seqz-binning -w 50 -s %s-%s | gzip > %s-%s", 
-             seqz.script, samtools, fastafile, chr, gcfile, pileup.normal, pileup.tumor, chr,output.tmp,
-             seqz.script, chr, output.tmp, chr,output.final)
-	#system( cmd, intern=TRUE)
+	cmd=sprintf( "%s  bam2seqz -S %s -F %s -C %s -gc %s -n %s -t %s | gzip > %s ; %s  seqz-binning -w 50 -s %%s | gzip > %s", 
+             seqz.script, samtools, fastafile, chr, gcfile, pileup.normal, pileup.tumor, output.tmp,
+             seqz.script, output.tmp,output.final)
+	system( cmd, intern=TRUE)
 	file.remove( paste(chr, output.tmp,sep="-") )
 	#message(cmd)
-	paste(chr, output.final,sep="-")
+	output.final
 }, mc.cores=cores)
 
 #reducer part
