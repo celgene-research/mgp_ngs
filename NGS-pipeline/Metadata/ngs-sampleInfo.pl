@@ -53,7 +53,9 @@ my %supportedFields =( 'stranded'=>1,
 						'encoding'=>1,
 						'encoding_base'=>1,
 						'command_line'=>1,
-						'derived_from'=>1
+						'derived_from'=>1,
+						'condition'=>1,
+						'celgene_id'=>1
 			);
 			
 			
