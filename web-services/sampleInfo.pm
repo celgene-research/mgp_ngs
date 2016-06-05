@@ -692,6 +692,7 @@ sub updateAlignmentQC{
  		$sqlh.="$bq->{on_bait_vs_selected}," if defined($bq->{  on_bait_vs_selected});
 		$sqlh.="$bq->{mean_bait_coverage}," if defined($bq->{      mean_bait_coverage});
 		$sqlh.="$bq->{mean_target_coverage}," if defined($bq->{    mean_target_coverage});
+		#$sqlh.="$bq->{median_target_coverage}," if defined($bq->{    median_target_coverage});
 		$sqlh.="$bq->{pct_usable_bases_on_bait}," if defined($bq->{        pct_usable_bases_on_bait});
 		$sqlh.="$bq->{pct_usable_bases_on_target}," if defined($bq->{     pct_usable_bases_on_target });
 		$sqlh.="$bq->{fold_enrichment}," if defined($bq->{ fold_enrichment});
@@ -880,7 +881,11 @@ sub getQCReportTable{
 	sa.median_cv_coverage, sa.median_5prime_bias, sa.median_3prime_bias,
 	sa.median_insert_size,sa.median_dev_insert_size,
 	sa.estimated_library_size,
+	sa.wgs_mean_coverage,
+	sa.wgs_median_coverage",
+    sa.wgs_sd_coverage",
 	sa.read_pair_duplicates,sa.unpaired_read_duplicates,sa.read_pair_optical_duplicates,
+	se.antibody_target,
 	cast( ( sa.read_pair_duplicates + sa.unpaired_read_duplicates ) as float)/ cast(sr.sequenced_reads[1] as float) as duplication_index,
 	cast( ( sa.read_pair_optical_duplicates  ) as float)/ cast(sr.sequenced_reads[1] as float) as optical_duplication_index,
 	cast( sa.estimated_library_size as float) / cast( sr.sequenced_reads[1] as float)  as complexity_index,
@@ -894,6 +899,7 @@ sub getQCReportTable{
 	join project_info pi on pi.project_id=si.project_id
 	join sample_alignmentqc sa on sa.sample_id=si.sample_id and sa.flag='$flag'
 	join sample_readqc sr on sr.sample_id=si.sample_id and sr.flag='$flag'
+	join sample_experiment se on si.sample_id=se.sample_id
 	where si.sample_id=$sample_id 
 	};
 	
