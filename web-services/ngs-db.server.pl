@@ -47,7 +47,7 @@ my $configuration=new Config::Simple( $config );
 if( defined($stop)){ my $pid=getPID(); kill 'KILL', $pid; exit(0);} 
 if( defined($restart)){  my $pid=getPID(); kill 'KILL', $pid; }
 storePID();
-
+$SIG{PIPE} = 'IGNORE';
 sub getPID{
 	open(my $rfh, "ngs-server.pid") or die "Cannot read file ngs-server.pid\n";
 	my $pid=<$rfh>;
