@@ -119,12 +119,13 @@ chrfiles=mclapply( chromosomes, FUN=function(chr){
 	output.tmp=file.path( dirname( output ), paste0( chr, "-",basename( output ) , ".seqz.tmp.gz" ) )
 	output.final=file.path( dirname( output ), paste0( chr, "-", basename( output ) , ".seqz" ) )
 	message("processing chromosome ", chr)
-	cmd=sprintf( "%s  bam2seqz -S %s -F %s -C %s -gc %s -n %s -t %s | gzip > %s ; %s  seqz-binning -w 50 -s %%s | gzip > %s", 
+	cmd=sprintf( "%s  bam2seqz -S %s -F %s -C %s -gc %s -n %s -t %s | gzip > %s ; %s  seqz-binning -w 50 -s %s | gzip > %s", 
              seqz.script, samtools, fastafile, chr, gcfile, pileup.normal, pileup.tumor, output.tmp,
              seqz.script, output.tmp,output.final)
+	message("Executing command: " , cmd)
 	system( cmd, intern=TRUE)
 	file.remove( paste(chr, output.tmp,sep="-") )
-	#message(cmd)
+	#
 	output.final
 }, mc.cores=cores)
 
@@ -140,6 +141,7 @@ system(cmd,intern=TRUE)
 j=lapply( chrfiles, function(X){
 	message("Merging file ",X)
 	cmd=sprintf("gunzip -c %s | grep -v chromosome >> %s", X, output.final)
+	message("Executing command: " , cmd)
 	system(cmd,intern=TRUE)
 	
 })
