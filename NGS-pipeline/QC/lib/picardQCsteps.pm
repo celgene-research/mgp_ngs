@@ -13,7 +13,7 @@ sub new
     bless $self, $class;
     
     $self->{logger}=Log::Log4perl->get_logger("runQC::picardQCsteps");
-    $self->binary( $ENV{PICARD_BASE});
+    $self->binary( $ENV{PICARDBASE});
     $self->strandness( "NONE") ;
     $self->{makeDictAndExit}="no";
 	#$self->refflat("/opt/reference/Homo_sapiens/GENCODE/hg19/Annotation/gencode.v14.refFlat"); #ensembl
