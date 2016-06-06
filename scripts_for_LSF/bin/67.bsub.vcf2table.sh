@@ -32,15 +32,14 @@ if [ \$inputVCF == \"FAILED\" ]; then
 fi
 outputDirectory=\$( setOutput \$inputVCF ${step} )
 
-
+echo -n 'CHROM	POS	ID	REF	ALT	GENE	HGVS_P	EFFECT	IMPACT	dbNSFP_SIFT_pred	dbNSFP_Polyphen2_HDIV_pred	dbNSFP_MutationTaster_pred	CLNSIG	BIOTYPE	NMD	LOF	' > \${outputDirectory}/${stem}.${step}.tbl ;
+zgrep '^#CHROM' \$inputVCF | cut -f 11-99999 >> \${outputDirectory}/${stem}.${step}.tbl ; 
 celgeneExec.pl --analysistask $analysistask \"\
-echo -n 'CHROM	POS	ID	REF	ALT	GENE	HGVS_P	IMPACT	dbNSFP_SIFT_pred	dbNSFP_Polyphen2_HDIV_pred	dbNSFP_MutationTaster_pred	CLNSIG	BIOTYPE	NMD	LOF	' > \${outputDirectory}/${stem}.${step}.tbl ; \
-zgrep '^#CHROM' \$inputVCF | cut -f 10-99999 >> \${outputDirectory}/${stem}.${step}.tbl ; \
 zcat \$inputVCF | \
 $SNPEFF_BASE/scripts/vcfEffOnePerLine.pl   | \
 java -jar $snpsiftbin extractFields -e '.' - \
-CHROM POS ID REF ALT 'ANN[*].GENE' 'ANN[*].HGVS_P' 'ANN[*].IMPACT' dbNSFP_SIFT_pred dbNSFP_Polyphen2_HDIV_pred dbNSFP_MutationTaster_pred  CLNSIG 'ANN[*].BIOTYPE' 'NMD[*].PERC' 'LOF[*].PERC' 'GEN[*].GT' \
->> \${outputDirectory}/${stem}.${step}.tbl 
+CHROM POS ID REF ALT 'ANN[*].GENE' 'ANN[*].HGVS_P' 'ANN[*].EFFECT' 'ANN[*].IMPACT' dbNSFP_SIFT_pred dbNSFP_Polyphen2_HDIV_pred dbNSFP_MutationTaster_pred  CLNSIG 'ANN[*].BIOTYPE' 'NMD[*].PERC' 'LOF[*].PERC' 'GEN[*].GT' |\
+uniq >> \${outputDirectory}/${stem}.${step}.tbl 
 \"
 
 
