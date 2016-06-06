@@ -71,7 +71,7 @@ if outputFname is None:
 #bamDirectory="/mnt/celgene-src-bucket/DA0000096/ChIP-Seq-2/Processed/Bowtie2.human-bamfile-Mdup_1447913850_1456862015"
 
 tumor=defaultdict(list) # hold lists the file names for each cell_line
-normal=defaultdict(list)
+normalDict=defaultdict(list)
 counter=0
 
 files=os.listdir( bamDirectory , )
@@ -89,8 +89,8 @@ for f in files:
         patient=subprocess.check_output(["ngs-sampleInfo.pl", full_path, "celgene_id"] )
         condition=subprocess.check_output(["ngs-sampleInfo.pl", full_path,"condition"] )
         logging.info("Sample "+full_path + " has celgene_id "+patient+" and condition "+condition )
-        if condition.lower() == normal :
-            normal[ patient ].append( full_path )
+        if condition.lower() == normal.lower() :
+            normalDict[ patient ].append( full_path )
         else:
             tumor[ patient ].append( full_path ) 
         #print full_path  +  " " + target + " " + cell_line
@@ -98,12 +98,12 @@ for f in files:
 
 tmpOutFn=outputFname + "_" +k + ".sh"  
 targetFile=open(tmpOutFn,'w') 
-for k in normal.keys() :
+for k in normalDict.keys() :
     
     logging.info("Patient is set to "+ k +"." )
     
      
-    for normalFile in normal[ k ]: 
+    for normalFile in normalDict[ k ]: 
         for tumorFile in tumor[ k ]:
             commandLine=scriptFname + " " + normalFile + " " + tumorFile 
             logging.info( commandLine )
