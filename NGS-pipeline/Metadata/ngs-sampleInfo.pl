@@ -52,10 +52,14 @@ my %supportedFields =( 'stranded'=>1,
 						'cell_line'=>1,
 						'encoding'=>1,
 						'encoding_base'=>1,
+						'sequenced_reads'=>1,
+						'pf_reads_aligned'=>1,
 						'command_line'=>1,
 						'derived_from'=>1,
 						'condition'=>1,
-						'celgene_id'=>1
+						'celgene_id'=>1,
+						'compound_array'=>1,
+						'dose_array'=>1
 			);
 			
 			
@@ -143,8 +147,10 @@ foreach my $id ( @{$idArray}){
 			$logger->logdie("This function is not implemented yet");
 		}elsif($field eq 'derived_from'){	
 			$data=serverCall('metadataInfo.getDerivedFromByFilename', $filename);
-		}elsif ($field eq 'encoding' or $field eq 'encoding_base'){
+		}elsif ($field eq 'encoding' or $field eq 'encoding_base' or $field eq 'sequenced_reads'){
 			$data=serverCall('sampleInfo.getSampleFastQCByID', $id);
+		}elsif ($field eq 'pf_reads_aligned'){
+			$data=serverCall('sampleInfo.getSampleBamQCByID', $id);
 		}else{
 			$data=serverCall('sampleInfo.getSampleByID', $id);
 		}
@@ -162,6 +168,9 @@ foreach my $id ( @{$idArray}){
 			
 			
 			my $retVal= $data->{ $field };
+			if(ref $retVal eq 'ARRAY'){
+				$retVal=join(",", @$retVal);
+			}
 			$retVal =~s/\s/_/g;
 			$retVal =~s/[()]//g;
 			push @retVals, $retVal;
@@ -172,8 +181,12 @@ foreach my $id ( @{$idArray}){
 		}
 	}
 }	
+
+
+
 if(scalar(@retVals)==0){print 'NA';}
 else{
+	
 	@retVals=Celgene::Utils::ArrayFunc::unique(\@retVals);
 }
 if(scalar(@retVals)>1){ print join(" ", @retVals);}
