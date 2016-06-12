@@ -227,17 +227,17 @@ function bsubHeader(){
 #step=${step}, \
 #memory=${memory}, mem=${mem}\
 #cores=${cores}" >&2
-	
+suffix=$( getStdSuffix $step )
 echo "#!/bin/bash"
-echo "#BSUB -e ${NGS_LOG_DIR}/${stem}.${step}.bsub.stderr"
-echo "#BSUB -o ${NGS_LOG_DIR}/${stem}.${step}.bsub.stdout"
+echo "#BSUB -e ${NGS_LOG_DIR}/${stem}.${step}.${suffix}.bsub.stderr"
+echo "#BSUB -o ${NGS_LOG_DIR}/${stem}.${step}.${suffix}.bsub.stdout"
 echo "#BSUB -J ${stem}.${step}.bsub"
 echo "#BSUB -r"
 echo "#BSUB -E \"$scriptDir/../lib/stageReference.sh $step\""
 echo "#BSUB -q \"${queue_name}\""
 echo "#BSUB -n $cores"
 echo "#BSUB -R \"span[ptile=$cores] rusage[mem=$mem]\" "
-suffix=$( getStdSuffix $step )
+
 echo "export suffix=${suffix}"
 }
 
