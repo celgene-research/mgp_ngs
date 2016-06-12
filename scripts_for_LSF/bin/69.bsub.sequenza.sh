@@ -10,7 +10,7 @@ echo "in this version only human is assumed"
 
 analysistask=56
 
-stem=$(fileStem $inputBam)
+stem=$(fileStem $inputBamTumor)
 
 step="Sequenza"
 step=${step}".human"
