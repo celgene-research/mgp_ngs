@@ -2,6 +2,7 @@
 
 inputsample=$1
 inputcontrol=$2
+
 echo "This script is running the controlFreec"
 echo "it requires as input the sample file and if available the control file "
 echo "This version of the script assumes Whole Genome Sequencing and not Exome. "
@@ -25,9 +26,6 @@ fi
 initiateJob $stem $step $1
 memory=54000
 cores=$(fullcores)
-NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
-
-
 
 seqtype=$(ngs-sampleInfo.pl $inputsample experiment_type) # decide if WES or WGS
 freecMappability=$(dirname $freecbin)/../hg19/out100m1_hg19.gem
@@ -64,22 +62,22 @@ BedGraphOutput=TRUE
 
 [sample]
 mateFile=INPUTSAMPLE
-inputFormat=bam
+inputFormat=pileup
 mateOrientation=${mateorientation}
 
-" > ${stem}-${step}.config
+
 
 # the following lines can be added to the config file to generate BAF files
 # but the process relies on mpileup which can be very time consuming
-#[BAF]
-#SNPfile=${freecSNPs}
-#minimalCoveragePerPosition=6
+[BAF]
+SNPfile=${freecSNPs}
+minimalCoveragePerPosition=6
 #fastaFile=$humanGenomeDir/genome.fa
 #makePileup=${freecBAF}
-#shiftInQuality=${encoding}
+shiftInQuality=${encoding}
 
 
-
+" > ${stem}-${step}.config
 
 
 if [ -n "$inputcontrol" ] ; then
