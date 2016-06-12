@@ -14,7 +14,7 @@ cores=1
 
 memory=10000
 stem=$(fileStem $input)
-
+initiateJob $stem $step $1
 mkdir -p $NGS_LOG_DIR
 
 header=$(bsubHeader $stem $step $memory $cores)
@@ -38,7 +38,7 @@ outputDirectory=\$( setOutput \$input \$newDir )
 
 
 celgeneExec.pl --analysistask ${analysistask} \"\
-java -Xmx${memory}m -jar ${PICARDBASE}/pircard.jar SortSam VERBOSITY=WARNING INPUT=\$input \
+java -Xmx${memory}m -jar ${PICARDBASE}/picard.jar SortSam VERBOSITY=WARNING INPUT=\$input \
   TMP_DIR=\${NGS_TMP_DIR} SORT_ORDER=coordinate CREATE_INDEX=true O=\${outputDirectory}/$stem.coord.bam VALIDATION_STRINGENCY=SILENT \"
  if [ \$? != 0 ] ; then
 	echo "Failed to run command"
