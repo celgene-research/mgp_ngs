@@ -8,6 +8,7 @@
 declare -A queues
 declare -A queueMem
 declare -A queueCores
+declare -A queueDisk
 declare queue_name
 # queue     instance type: cores, RAM, scratch space
 # normal  = c3.4xlarge:16cores, 30GB RAM, 2 x 160 HD 
@@ -24,6 +25,12 @@ queueMem["bigdisk"]=61
 queueMem["bigmem"]=61
 queueMem["hugemem"]=122
 queueMem["small"]=14
+queueDisk["normal"]=320
+queueDisk["bigdisk"]=1600
+queueDisk["bigmem"]=160
+queueDisk["hugemem"]=320
+queueDisk["small"]=160
+
 
 function setLogging(){
 	stem=$1
@@ -70,11 +77,11 @@ file=$1
 function setTemp(){
 	step=$1
 	NGS_TMP_DIR_ORIGINAL=${NGS_TMP_DIR}
-	if [ -n "$LSB_JOB_ID" ] ; then
+	#if [ -n "$LSB_JOB_ID" ] ; then
 		NGS_TMP_DIR=${NGS_TMP_DIR_ORIGINAL}/${step}/${LSB_JOBID}
-	else
-		NGS_TMP_DIR=${NGS_TMP_DIR_ORIGINAL}/${step}/TMP_$$
-	fi
+	#else
+		#	NGS_TMP_DIR=${NGS_TMP_DIR_ORIGINAL}/${step}/TMP_$$
+	#fi
 	export NGS_TMP_DIR
 	mkdir -p $NGS_TMP_DIR
 }
@@ -123,8 +130,8 @@ function getQueue(){
 # assotiative array to place all the known steps and their requirements in queues
 
 	
-	queues["ExtractFastqBed"]="small"
-	queues["ExtractFastq"]="small"
+	queues["ExtractFastqBed"]="bigdisk"
+	queues["ExtractFastq"]="bigdisk"
 	queues["GATK.GenotypeGVCFs"]="bigdisk"
 	queues["GATK.VariantRecalibration"]="bigdisk"
 	queues["mpileup"]="bigdisk"
@@ -171,6 +178,26 @@ function bsubHeader(){
 		cores=1
 	fi
 	
+	if [ -z "$NGS_CORE_FACTOR" ] ; then
+		NGS_CORE_FACTOR=4
+	fi
+	
+    expectedSize=$(( $filesize * $NGS_CORE_FACTOR ))
+    echo "The expected size of this job on the disk is $expectedSize" 1>&2
+    allocatedSize=$(( ${queueDisk[${queue_name}]} / ${queueCores[${queue_name}]}  ))
+    allocatedSize=$(( $allocatedSize * $cores ))
+    echo "The allocated size of this job on the disk is $allocatedSize" 1>&2
+    if [ "$expectedSize" -gt "$allocatedSize" ] ; then
+            echo "The expected disk footprint of the job is $expectedSize and the allocated based on the queue type is $allocatedSize" 1>&2
+
+            fraction=$( echo "${queueDisk[${queue_name}]}/ $expectedSize" | bc -l )
+
+            coresFraction=$( echo "${queueCores[$queue_name]}/$fraction" | bc -l )
+            cores=$(printf "%.0f" $coresFraction)
+            echo "The number of requested cores will need to be changed to $cores" 1>&2
+    fi
+		
+	
 	#if the requested cores are more than the cores the system can provide
 	# then downsize to as many cores the node has
 	fc=$( fullcores )
@@ -178,6 +205,8 @@ function bsubHeader(){
 		cores=$fc
 		echo "The requested cores $cores is larger than what the system can provide $fc. Reverting to $fc" 1>&2
 	fi 
+	
+	
 	
 	if [ -z "$memory" ]; then 
 		memory=$(( 4000*$cores))

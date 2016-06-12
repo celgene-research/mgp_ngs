@@ -96,7 +96,7 @@ for f in files:
         #print full_path  +  " " + target + " " + cell_line
   
 
-tmpOutFn=outputFname + "_" +k + ".sh"  
+tmpOutFn=outputFname + ".sh"  
 targetFile=open(tmpOutFn,'w') 
 for k in normalDict.keys() :
     

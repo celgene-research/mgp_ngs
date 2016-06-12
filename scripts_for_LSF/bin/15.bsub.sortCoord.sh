@@ -8,7 +8,7 @@ analysistask=52
 step="SortCoord"
 
 
-export NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
+NGS_CORE_FACTOR=6
 cores=1
 #necessary adjustment due to limitations in storage space on AWS instances
 

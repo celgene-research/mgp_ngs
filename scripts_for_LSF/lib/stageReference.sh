@@ -77,7 +77,15 @@ function dispatch(){
 	
 }
 
-
+# check if there is enough disk space on the node.
+# if not exit with 34
+# the job will be restarted 
+availableDisk=$( df | grep scratch  | rev | cut -f2 -d ' ' | rev | tr -d '%' )
+if [ "$availableDisk" -lt "20" ] ; then
+	date >> $HOME/pre-exec.log
+	echo "Starting job $option on node "$(hostname)" cannot start because the disk has only $availableDisk % available and the minimum requirement is 20%" >> $HOME/pre-exec.log
+	exit 34
+fi
 	
 # main dispatch loop
 # here all the different steps need to be known

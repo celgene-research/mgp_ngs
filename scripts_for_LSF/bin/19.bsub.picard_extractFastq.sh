@@ -41,9 +41,10 @@ java -Xmx6g -jar ${PICARDBASE}/picard.jar SamToFastq INPUT=\${outputDirectory}/$
 $makepairedreadsbin --input \${outputDirectory}/${stem}_unpaired.fastq  \
   --output1 \${outputDirectory}/${stem}_R1.fastq \
   --output2 \${outputDirectory}/${stem}_R2.fastq ; \
-gzip \${outputDirectory}/${stem}_R1.fastq ; \
-gzip \${outputDirectory}/${stem}_R2.fastq ; \
-gzip \${outputDirectory}/${stem}_unpaired.fastq \
+$pigzbin \${outputDirectory}/${stem}_R1.fastq ; \
+$pigzbin \${outputDirectory}/${stem}_R2.fastq ; \
+$pigzbin \${outputDirectory}/${stem}_unpaired.fastq ;\
+rm \${outputDirectory}/$stem.name.bam \
 \" 
 if [ \$? != 0 ] ; then
 	echo \"Failed to execute command\"
