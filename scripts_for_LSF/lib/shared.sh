@@ -328,7 +328,9 @@ function initiateJob(){
 	setLogging $stem $step $da
 	setTemp $step				
 	
-	
+	# get the size of the file
+	filesize=$(aws s3 ls $filename | cut -d ' ' -f3)
+	filesize=$(( $filesize / 1000000000 ))
 	echo "###############################"
 	echo -n "Starting job at " 
 	date
