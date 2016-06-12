@@ -80,10 +80,10 @@ function dispatch(){
 # check if there is enough disk space on the node.
 # if not exit with 34
 # the job will be restarted 
-availableDisk=$( df | grep scratch  | rev | cut -f2 -d ' ' | rev | tr -d '%' )
-if [ "$availableDisk" -lt "20" ] ; then
+usedDisk=$( df | grep scratch  | rev | cut -f2 -d ' ' | rev | tr -d '%' )
+if [ "$usedDisk" -gt "80" ] ; then
 	date >> $HOME/pre-exec.log
-	echo "Starting job $option on node "$(hostname)" cannot start because the disk has only $availableDisk % available and the minimum requirement is 20%" >> $HOME/pre-exec.log
+	echo "Starting job $option on node "$(hostname)" cannot start because the disk has  $usedDisk % available and the maximum requirement is 80%" >> $HOME/pre-exec-$(hostname).log
 	exit 34
 fi
 	
