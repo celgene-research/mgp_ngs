@@ -36,9 +36,10 @@ fi
 
 outputDirectory=\$( setOutput \$input "bamfiles" )
 
-
+bb=\$(basename \$input)
 celgeneExec.pl --analysistask ${analysistask} \"\
-java -Xmx${memory}m -jar ${PICARDBASE}/picard.jar BuildBamIndex VERBOSITY=WARNING INPUT=\$input \
+mv \$input \${outputDirectory}/\${bb} ; \
+java -Xmx${memory}m -jar ${PICARDBASE}/picard.jar BuildBamIndex VERBOSITY=WARNING INPUT=\${outputDirectory}/\${bb} \
   TMP_DIR=\${NGS_TMP_DIR}  VALIDATION_STRINGENCY=SILENT \"
  if [ \$? != 0 ] ; then
 	echo "Failed to run command"
