@@ -34,7 +34,7 @@ fi
 outputDirectory=\$( setOutput \$inputVCF ${step} )
 
 
-"> $stem.$step.bsub
+"> ${stem}.${step}.${suffix}.bsub
 
 if [ $filterFile == "tranche" ] ;then
 echo \
@@ -48,7 +48,7 @@ bgzip \${outputDirectory}/${stem}.${step}.vcf  ; \
 tabix -p vcf \${outputDirectory}/${stem}.${step}.vcf.gz \
 \"
 	
-">> $stem.$step.bsub
+">> ${stem}.${step}.${suffix}.bsub
 else
 echo \
 " 
@@ -60,7 +60,7 @@ bgzip \${outputDirectory}/${stem}.${step}.vcf  ; \
 tabix -p vcf \${outputDirectory}/${stem}.${step}.vcf.gz \
 \"
 
-" >> $stem.$step.bsub
+" >> ${stem}.${step}.${suffix}.bsub
 fi
 
 echo \
@@ -78,5 +78,5 @@ fi
 
 closeJob
 
-" >> $stem.$step.bsub
-bsub < $stem.$step.bsub
+" >> ${stem}.${step}.${suffix}.bsub
+bsub < ${stem}.${step}.${suffix}.bsub

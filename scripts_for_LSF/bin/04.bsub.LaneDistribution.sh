@@ -63,8 +63,8 @@ fi
 rm -rf \$outputDirectory
 
 closeJob
-" > ${stem}.${step}.bsub
+" > ${stem}.${step}.${suffix}.bsub
 
-bsub < ${stem}.${step}.bsub
+bsub < ${stem}.${step}.${suffix}.bsub
 #rm $$.tmp
 

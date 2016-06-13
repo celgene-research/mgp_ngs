@@ -82,9 +82,9 @@ fi
 closeJob
 
 "\
-> ${stem}.${step}.bsub
+> ${stem}.${step}.${suffix}.bsub
 
-bsub < ${stem}.${step}.bsub
+bsub < ${stem}.${step}.${suffix}.bsub
 #bash $jobName
 
 #rm $$.tmp

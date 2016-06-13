@@ -27,7 +27,7 @@ msigdb=$msigdb
 
 initiateJob $stem $step $1
 memory=30000
-cores=2
+cores=$(fullcores)
 header=$(bsubHeader $stem $step $memory $cores)
 echo \
 "$header
@@ -135,7 +135,7 @@ if [ \$? != 0 ] ; then
 	exit 1
 fi 
 closeJob
-" > ${stem}.${step}.bsub
+" > ${stem}.${step}.${suffix}.bsub
 
-bsub < ${stem}.${step}.bsub
+bsub < ${stem}.${step}.${suffix}.bsub
 

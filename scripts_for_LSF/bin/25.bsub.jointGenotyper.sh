@@ -78,9 +78,9 @@ fi
 
 closeJob
 
-"> $stem.$step.bsub
+"> ${stem}.${step}.${suffix}.bsub
 
 
-#bash $stem.$step.bsub
-bsub < $stem.$step.bsub
+#bash ${stem}.${step}.${suffix}.bsub
+bsub < ${stem}.${step}.${suffix}.bsub
 #rm $$.tmp

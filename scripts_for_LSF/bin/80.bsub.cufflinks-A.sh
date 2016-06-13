@@ -5,6 +5,7 @@ output=$(basename $inputBAM| sed 's/.bam//')
 step="cufflinksAssembleTranscripts"
 stem=$(fileStem $inputBAM)
 
+initiateJob $stem $step $1
 
 maskFile=${humanAnnotationDir}/gencode.CURRENT.mask.gtf
 NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
@@ -36,8 +37,7 @@ source $scriptDir/../lib/shared.sh
 
 initiateJob $stem $step $1
 
-	inputBAM=\$( stage.pl --operation out --type file  $inputBAM )
-	maskFile=\$(stage.pl --operation out --type file $maskFile )
+inputBAM=\$( stage.pl --operation out --type file  $inputBAM )
 	
 if [ \$inputBAM == "FAILED"  ] ; then
 	echo \"Could not transfer \$inputBAM\"
