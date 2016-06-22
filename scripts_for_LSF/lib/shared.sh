@@ -19,17 +19,17 @@ queueCores["normal"]=16
 queueCores["bigdisk"]=8
 queueCores["bigmem"]=8
 queueCores["hugemem"]=16
-queueCores["small"]=8
+queueCores["small"]=16
 queueMem["normal"]=30
 queueMem["bigdisk"]=61
 queueMem["bigmem"]=61
 queueMem["hugemem"]=122
-queueMem["small"]=14
+queueMem["small"]=61
 queueDisk["normal"]=320
 queueDisk["bigdisk"]=1600
 queueDisk["bigmem"]=160
 queueDisk["hugemem"]=320
-queueDisk["small"]=160
+queueDisk["small"]=320
 
 
 function setLogging(){
@@ -131,7 +131,7 @@ function getQueue(){
 
 	
 	queues["ExtractFastqBed"]="bigdisk"
-	queues["ExtractFastq"]="bigdisk"
+	queues["ExtractFastq"]="normal"
 	queues["GATK.GenotypeGVCFs"]="bigdisk"
 	queues["GATK.VariantRecalibration"]="bigdisk"
 	queues["mpileup"]="bigdisk"
@@ -339,6 +339,9 @@ function initiateJob(){
 		rm -f $LSB_ERRORFILE
 	
 	fi
+	echo "Available disk space on node " $(hostname) 
+	df 
+	echo "###############################"
 	
 	
 	#echo "initiateJob: Setting environment for this job" 2>&1
