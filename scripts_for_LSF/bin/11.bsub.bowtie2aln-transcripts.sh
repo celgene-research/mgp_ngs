@@ -48,7 +48,6 @@ echo \
 
 
 source $scriptDir/../lib/shared.sh 
-set -e
 initiateJob $stem $step $1
 
 database=$database
@@ -98,9 +97,9 @@ fi
 closeJob
 
 "\
-> ${stem}.${step}.${suffix}.bsub
+> ${stem}.${step}.$( getStdSuffix ).bsub
 
-bsub < ${stem}.${step}.${suffix}.bsub
+bsub < ${stem}.${step}.$( getStdSuffix ).bsub
 #bash $jobName
 
 #rm $$.tmp

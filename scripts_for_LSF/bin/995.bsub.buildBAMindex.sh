@@ -25,7 +25,6 @@ echo \
 source $scriptDir/../lib/shared.sh
 
 initiateJob $stem $step $1
-set -e
 
 input=\$( stage.pl --operation out --type file  $input )
 if [ \$input == "FAILED"  ] ; then
@@ -39,6 +38,7 @@ outputDirectory=\$( setOutput \$input "bamfiles" )
 bb=\$(basename \$input)
 celgeneExec.pl --analysistask ${analysistask} \"\
 mv \$input \${outputDirectory}/\${bb} ; \
+touch \${outputDirectory}/\${bb} ; \
 java -Xmx${memory}m -jar ${PICARDBASE}/picard.jar BuildBamIndex VERBOSITY=WARNING INPUT=\${outputDirectory}/\${bb} \
   TMP_DIR=\${NGS_TMP_DIR}  VALIDATION_STRINGENCY=SILENT \"
  if [ \$? != 0 ] ; then
@@ -53,8 +53,8 @@ if [ \$? != 0 ] ; then
 fi 
 closeJob
 
-" > ${stem}.${step}.${suffix}.bsub
+" > ${stem}.${step}.$( getStdSuffix ).bsub
 
-bsub < ${stem}.${step}.${suffix}.bsub
+bsub < ${stem}.${step}.$( getStdSuffix ).bsub
 #rm $$.tmp
 

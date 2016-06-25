@@ -71,9 +71,9 @@ fi
 
 closeJob
 "\
-> ${stem}.${step}.${suffix}.bsub
+> ${stem}.${step}.$( getStdSuffix ).bsub
 
-bsub < ${stem}.${step}.${suffix}.bsub
+bsub < ${stem}.${step}.$( getStdSuffix ).bsub
 #bash $jobName
 
 #rm $$.tmp

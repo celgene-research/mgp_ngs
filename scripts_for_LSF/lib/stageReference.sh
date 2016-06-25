@@ -14,6 +14,10 @@ fi
 
 
 # create a soft link to place the refernece data. 
+if [ ! -d /scratch ] ;then
+	echo "Scratch is not mounted"
+	exit 112
+fi 
 mkdir -p /scratch/reference
 if [ ! -d /celgene/reference ] ;then
 	ln -s /scratch/reference /celgene

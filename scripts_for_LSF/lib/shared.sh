@@ -48,19 +48,22 @@ function setLogging(){
 	export NGS_LOG_DIR=$(echo $NGS_LOG_DIR | sed 's|//|/|g' )
 	mkdir -p $NGS_LOG_DIR
 	echo "Logging: Created directory $NGS_LOG_DIR" 1>&2
-	export MASTER_LOGFILE=${NGS_LOG_DIR}/${stem}.${step}.log
+	export MASTER_LOGFILE=${NGS_LOG_DIR}/$( basename $LSB_ERRORFILE | sed 's/bsub.stderr/log/' )
 	export STAGEFILE_LOGFILE=${MASTER_LOGFILE}
 	export CELGENE_EXEC_LOGFILE=${MASTER_LOGFILE}
 	if [ -e $CELGENE_EXEC_LOGFILE ] ; then
 			rm -f $CELGENE_EXEC_LOGFILE	
 	fi
+	echo "Logging: Log directory is set to : " $NGS_LOG_DIR  1>&2
 	echo "Logging: Master log file is set to $MASTER_LOGFILE" 1>&2
 	echo "Logging: Stage file is set to $STAGEFILE_LOGFILE" 1>&2
 	echo "Logging: CelgeneExec log file is set to $CELGENE_EXEC_LOGFILE" 1>&2
-	echo "Logging: desired queue for this job is $queue_name"
-	echo "Logging: max CPU for this queue is set to ${queueCores[$queue_name]}"
-	echo "Logging: max memory (MB) for this queue is set to ${queueMem[$queue_name]}" 
-	echo $NGS_LOG_DIR
+	echo "Logging: desired queue for this job is $queue_name" 1>&2
+	echo "Logging: max CPU for this queue is set to ${queueCores[$queue_name]}"  1>&2
+	echo "Logging: max memory (MB) for this queue is set to ${queueMem[$queue_name]}" 1>&2 
+	echo "Logging: Instance type is "$( curl http://169.254.169.254/latest/meta-data/instance-type ) 1>&2
+	echo "Logging: Node available disk space "	1>&2
+	df -h  1>&2
 }
 
 function checkfile(){
@@ -339,11 +342,7 @@ function initiateJob(){
 		rm -f $LSB_ERRORFILE
 	
 	fi
-	echo "Available disk space on node " $(hostname) 
-	df 
-	echo "###############################"
-	
-	
+		
 	#echo "initiateJob: Setting environment for this job" 2>&1
 	#echo "stem=$step, step=$step, filename=$filename" 2>&1
 	#echo "da=$da, queue=$queue_name" 2>&1

@@ -90,7 +90,6 @@ echo \
 #$Date: 2015-10-05 17:46:45 -0700 (Mon, 05 Oct 2015) $ $Revision: 1690 $
 
 source $scriptDir/../lib/shared.sh 
-set -e
 initiateJob $stem $step $1
 
 
@@ -148,6 +147,6 @@ fi
 
 
 closeJob
-"> ${stem}.${step}.${suffix}.bsub
+"> ${stem}.${step}.$( getStdSuffix ).bsub
 
-bsub < ${stem}.${step}.${suffix}.bsub
+bsub < ${stem}.${step}.$( getStdSuffix ).bsub

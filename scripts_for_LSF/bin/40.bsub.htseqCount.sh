@@ -114,8 +114,8 @@ if [ \$? != 0 ] ; then
 	exit 1
 fi 
 closeJob
-" > ${stem}.${step}.${suffix}.bsub
+" > ${stem}.${step}.$( getStdSuffix ).bsub
 
-bsub < ${stem}.${step}.${suffix}.bsub
+bsub < ${stem}.${step}.$( getStdSuffix ).bsub
 #rm $$.tmp
 

@@ -36,7 +36,6 @@ echo \
 source $scriptDir/../lib/shared.sh
 
 initiateJob $stem $step $1
-set -e
 inputVCF=\$( stage.pl --operation out --type file  $inputVCF)
 COSMICCoding=$COSMICCoding
 COSMICNonCoding=$COSMICNonCoding 
@@ -135,7 +134,7 @@ if [ \$? != 0 ] ; then
 	exit 1
 fi 
 closeJob
-" > ${stem}.${step}.${suffix}.bsub
+" > ${stem}.${step}.$( getStdSuffix ).bsub
 
-bsub < ${stem}.${step}.${suffix}.bsub
+bsub < ${stem}.${step}.$( getStdSuffix ).bsub
 
