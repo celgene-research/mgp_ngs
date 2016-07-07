@@ -31,6 +31,27 @@ inputBam=\$(stage.pl --operation out --type file  $inputBam)
 inputIdx=\$(stage.pl --operation out --type file  $inputIdx)
 outputDirectory=\$( setOutput \$inputBam $step )
 
+
+analyze() {
+$samtoolsbin mpileup -f $ref \${inputBam}  |  gzip > \${outputDirectory}/\$1.pileup.gz ; echo \"Output in \${outputDirectory}/\$1.seqz.gz\"
+}
+export -f analyze
+export inputBam
+export outputDirectory
+
+
+celgeneExec.pl \
+-o \${outputDirectory}/${stem}.pileup.gz \
+ -D \${inputBam} \
+ --metadatastring analyze='\$samtoolsbin mpileup -f $ref \${inputBam}  |  gzip > \${outputDirectory}/\$1.pileup.gz ; echo \"Output in \${outputDirectory}/\$1.seqz.gz\"' \
+ --analysistask=$step \"\
+parallel -j${cores} analyze chr{} :::  {1..22} X Y ; \
+gunzip -c \${outputDirectory}/chr{{1..22},{X,Y}}.seqz.gz | $bgzipbin > \${outputDirectory}/${stem}.mpileup.gz ; \
+rm \${outputDirectory}/chr{{1..22},{X,Y}}.seqz.gz ; \
+$tabixbin -s 1 -e 2 -b 2 \${outputDirectory}/${stem}.mpileup.gz \
+\"
+
+
 celgeneExec.pl --analysistask=$step \"\
 $samtoolsbin mpileup  -f $ref \$inputBam | gzip > \${outputDirectory}/${stem}.pileup.gz\
 \"
