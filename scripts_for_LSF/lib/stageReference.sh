@@ -138,6 +138,9 @@ case "$option" in
 "Salmon-bam.human" )
 	dispatch $humanrsemidxAWS $humanrsemidx
 ;;
+"Salmon-fastq.human" )
+	dispatch $humansalmonidxAWS $humansalmonidx
+;;
 "Sailfish.human" )
 	dispatch ${humanDirAWS}/SailFish0.9_Index ${humanDir}/SailFish0.9_Index
 ;;
