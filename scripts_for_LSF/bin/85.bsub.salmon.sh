@@ -69,7 +69,7 @@ $salmonbin quant -t \${transcripts} \
   --libType '$library' \
   --alignments \${inputBAM} \
   --output \${outputDirectory}/$stem.$step.salmon \
-  --threads $cores\
+  --threads $cores --useVBOpt\
   --numBootstraps 100 \"
 
 
