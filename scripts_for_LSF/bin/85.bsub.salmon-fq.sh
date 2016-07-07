@@ -14,7 +14,7 @@ stem=$(fileStem $input1)
 output=$stem
 
 
-transcripts=${humanrsemidx}/genome.fa.idx.fa
+transcriptsIndex=${humansalmonidx}
 step=$step.human
 
 initiateJob $stem $step $1
@@ -55,7 +55,7 @@ initiateJob $stem $step $1
 
 input1=\$( stage.pl --operation out --type file  $input1 )
 
-if [ \"$paired_end\"== \"1\" ]; then
+if [ \"$paired_end\" == \"1\" ]; then
 	library="ISR"
 	input2=\$( stage.pl --operation out --type file  $input2 )
 	readCmd=\"-1 <(gunzip -c \$input1) -2 <(gunzip -c \$input2)\"
