@@ -156,8 +156,20 @@ $hash->{run_user}=$ENV{USER};
 getExistingFiles( \@possibleFiles , $hash, $UserCommand);
 foreach my $pf(@possibleFiles){
 	$logger->trace( "possible files:", $pf->absFilename(),"]\n");
+
 }
-if(!defined($hash->{derived_from}) or scalar(@{$hash->{derived_from}})  ==0){
+
+	if(defined($derived_from_file)){
+		my @tmpfiles=split(",", $derived_from_file);
+		foreach my $tmpfile( @tmpfiles ){
+			$logger->debug("Adding in the list of derived from files file : $tmpfile");
+			push  @{$hash->{derived_from}}, $tmpfile;	
+		}
+		
+	}
+	
+
+if( !defined($hash->{derived_from}) or scalar(@{$hash->{derived_from}})  ==0) {
 	$logger->logdie("There are no derived_from files, are you sure you have submitted the correct command line from the correct directory?");
 }
 $logger->debug("derived_from " , join(",", @{$hash->{derived_from}}),"\n");
@@ -236,15 +248,7 @@ foreach my $outputfileObj( @{$hash->{output}} ){
 	$logger->debug("directory: $outputDirectory, file: $outputFilename");
 	my $metadataStore=MetadataPrepare->new();
 	# add the derived from files that the user has explicitly provided
-	if(defined($derived_from_file)){
-		my @tmpfiles=split(",", $derived_from_file);
-		foreach my $tmpfile( @tmpfiles ){
-			$logger->debug("Adding in the list of derived from files file : $tmpfile");
-			push  @{$hash->{derived_from}}, $tmpfile;	
-		}
-		
-	}
-	
+
 	# FilePath is added by the MetExtractor itself
 	#$metadataStore->addMetadata("FilePath", $outputfileObj->absFilename());
 	#$metadataStore->addMetadata("FilePath", $outputfileObj->userFileName()) if ($outputfileObj->userFileName() ne $outputfileObj->absFilename());

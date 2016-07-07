@@ -75,10 +75,10 @@ case  "${exomeSet}" in
 	baitsfile=${humanGenomeDir}/ExonCapture/S07604624_Covered.intervals.bed
 	;;
 "Agilent_50_Mb_V5_with_extra_content" )
-	baitsfile=${humanGenomeDir}/ExonCapture/morgan.exomeplus.v5.padded.bed
+	baitsfile=${humanGenomeDir}/ExonCapture/morgan.exomeplus.v5.padded.intervals.bed
 	;;
 "Agilent_50_Mb_v3_with_extra_content" )
-	baitsfile=${humanGenomeDir}/ExonCapture/morgan.exomeplus.v3.padded.bed
+	baitsfile=${humanGenomeDir}/ExonCapture/morgan.exomeplus.v3.padded.intervals.bed
 	;;
 * )
 	echo "Cannot recognize exome capture kit"

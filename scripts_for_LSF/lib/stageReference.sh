@@ -155,6 +155,7 @@ case "$option" in
 # Download reference sequences for human
 "CalculateHsMetrics.human" | \
 "MergeBamAlignment.human" | \
+"CollectWgsMetrics.human" | \
 "CalculateAlnMetrics.human" | \
 "InsertSize.human" | \
 "CollectRNASeqMetrics.human" | \

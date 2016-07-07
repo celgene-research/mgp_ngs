@@ -48,6 +48,9 @@ function setLogging(){
 	export NGS_LOG_DIR=$(echo $NGS_LOG_DIR | sed 's|//|/|g' )
 	mkdir -p $NGS_LOG_DIR
 	echo "Logging: Created directory $NGS_LOG_DIR" 1>&2
+	if [ -z "$LSB_ERRORFILE" ] ; then
+		export LSB_ERRORFILE=${NGS_LOG_DIR}/${LSB_JOBID}.stderr
+	fi
 	export MASTER_LOGFILE=${NGS_LOG_DIR}/$( basename $LSB_ERRORFILE | sed 's/bsub.stderr/log/' )
 	export STAGEFILE_LOGFILE=${MASTER_LOGFILE}
 	export CELGENE_EXEC_LOGFILE=${MASTER_LOGFILE}
@@ -61,7 +64,7 @@ function setLogging(){
 	echo "Logging: desired queue for this job is $queue_name" 1>&2
 	echo "Logging: max CPU for this queue is set to ${queueCores[$queue_name]}"  1>&2
 	echo "Logging: max memory (MB) for this queue is set to ${queueMem[$queue_name]}" 1>&2 
-	echo "Logging: Instance type is "$( curl http://169.254.169.254/latest/meta-data/instance-type ) 1>&2
+	echo "Logging: Instance type is "$( curl http://169.254.169.254/latest/meta-data/instance-type 2>/dev/null ) 1>&2
 	echo "Logging: Node available disk space "	1>&2
 	df -h  1>&2
 }
@@ -240,7 +243,9 @@ echo "#BSUB -E \"$scriptDir/../lib/stageReference.sh $step\""
 echo "#BSUB -q \"${queue_name}\""
 echo "#BSUB -n $cores"
 echo "#BSUB -R \"span[ptile=$cores] rusage[mem=$mem]\" "
-
+echo "scriptDir=$( dirname $0 ); source $scriptDir/../lib/shared.sh"
+echo "trap closeJob EXIT SIGTERM"
+echo "set -e"
 echo "export suffix=${suffix}"
 }
 
@@ -328,8 +333,11 @@ function initiateJob(){
 	
 	da=$( getDataAssets $filename  )
 	getQueue $step 
-	setLogging $stem $step $da
-	setTemp $step				
+
+	if [ -n "${LSB_JOBID}" ] ;  then 
+	  setLogging $stem $step $da
+	  setTemp $step			
+	fi	
 	
 	# get the size of the file
 	filesize=$(aws s3 ls $filename | cut -d ' ' -f3)
@@ -338,7 +346,7 @@ function initiateJob(){
 	echo -n "Starting job at " 
 	date
 	echo "on host " $(hostname)
-	if [ -e $LSB_ERRORFILE ] ;then
+	if [ -f $LSB_ERRORFILE ] ;then
 		rm -f $LSB_ERRORFILE
 	
 	fi
