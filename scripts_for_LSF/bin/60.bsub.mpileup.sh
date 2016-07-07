@@ -33,7 +33,7 @@ outputDirectory=\$( setOutput \$inputBam $step )
 
 
 analyze() {
-$samtoolsbin mpileup -r $1 -f $ref \${inputBam}  |  gzip > \${outputDirectory}/\$1.pileup.gz ; echo \"Output in \${outputDirectory}/\$1.seqz.gz\"
+$samtoolsbin mpileup -r \$1 -f $ref \${inputBam}  |  gzip > \${outputDirectory}/\$1.pileup.gz ; echo \"Output in \${outputDirectory}/\$1.seqz.gz\"
 }
 export -f analyze
 export inputBam
@@ -46,15 +46,12 @@ celgeneExec.pl \
  --metadatastring analyze='\$samtoolsbin mpileup -r $1 -f $ref \${inputBam}  |  gzip > \${outputDirectory}/\$1.pileup.gz ; echo \"Output in \${outputDirectory}/\$1.seqz.gz\"' \
  --analysistask=$step \"\
 parallel -j${cores} analyze chr{} :::  {1..22} X Y ; \
-gunzip -c \${outputDirectory}/chr{{1..22},{X,Y}}.seqz.gz | $bgzipbin > \${outputDirectory}/${stem}.mpileup.gz ; \
-rm \${outputDirectory}/chr{{1..22},{X,Y}}.seqz.gz ; \
-$tabixbin -s 1 -e 2 -b 2 \${outputDirectory}/${stem}.mpileup.gz \
+gunzip -c \${outputDirectory}/chr{{1..22},{X,Y}}.pileup.gz | $bgzipbin > \${outputDirectory}/${stem}.pileup.gz ; \
+rm \${outputDirectory}/chr{{1..22},{X,Y}}.pileup.gz ; \
+$tabixbin -s 1 -e 2 -b 2 \${outputDirectory}/${stem}.pileup.gz \
 \"
 
 
-celgeneExec.pl --analysistask=$step \"\
-$samtoolsbin mpileup  -f $ref \$inputBam | gzip > \${outputDirectory}/${stem}.pileup.gz\
-\"
 
 if [ \$? != 0 ] ; then
 	echo "Failed to execute command"
