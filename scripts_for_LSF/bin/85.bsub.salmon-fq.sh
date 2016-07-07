@@ -73,7 +73,7 @@ outputDirectory=\$( setOutput \$input1 ${step}-transcriptCountsFastq )
 
 celgeneExec.pl --analysistask ${analysistask} \"\
 $salmonbin quant -i \${transcriptsIndex} \
-  --libType '$library' \
+  --libType '\$library' \
   \$readCmd \
   --output \${outputDirectory}/$stem.$step.salmon \
   --threads $cores --useVBOpt\
