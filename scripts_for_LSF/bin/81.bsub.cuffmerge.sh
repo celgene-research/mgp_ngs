@@ -44,7 +44,6 @@ echo \
 #$Date: 2015-06-01 18:05:20 -0700 (Mon, 01 Jun 2015) $ $Revision: 1528 $
 
 source $scriptDir/../lib/shared.sh 
-set -e
 initiateJob $stem $step $1
 
 

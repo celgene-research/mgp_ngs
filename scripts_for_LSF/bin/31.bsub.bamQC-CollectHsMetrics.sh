@@ -75,10 +75,10 @@ case  "${exomeSet}" in
 	baitsfile=${humanGenomeDir}/ExonCapture/S07604624_Covered.intervals.bed
 	;;
 "Agilent_50_Mb_V5_with_extra_content" )
-	baitsfile=${humanGenomeDir}/ExonCapture/morgan.exomeplus.v5.padded.bed
+	baitsfile=${humanGenomeDir}/ExonCapture/morgan.exomeplus.v5.padded.intervals.bed
 	;;
 "Agilent_50_Mb_v3_with_extra_content" )
-	baitsfile=${humanGenomeDir}/ExonCapture/morgan.exomeplus.v3.padded.bed
+	baitsfile=${humanGenomeDir}/ExonCapture/morgan.exomeplus.v3.padded.intervals.bed
 	;;
 * )
 	echo "Cannot recognize exome capture kit"
@@ -100,7 +100,6 @@ echo \
 
 #$Date: 2015-09-17 17:46:09 -0700 (Thu, 17 Sep 2015) $ $Revision: 1651 $
 source $scriptDir/../lib/shared.sh 
-set -e
 initiateJob $stem $step $1
 
 input=\$( stage.pl --operation out --type file  $input )
@@ -148,7 +147,7 @@ fi
 
 closeJob
 
-" > ${stem}.${step}.${suffix}.bsub
+" > ${stem}.${step}.$( getStdSuffix ).bsub
 
-bsub < ${stem}.${step}.${suffix}.bsub
+bsub < ${stem}.${step}.$( getStdSuffix ).bsub
 

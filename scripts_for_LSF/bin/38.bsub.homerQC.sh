@@ -26,7 +26,6 @@ echo "$header
 
 #$Date: 2015-10-16 16:10:53 -0700 (Fri, 16 Oct 2015) $ $Revision: 1722 $
 source $scriptDir/../lib/shared.sh 
-set -e
 initiateJob $stem $step $1
 
 inputBAM=\$( stage.pl --operation out --type file  $inputBAM )
@@ -64,8 +63,8 @@ fi
 rm -rf \${outputDirectory} 
 
 closeJob
-" > ${stem}.${step}.${suffix}.bsub
+" > ${stem}.${step}.$( getStdSuffix ).bsub
 
-bsub < ${stem}.${step}.${suffix}.bsub
+bsub < ${stem}.${step}.$( getStdSuffix ).bsub
 #rm $$.tmp
 

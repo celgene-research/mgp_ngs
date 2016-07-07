@@ -22,7 +22,6 @@ echo \
 
 #$Date: 2015-08-14 13:02:55 -0700 (Fri, 14 Aug 2015) $ $Revision: 1624 $
 source $scriptDir/../lib/shared.sh 
-set -e
 initiateJob $stem $step $1
 
 input=\$( stage.pl --operation out --type file  $input )
@@ -63,8 +62,8 @@ fi
 
 closeJob
 
-" > ${stem}.${step}.${suffix}.bsub
+" > ${stem}.${step}.$( getStdSuffix ).bsub
 
-bsub < ${stem}.${step}.${suffix}.bsub
+bsub < ${stem}.${step}.$( getStdSuffix ).bsub
 #rm $$.tmp
 

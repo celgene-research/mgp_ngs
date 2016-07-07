@@ -3,9 +3,7 @@ scriptDir=$( dirname $0 ); source $scriptDir/../lib/shared.sh
 inputBam=$1 # this is the normal
 inputBamTumor=$2
 
-echo "This script uses the home brew script run_sequenza.R "
-echo "to run sequenza"
-echo "Inputs are the normal, tumor bam files"
+echo "This script uses GNU paralled to create the seqz files"
 echo "in this version only human is assumed"
 
 analysistask=56
@@ -42,17 +40,34 @@ inputIdxTumor=\$(stage.pl --operation out --type file  $inputIdxTumor)
 
 outputDirectory=\$( setOutput \$inputBamTumor $step )
 
+analyze() {
+  /celgene/software/sequenza/sequenza-2.1.2/sequenza/exec/sequenza-utils.py bam2seqz -n \${inputBam} -t \${inputBamTumor} -F ${ref} -gc ${gcfile} -C \$1 |  gzip > \${outputDirectory}/\$1.seqz.gz ; echo \"Output in \${outputDirectory}/\$1.seqz.gz\"
+}
+export -f analyze
+export inputBam
+export inputBamTumor
+export outputDirectory
 
 
-celgeneExec.pl --analysistask=$step \"\
-$sequenzabin -n \${inputBam} -t \${inputBamTumor} -o \${outputDirectory}.qcstats -G ${gcfile} -F ${ref} -c $cores \
+celgeneExec.pl \
+ -o \${outputDirectory}/${stem}.seqz.gz \
+ -D \${inputBam},\${inputBamTumor} \
+ --metadatastring analyze='/celgene/software/sequenza/sequenza-2.1.2/sequenza/exec/sequenza-utils.py bam2seqz -n \${inputBam} -t \${inputBamTumor} -F ${ref} -gc ${gcfile} -C \$1 | gzip > \${outputDirectory}/\$1.seqz.gz'\
+ --analysistask=$step \"\
+parallel -j${cores} analyze chr{} :::  {1..22} X Y ; \
+gunzip -c \${outputDirectory}/chr{{1..22},{X,Y}}.seqz.gz | gzip > \${outputDirectory}/${stem}.seqz.gz ; \
+rm \${outputDirectory}/chr{{1..22},{X,Y}}.seqz.gz \
 \"
+
+#celgeneExec.pl --analysistask=$step \"\
+#$sequenzabin -n \${inputBam} -t \${inputBamTumor} -o \${outputDirectory}.qcstats -G ${gcfile} -F ${ref} -c $cores \
+#\"
 
 if [ \$? != 0 ] ; then
 	echo "Failed to execute command"
 	exit 1
 fi 
-ingestDirectory \${outputDirectory}.qcstats
+ingestDirectory \${outputDirectory}
 if [ \$? != 0 ] ; then
 	echo "Failed to ingest data"
 	exit 1

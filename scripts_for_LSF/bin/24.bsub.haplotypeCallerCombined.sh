@@ -41,7 +41,6 @@ echo \
 source $scriptDir/../lib/shared.sh
 
 initiateJob $stem $step $1
-set -e
 
 genomeDatabase=$genomeDatabase
 genomeIndex=$genomeIndex
@@ -101,8 +100,8 @@ if [ \$? != 0 ] ; then
 fi 
 
 closeJob
-"> ${stem}.${step}.${suffix}.bsub
+"> ${stem}.${step}.$( getStdSuffix ).bsub
 
-bsub < ${stem}.${step}.${suffix}.bsub
+bsub < ${stem}.${step}.$( getStdSuffix ).bsub
 #rm $$.tmp
 

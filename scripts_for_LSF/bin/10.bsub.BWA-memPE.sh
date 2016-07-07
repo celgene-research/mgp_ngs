@@ -66,7 +66,6 @@ echo \
 #$Date: 2015-06-01 18:02:35 -0700 (Mon, 01 Jun 2015) $ $Revision: 1524 $
 
 source $scriptDir/../lib/shared.sh 
-set -e
 initiateJob $stem $step $1
 
 
@@ -92,7 +91,7 @@ fi
 
 outputDirectory=\$( setOutput \$input1 ${step}-bamfiles )
 
-"> ${stem}.${step}.${suffix}.bsub
+"> ${stem}.${step}.$( getStdSuffix ).bsub
 
 
 
@@ -102,23 +101,23 @@ celgeneExec.pl --analysistask ${analysistask} \"\
 $bwabin mem \
   -t $cores \
   -R '@RG\tID:$stem\tSM:$stem\tPL:ILLUMINA\tLB:$stem\tPU:$stem' \
-  -M \$genomeDatabase/genome.fa  " >> ${stem}.${step}.${suffix}.bsub
+  -M \$genomeDatabase/genome.fa  " >> ${stem}.${step}.$( getStdSuffix ).bsub
 if [ "$paired_end" == "1" ]; then
-echo -n " \$input1 \$input2 " >>  ${stem}.${step}.${suffix}.bsub
+echo -n " \$input1 \$input2 " >>  ${stem}.${step}.$( getStdSuffix ).bsub
 else
-echo -n " \$input1 " >>  ${stem}.${step}.${suffix}.bsub
+echo -n " \$input1 " >>  ${stem}.${step}.$( getStdSuffix ).bsub
 fi
 
 
 if [ "$refdatabase" == "1" ] ;then
-echo -n " -a | $filterBamAlnQuality --input - --output - --stats \${outputDirectory}/${stem}.qcstats " >> ${stem}.${step}.${suffix}.bsub
+echo -n " -a | $filterBamAlnQuality --input - --output - --stats \${outputDirectory}/${stem}.qcstats " >> ${stem}.${step}.$( getStdSuffix ).bsub
 fi
 echo -n " | $samtoolsbin view -Sbh -F 4 - > \${outputDirectory}/${stem}.bam ; \
-$samtoolsbin sort -@ $cores -m 1G \${outputDirectory}/${stem}.bam  \${outputDirectory}/${stem}.coord ; \
+$samtoolsbin sort -@ $cores -m 1G -o \${outputDirectory}/${stem}.coord.bam \${outputDirectory}/${stem}.bam ; \
 $samtoolsbin index  \${outputDirectory}/${stem}.coord.bam ; mv \${outputDirectory}/${stem}.coord.bam.bai \${outputDirectory}/${stem}.coord.bai ; \
-$samtoolsbin sort -n -@ $cores -m 1G \${outputDirectory}/${stem}.bam  \${outputDirectory}/${stem}.name ; \
+$samtoolsbin sort -n -@ $cores -m 1G -o \${outputDirectory}/${stem}.name.bam \${outputDirectory}/${stem}.bam ; \
 rm \${outputDirectory}/${stem}.bam \"\
-">> ${stem}.${step}.${suffix}.bsub
+">> ${stem}.${step}.$( getStdSuffix ).bsub
 
 
 
@@ -132,6 +131,6 @@ fi
 
 
 closeJob
-">> ${stem}.${step}.${suffix}.bsub
+">> ${stem}.${step}.$( getStdSuffix ).bsub
 
-bsub < ${stem}.${step}.${suffix}.bsub
+bsub < ${stem}.${step}.$( getStdSuffix ).bsub

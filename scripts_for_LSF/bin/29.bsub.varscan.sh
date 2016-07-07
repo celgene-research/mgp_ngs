@@ -30,7 +30,6 @@ echo \
 source $scriptDir/../lib/shared.sh
 
 initiateJob $stem $step $1
-set -e
 
 input=\$( stage.pl --operation out --type file  $input )
 index=\$( stage.pl --operation out --type file  $index )
@@ -76,8 +75,8 @@ fi
 closeJob
 
 
-"> ${stem}.${step}.${suffix}.bsub
+"> ${stem}.${step}.$( getStdSuffix ).bsub
 
-bsub < ${stem}.${step}.${suffix}.bsub
+bsub < ${stem}.${step}.$( getStdSuffix ).bsub
 #rm $$.tmp
 

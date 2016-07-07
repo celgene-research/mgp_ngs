@@ -19,17 +19,17 @@ queueCores["normal"]=16
 queueCores["bigdisk"]=8
 queueCores["bigmem"]=8
 queueCores["hugemem"]=16
-queueCores["small"]=8
+queueCores["small"]=16
 queueMem["normal"]=30
 queueMem["bigdisk"]=61
 queueMem["bigmem"]=61
 queueMem["hugemem"]=122
-queueMem["small"]=14
+queueMem["small"]=61
 queueDisk["normal"]=320
 queueDisk["bigdisk"]=1600
 queueDisk["bigmem"]=160
 queueDisk["hugemem"]=320
-queueDisk["small"]=160
+queueDisk["small"]=320
 
 
 function setLogging(){
@@ -48,19 +48,25 @@ function setLogging(){
 	export NGS_LOG_DIR=$(echo $NGS_LOG_DIR | sed 's|//|/|g' )
 	mkdir -p $NGS_LOG_DIR
 	echo "Logging: Created directory $NGS_LOG_DIR" 1>&2
-	export MASTER_LOGFILE=${NGS_LOG_DIR}/${stem}.${step}.log
+	if [ -z "$LSB_ERRORFILE" ] ; then
+		export LSB_ERRORFILE=${NGS_LOG_DIR}/${LSB_JOBID}.stderr
+	fi
+	export MASTER_LOGFILE=${NGS_LOG_DIR}/$( basename $LSB_ERRORFILE | sed 's/bsub.stderr/log/' )
 	export STAGEFILE_LOGFILE=${MASTER_LOGFILE}
 	export CELGENE_EXEC_LOGFILE=${MASTER_LOGFILE}
 	if [ -e $CELGENE_EXEC_LOGFILE ] ; then
 			rm -f $CELGENE_EXEC_LOGFILE	
 	fi
+	echo "Logging: Log directory is set to : " $NGS_LOG_DIR  1>&2
 	echo "Logging: Master log file is set to $MASTER_LOGFILE" 1>&2
 	echo "Logging: Stage file is set to $STAGEFILE_LOGFILE" 1>&2
 	echo "Logging: CelgeneExec log file is set to $CELGENE_EXEC_LOGFILE" 1>&2
-	echo "Logging: desired queue for this job is $queue_name"
-	echo "Logging: max CPU for this queue is set to ${queueCores[$queue_name]}"
-	echo "Logging: max memory (MB) for this queue is set to ${queueMem[$queue_name]}" 
-	echo $NGS_LOG_DIR
+	echo "Logging: desired queue for this job is $queue_name" 1>&2
+	echo "Logging: max CPU for this queue is set to ${queueCores[$queue_name]}"  1>&2
+	echo "Logging: max memory (MB) for this queue is set to ${queueMem[$queue_name]}" 1>&2 
+	echo "Logging: Instance type is "$( curl http://169.254.169.254/latest/meta-data/instance-type 2>/dev/null ) 1>&2
+	echo "Logging: Node available disk space "	1>&2
+	df -h  1>&2
 }
 
 function checkfile(){
@@ -131,7 +137,7 @@ function getQueue(){
 
 	
 	queues["ExtractFastqBed"]="bigdisk"
-	queues["ExtractFastq"]="bigdisk"
+	queues["ExtractFastq"]="normal"
 	queues["GATK.GenotypeGVCFs"]="bigdisk"
 	queues["GATK.VariantRecalibration"]="bigdisk"
 	queues["mpileup"]="bigdisk"
@@ -237,7 +243,9 @@ echo "#BSUB -E \"$scriptDir/../lib/stageReference.sh $step\""
 echo "#BSUB -q \"${queue_name}\""
 echo "#BSUB -n $cores"
 echo "#BSUB -R \"span[ptile=$cores] rusage[mem=$mem]\" "
-
+echo "scriptDir=$( dirname $0 ); source $scriptDir/../lib/shared.sh"
+echo "trap closeJob EXIT SIGTERM"
+echo "set -e"
 echo "export suffix=${suffix}"
 }
 
@@ -325,8 +333,11 @@ function initiateJob(){
 	
 	da=$( getDataAssets $filename  )
 	getQueue $step 
-	setLogging $stem $step $da
-	setTemp $step				
+
+	if [ -n "${LSB_JOBID}" ] ;  then 
+	  setLogging $stem $step $da
+	  setTemp $step			
+	fi	
 	
 	# get the size of the file
 	filesize=$(aws s3 ls $filename | cut -d ' ' -f3)
@@ -335,12 +346,11 @@ function initiateJob(){
 	echo -n "Starting job at " 
 	date
 	echo "on host " $(hostname)
-	if [ -e $LSB_ERRORFILE ] ;then
+	if [ -f $LSB_ERRORFILE ] ;then
 		rm -f $LSB_ERRORFILE
 	
 	fi
-	
-	
+		
 	#echo "initiateJob: Setting environment for this job" 2>&1
 	#echo "stem=$step, step=$step, filename=$filename" 2>&1
 	#echo "da=$da, queue=$queue_name" 2>&1
