@@ -54,14 +54,18 @@ source $scriptDir/../lib/shared.sh
 initiateJob $stem $step $1
 
 input1=\$( stage.pl --operation out --type file  $input1 )
+input1unz=\$( echo \$input1 | sed 's/.gz//' )
 
 if [ \"$paired_end\" == \"1\" ]; then
 	library="ISR"
 	input2=\$( stage.pl --operation out --type file  $input2 )
-	readCmd=\"-1 <(gunzip -c \$input1) -2 <(gunzip -c \$input2)\"
+	input2unz=\$( echo \$input2 | sed 's/.gz//' )
+	unzipCmd=\"$pigzbin -d \$input1 ; $pigzbin -d $input2 \"
+	readCmd=\"-1 \$input1unz -2 \$input2unz\"
 else
 	library="IU"
-	readCmd=\"-r <(gunzip -c \$input1) \"
+	unzipCmd=\"$pigzbin -d \$input1 \"
+	readCmd=\"-r \$input1unz \"
 fi
 
 
@@ -71,6 +75,7 @@ outputDirectory=\$( setOutput \$input1 ${step}-transcriptCountsFastq )
 # no_bias_correct is used to avoid core dumps that happen frequently
 
 celgeneExec.pl --analysistask ${analysistask} \"\
+
 $salmonbin quant -i ${transcriptsIndex} \
   --libType '\$library' \
   \$readCmd \
