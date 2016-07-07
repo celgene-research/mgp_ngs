@@ -178,9 +178,9 @@ $starbin \
  --quantMode TranscriptomeSAM GeneCounts --quantTranscriptomeBan Singleend \
  --outTmpDir \${outputDirectory}/TMP/ |\
 $samtoolsbin view -bSh - > \${outputDirectory}/${stem}Aligned.out.bam ; \
-$samtoolsbin sort -@ $cores -m 1G \${outputDirectory}/${stem}Aligned.out.bam  \${outputDirectory}/${stem}.coord ; \
+$samtoolsbin sort -@ $cores -m 1G -o  \${outputDirectory}/${stem}.coord.bam \${outputDirectory}/${stem}Aligned.out.bam ; \
 $samtoolsbin index  \${outputDirectory}/${stem}.coord.bam ; mv \${outputDirectory}/${stem}.coord.bam.bai \${outputDirectory}/${stem}.coord.bai ; \
-$samtoolsbin sort -n -@ $cores -m 1G \${outputDirectory}/${stem}Aligned.out.bam  \${outputDirectory}/${stem}.name \"
+$samtoolsbin sort -n -@ $cores -m 1G -o \${outputDirectory}/${stem}.name.bam \${outputDirectory}/${stem}Aligned.out.bam   \"
 
 if [ \$? != 0 ] ; then
 	echo "Failed to run command"
