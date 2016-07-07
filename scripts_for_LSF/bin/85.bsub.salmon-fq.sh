@@ -37,7 +37,7 @@ paired_end=$(ngs-sampleInfo.pl $input1 paired_end)
 
 transcriptsIndex=${ humansalmonidx }
 
-# end of command arguments
+# end humansalmonidxof command arguments
 ##########################
 
 cores=$(fullcores)
@@ -53,7 +53,6 @@ echo \
 source $scriptDir/../lib/shared.sh 
 initiateJob $stem $step $1
 
-transcriptsIndex=$transcriptsIndex
 input1=\$( stage.pl --operation out --type file  $input1 )
 
 if [ \"$paired_end\"== \"1\" ]; then
@@ -72,7 +71,7 @@ outputDirectory=\$( setOutput \$input1 ${step}-transcriptCountsFastq )
 # no_bias_correct is used to avoid core dumps that happen frequently
 
 celgeneExec.pl --analysistask ${analysistask} \"\
-$salmonbin quant -i \${transcriptsIndex} \
+$salmonbin quant -i ${transcriptsIndex} \
   --libType '\$library' \
   \$readCmd \
   --output \${outputDirectory}/$stem.$step.salmon \

@@ -133,7 +133,6 @@ header=$(bsubHeader $stem $step $memory $cores)
 echo \
 "$header
 
-#BSUB -E \"$scriptDir/../lib/stageReference.sh $step\"
 #$Date: 2015-08-14 13:02:55 -0700 (Fri, 14 Aug 2015) $ $Revision: 1624 $
 source $scriptDir/../lib/shared.sh 
 initiateJob $stem $step $1

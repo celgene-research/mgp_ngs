@@ -334,10 +334,9 @@ function initiateJob(){
 	da=$( getDataAssets $filename  )
 	getQueue $step 
 
-	if [ -n "${LSB_JOBID}" ] ;  then 
+
 	  setLogging $stem $step $da
 	  setTemp $step			
-	fi	
 	
 	# get the size of the file
 	filesize=$(aws s3 ls $filename | cut -d ' ' -f3)

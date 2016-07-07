@@ -33,7 +33,7 @@ outputDirectory=\$( setOutput \$inputBam $step )
 
 
 analyze() {
-$samtoolsbin mpileup -f $ref \${inputBam}  |  gzip > \${outputDirectory}/\$1.pileup.gz ; echo \"Output in \${outputDirectory}/\$1.seqz.gz\"
+$samtoolsbin mpileup -r $1 -f $ref \${inputBam}  |  gzip > \${outputDirectory}/\$1.pileup.gz ; echo \"Output in \${outputDirectory}/\$1.seqz.gz\"
 }
 export -f analyze
 export inputBam
@@ -43,7 +43,7 @@ export outputDirectory
 celgeneExec.pl \
 -o \${outputDirectory}/${stem}.pileup.gz \
  -D \${inputBam} \
- --metadatastring analyze='\$samtoolsbin mpileup -f $ref \${inputBam}  |  gzip > \${outputDirectory}/\$1.pileup.gz ; echo \"Output in \${outputDirectory}/\$1.seqz.gz\"' \
+ --metadatastring analyze='\$samtoolsbin mpileup -r $1 -f $ref \${inputBam}  |  gzip > \${outputDirectory}/\$1.pileup.gz ; echo \"Output in \${outputDirectory}/\$1.seqz.gz\"' \
  --analysistask=$step \"\
 parallel -j${cores} analyze chr{} :::  {1..22} X Y ; \
 gunzip -c \${outputDirectory}/chr{{1..22},{X,Y}}.seqz.gz | $bgzipbin > \${outputDirectory}/${stem}.mpileup.gz ; \
