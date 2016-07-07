@@ -21,7 +21,7 @@ initiateJob $stem $step $1
 
 
 paired_end=$(ngs-sampleInfo.pl $input1 paired_end)
-
+stranded=$(ngs-sampleInfo.pl $input1 stranded)
 # the library type for salmon (per http://sailfish.readthedocs.org/en/latest/salmon.html)
 #first part
 #I = inward
@@ -55,27 +55,33 @@ initiateJob $stem $step $1
 
 input1=\$( stage.pl --operation out --type file  $input1 )
 input1unz=\$( echo \$input1 | sed 's/.gz//' )
-
+library=\"\"
 if [ \"$paired_end\" == \"1\" ]; then
-	library="ISR"
+	library=\"I\"
 	input2=\$( stage.pl --operation out --type file  $input2 )
 	input2unz=\$( echo \$input2 | sed 's/.gz//' )
-	unzipCmd=\"$pigzbin -d \$input1 ; $pigzbin -d $input2 \"
-	readCmd=\"-1 \$input1unz -2 \$input2unz\"
+	unzipCmd=\"$pigzbin -d \$input1 ; $pigzbin -d \$input2 \"
+	readCmd=\"-1 <(gunzip -c\$input1) -2 <(gunzip -c \$input2)\"
 else
-	library="IU"
+	library="\I\"
 	unzipCmd=\"$pigzbin -d \$input1 \"
-	readCmd=\"-r \$input1unz \"
+	readCmd=\"-r <(gunzip -c \$input1) \"
 fi
-
-
+if [ \"$stranded\" == \"REVERSE\" ]; then
+	library=\$library\"SR\"
+fi
+if [ \"$stranded\" == \"NONE\" ]; then
+	library=\$library"\U\"
+fi
+if [ \"$stranded\" == \"FORWARD\" ]; then
+	library=\$library"\SF\"
+fi
 
 outputDirectory=\$( setOutput \$input1 ${step}-transcriptCountsFastq )
 
 # no_bias_correct is used to avoid core dumps that happen frequently
-
+#\$unzipCmd ; \
 celgeneExec.pl --analysistask ${analysistask} \"\
-
 $salmonbin quant -i ${transcriptsIndex} \
   --libType '\$library' \
   \$readCmd \
