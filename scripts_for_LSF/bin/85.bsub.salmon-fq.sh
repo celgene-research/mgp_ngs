@@ -46,8 +46,7 @@ header=$(bsubHeader $stem $step $memory $cores)
 echo \
 "$header
 
-set +e # specifically used for salmon which dumps a core after it finishes
-ulimit -c 0
+
 
 input1=\$( stage.pl --operation out --type file  $input1 )
 #input1unz=\$( echo \$input1 | sed 's/.gz//' )
@@ -78,7 +77,8 @@ outputDirectory=\$( setOutput \$input1 ${step}-transcriptCountsFastq )
 # no_bias_correct is used to avoid core dumps that happen frequently
 #\$unzipCmd ; \
 
-
+set +e # specifically used for salmon which dumps a core after it finishes
+ulimit -c 0
 celgeneExec.pl --analysistask ${analysistask} \"\
 $salmonbin quant -i ${transcriptsIndex} \
   --libType '\$library' \
