@@ -46,7 +46,7 @@ header=$(bsubHeader $stem $step $memory $cores)
 echo \
 "$header
 
-
+initiateJob $stem $step $1
 
 input1=\$( stage.pl --operation out --type file  $input1 )
 #input1unz=\$( echo \$input1 | sed 's/.gz//' )
