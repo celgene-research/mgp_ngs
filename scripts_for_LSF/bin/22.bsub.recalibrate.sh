@@ -11,15 +11,15 @@ stem=$( fileStem $input )
 
 initiateJob $stem $step $1
 output=${stem}.${step}.bam
-cores=2 # although this process requires only one core we use two in order to make it lighter for I/O
-
+cores=$(fullcores) # although this process requires only one core we use two in order to make it lighter for I/O and make sure there is enough memory
+memory=$(fullmemory)
 genomeDatabase=${humanGenomeDir}/genome.fa
 genomeIndex=$(echo $genomeDatabase | sed 's%.fa%.dict%') 
 genomeIndex2=${genomeDatabase}.fai
 knownMuts1=${dbsnp}
 knownMuts2=${mills}
 knownMuts3=${f1000g_phase1}
-memory=6000
+
 header=$(bsubHeader $stem $step $memory $cores)
 echo \
 "$header
