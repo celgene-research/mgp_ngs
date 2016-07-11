@@ -18,8 +18,8 @@ stem=$(fileStem $input)
 
 initiateJob $stem $step $1
 
-memory=8000
-cores=2
+memory=$(fullmemory)
+cores=$(fullcores)
 
 
 mkdir -p $NGS_LOG_DIR
@@ -46,7 +46,7 @@ celgeneExec.pl --analysistask ${analysistask} \"\
 $fastqcbin \
   --outdir \${outputDirectory}/tmp \
   --quiet --nogroup \
-  --threads 2 \
+  --threads $cores \
   --extract \
   --format fastq \${input} \${input2} ;\
 mv \${outputDirectory}/tmp \${output} \"
@@ -55,7 +55,7 @@ celgeneExec.pl --analysistask ${analysistask} \"\
 $fastqcbin \
   --outdir \${outputDirectory}/tmp \
   --quiet --nogroup \
-  --threads 2 \
+  --threads $cores \
   --extract \
   --format fastq \${input} ;\
 mv \${outputDirectory}/tmp \${output} \"
