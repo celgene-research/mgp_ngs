@@ -68,19 +68,21 @@ suppressMessages( library("sequenza"))
 # since the input seqz.gz is probably coming from parallel runs of sequenza
 # it is likely that it contains the header line in multiple placesi n the file while it should have been only in the first
 orig=seqfile
-command=sprintf("pigz -p %d -d -c %s | sed '/position/{2,$d}' | pigz -p %d -c > tmp.%s ",cores, orig, cores, orig);
+tmp1file=gsub( "seqz.gz", "tmp.seqz.gz",orig)
+command=sprintf("pigz -p %d -d -c %s | sed '/position/{2,$d}' | pigz -p %d -c > %s ",cores, orig, cores, tmp1file);
 message("Executing command: ",command);
 system( command, wait = TRUE )
 
 
 
 # for memory efficiency we can bin the sez file
-command2=sprintf("%s seqz-binning -w %d -s tmp.%s | pigz -p %d -c > binned.%s", Sys.getenv( "sequenzautilsbin" ), window, orig, cores, orig)
-seqfile=paste0("binned.",orig) 
+tmp2file=gsub( "seqz.gz","binned.seqz.gz",orig)
+command2=sprintf("%s seqz-binning -w %d -s %s | pigz -p %d -c > %s", Sys.getenv( "sequenzautilsbin" ), window, tmp1file, cores, tmp2file)
+
 message("Executing command: ",command2);
 system( command2, wait = TRUE )
 
-
+seqfile=tmp2file 
 # run the sequenza pipeline
 chromosomes=paste0('chr',c(seq(1,22),'X','Y') )
 test <- sequenza.extract(seqfile,chromosome.list = chromosomes)
@@ -90,8 +92,6 @@ CP.example <- sequenza.fit(test, mc.cores=cores)
 sequenza.results(sequenza.extract = test, cp.table = CP.example,
  sample.id = output, out.dir=output )
  
-file.remove( paste0("tmp.",orig),
-			 paste0("binned.",orig)
-			 )
+file.remove( tmp1file, tmp2file	 )
  
 	
