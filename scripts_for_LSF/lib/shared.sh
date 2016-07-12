@@ -339,7 +339,9 @@ function initiateJob(){
 	  setTemp $step			
 	
 	# get the size of the file
-	filesize=$(aws s3 ls $filename | cut -d ' ' -f3)
+	bname=$(basename $filename)
+	filesize=$(aws s3 ls $filename | grep ${bname}$ |  awk -v N=$3 '{print $3}' )
+#echo "Filesize for file $filename is $filesize"
 	filesize=$(( $filesize / 1000000000 ))
 	echo "###############################"
 	echo -n "Starting job at " 
