@@ -1,28 +1,23 @@
 #!/bin/bash
 scriptDir=$( dirname $0 ); source $scriptDir/../lib/shared.sh
-inputBam=$1 # this is the normal
-inputBamTumor=$2
+inputseqz=$1
 
 echo "This script uses the home brew script run_sequenza.R "
 echo "to run sequenza"
-echo "Inputs are the normal, tumor bam files"
+echo "Inputs is seq.gz file that is created previously"
 echo "in this version only human is assumed"
 
 analysistask=56
 
-stem=$(fileStem $inputBamTumor)
+stem=$(fileStem $inputseqz)
 
 step="Sequenza"
 step=${step}".human"
 initiateJob $stem $step $1
 
 
-ref=${humanGenomeDir}/genome.fa
-gcfile=${humanGenomeDir}/ExonCapture/hg19.gc50Base.txt.gz # this is the gc file for sequenza
-inputIdx=$(echo $inputBam| sed 's/bam$/bai/')
-inputIdxTumor=$(echo $inputBamTumor| sed 's/bam$/bai/')
 cores=$(fullcores) # they are used by the pileup section
-memory=5000
+memory=$(fullmemory)
 
 
 header=$(bsubHeader $stem $step $memory $cores)
@@ -34,25 +29,21 @@ source $scriptDir/../lib/shared.sh
 initiateJob $stem $step $1
 
 
-inputBam=\$(stage.pl --operation out --type file  $inputBam)
-inputIdx=\$(stage.pl --operation out --type file  $inputIdx)
+inputseqz=\$(stage.pl --operation out --type file  $inputseqz)
 
-inputBamTumor=\$(stage.pl --operation out --type file  $inputBamTumor)
-inputIdxTumor=\$(stage.pl --operation out --type file  $inputIdxTumor)
-
-outputDirectory=\$( setOutput \$inputBamTumor $step )
+outputDirectory=\$( dirname \$inputseqz )
 
 
 
 celgeneExec.pl --analysistask=$step \"\
-$sequenzabin -n \${inputBam} -t \${inputBamTumor} -o \${outputDirectory}.qcstats -G ${gcfile} -F ${ref} -c $cores \
+$sequenzabin -s \${inputseqz} -o \${outputDirectory}/${stem}.qcstats -c $cores -w 50  \
 \"
 
 if [ \$? != 0 ] ; then
 	echo "Failed to execute command"
 	exit 1
 fi 
-ingestDirectory \${outputDirectory}.qcstats
+ingestDirectory \${outputDirectory}/${stem}.qcstats yes
 if [ \$? != 0 ] ; then
 	echo "Failed to ingest data"
 	exit 1
