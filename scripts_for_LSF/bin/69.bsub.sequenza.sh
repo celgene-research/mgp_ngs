@@ -19,6 +19,8 @@ initiateJob $stem $step $1
 cores=$(fullcores) # they are used by the pileup section
 memory=$(fullmemory)
 
+# for WES datasets window is set to 50. For WGS it is better to change to 200
+window=50 
 
 header=$(bsubHeader $stem $step $memory $cores)
 echo \
@@ -36,7 +38,12 @@ outputDirectory=\$( dirname \$inputseqz )
 
 
 celgeneExec.pl --analysistask=$step \"\
-$sequenzabin -s \${inputseqz} -o \${outputDirectory}/${stem}.qcstats -c $cores -w 50  \
+$sequenzabin\
+ -s \${inputseqz}\
+ -o \${outputDirectory}/${stem}.qcstats\
+ -p $stem\
+ -c $cores\
+ -w $window  \
 \"
 
 if [ \$? != 0 ] ; then
