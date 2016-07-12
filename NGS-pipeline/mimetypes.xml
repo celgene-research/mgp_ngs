@@ -133,6 +133,7 @@ After updating this file make sure that is copied in the
 	        <glob pattern="*.htseq-count"/>
 	        <glob pattern="*.gene-count"/>
 	        <glob pattern="*.htseq"/>
+	        <glob pattern="*ReadsPerGene.out.tab"/>
 	        <sub-class-of type="text/plain"/>
 	</mime-type>
 	<mime-type type="text/exonreadcount">
