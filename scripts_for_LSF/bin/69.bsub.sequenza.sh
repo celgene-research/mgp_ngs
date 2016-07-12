@@ -50,7 +50,7 @@ if [ \$? != 0 ] ; then
 	echo "Failed to execute command"
 	exit 1
 fi 
-ingestDirectory \${outputDirectory}/${stem}.qcstats yes
+ingestDirectory \${outputDirectory} yes
 if [ \$? != 0 ] ; then
 	echo "Failed to ingest data"
 	exit 1
