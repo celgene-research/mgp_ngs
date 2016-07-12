@@ -13,8 +13,10 @@ suppressMessages( library("optparse", verbose=FALSE,quietly=TRUE) )
 option_list <- list(
 		make_option(c("-s", "--seqfile"), action="store",type="character",
 				dest="seqfile", help="Sequenza file of (typically .seqz)"),
-		make_option(c("-o", "--output"), action="store",type="character",
-				dest="output", help="Output of run"),
+		make_option(c("-o", "--outputdir"), action="store",type="character",
+				dest="outputdirectory", help="Output directory"),
+		make_option(c("-p", "--outputprefix"), action="store",type="character",
+				dest="outputprefix", help="Prefix for files stored in the output directory"),
 		make_option(c("-c", "--cores"), action="store",type="numeric",
 				dest="cores", help="Number of cores to use"),	
 		make_option(c("-w", "--window"), action="store",type="numeric",
@@ -31,7 +33,8 @@ seqfile=NULL
 
 
 seqfile=opt$seqfile
-output=opt$output
+output=opt$outputdirectory
+sampleid=opt$outputprefix
 cores=opt$cores
 window=opt$window
 if(is.null(seqfile)){
@@ -89,8 +92,9 @@ test <- sequenza.extract(seqfile,chromosome.list = chromosomes)
 
 CP.example <- sequenza.fit(test, mc.cores=cores)
 
+
 sequenza.results(sequenza.extract = test, cp.table = CP.example,
- sample.id = output, out.dir=output )
+ sample.id = sampleid, out.dir=output )
  
 file.remove( tmp1file, tmp2file	 )
  
