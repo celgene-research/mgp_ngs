@@ -172,6 +172,9 @@ case "$option" in
 	dispatch $humanChromosomesDirAWS $humanChromosomesDir
 	dispatch $humanGenomeDirAWS $humanGenomeDir
 ;;
+"manta.human" )
+	dispatch $humanGenomeDirAWS $humanGenomeDir
+;;
 # Download the reference variant dbs for human
 "human-variants" | \
 "Vannot" )
