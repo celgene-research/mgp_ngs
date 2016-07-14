@@ -46,7 +46,7 @@ inputsampleidx=\$( stage.pl --operation out --type file  \$inputsampleidx)
 if [ -n \"$inputcontrol\" ]; then
 	inputcontrolidx=\$( echo $inputcontrol | sed 's/bam$/bai/' ) 
 	inputcontrol=\$( stage.pl --operation out --type file  $inputcontrol)
-	inputcontrolidx=\$( stage.pl --operation out --type file  $inputcontrolidx)
+	inputcontrolidx=\$( stage.pl --operation out --type file  \$inputcontrolidx)
 	
 fi
 
