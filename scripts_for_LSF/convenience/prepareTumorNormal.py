@@ -23,6 +23,7 @@ parser.add_argument("-b","--bam",help="Directory that contains the bam files to 
 parser.add_argument("-n","--normal",help="String to be used to recognize the normal samples [normal]",type=str)
 parser.add_argument("-s","--script",help="Script with bsub job to call with the files in the bam directory",type=str)
 parser.add_argument("-o","--output",help="Output file that will store the commands to execute. This can be run using sh or bash [peak_run.sh]",type=str)
+parser.add_argument("-m","--mask",help="File mask to use to select files. That will be matched to the end of the file (e.g. coord.bam)",type=str)
 args=parser.parse_args()
 
 try: args.bam
@@ -47,8 +48,15 @@ except NameError:
 else:
     normal=args.normal 
 
-logging.info("Output file set to "+ outputFname + ".sh")
+try: args.mask
+except NameError: 
+    mask="coord.bam"
+else:
+    mask=args.mask 
 
+logging.info("Output file set to "+ outputFname + ".sh")
+logging.info("Normal annotation is set to "+normal)
+logging.info("File mask is set to "+mask)
 
 if bamDirectory is None:
     logging.fatal( "Please provide the directory with bam files" )
@@ -75,7 +83,7 @@ normalDict=defaultdict(list)
 counter=0
 
 files=os.listdir( bamDirectory , )
-regex=re.compile( 'coord.bam$')
+regex=re.compile( mask+'$')
 for f in files:
     full_path=os.path.join( bamDirectory, f)
     full_path=full_path.replace("/mnt/","s3://")
