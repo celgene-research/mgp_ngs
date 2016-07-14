@@ -40,9 +40,14 @@ echo \
 source $scriptDir/../lib/shared.sh 
 initiateJob $stem $step $1
 
+inputsampleidx=\$( echo $inputsample | sed 's/bam$/bai/' ) 
 inputsample=\$( stage.pl --operation out --type file  $inputsample)
+inputsampleidx=\$( stage.pl --operation out --type file  \$inputsampleidx)
 if [ -n \"$inputcontrol\" ]; then
+	inputcontrolidx=\$( echo $inputcontrol | sed 's/bam$/bai/' ) 
 	inputcontrol=\$( stage.pl --operation out --type file  $inputcontrol)
+	inputcontrolidx=\$( stage.pl --operation out --type file  $inputcontrolidx)
+	
 fi
 
 if [ \$inputsample == \"FAILED\" ]; then
@@ -53,7 +58,11 @@ outputDirectory=\$( setOutput \$inputsample ${step} )
 
 
 celgeneExec.pl --analysistask $analysistask \"\
-\$configmantabin\--normalBam \$inputcontrol --tumorBam \$inputsample --referenceFasta $reference --runDir \${outputDirectory}/$stem   \
+\$configmantabin \
+--normalBam \$inputcontrol \
+--tumorBam \$inputsample \
+--referenceFasta $reference \
+--runDir \${outputDirectory}/$stem \
 \"
 
 
