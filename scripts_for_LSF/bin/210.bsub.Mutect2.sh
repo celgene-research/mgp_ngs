@@ -24,16 +24,6 @@ source $scriptDir/../lib/shared.sh
 
 initiateJob $stem $step $1
 
-
-
-genomeDatabase=$genomeDatabase
-genomeIndex=$genomeIndex 
-genomeIndex2=$genomeIndex2
-knownMuts1=$knownMuts1
-if [ \$genomeDatabase == \"FAILED\" -o \$knownMuts1 == \"FAILED\" ] ; then
-	echo \"Could not transfer \$input\"
-	exit 1
-fi
 indexNormal=\$( echo $inputNormalBAM | sed 's/bam$/bai/' ) 
 indexNormal=\$( stage.pl --operation out  --type file \$indexNormal )
 inputNormalBAM=\$(stage.pl --operation out --type file  $inputNormalBAM )
@@ -53,8 +43,8 @@ java -Xmx${memory}m -jar ${gatkbin} \
 -R \${genomeDatabase} \
 -I:normal \${inputNormalBAM} \
 -I:tumor \${inputTumorBAM} \
---dbsnp \${knownMuts1} \
---cosmic \${ cosmicMuts1 }\
+--dbsnp ${dbsnp} \
+--cosmic ${ cosmiccoding }\
 --dontUseSoftClippedBases \
 --output_mode EMIT_VARIANTS_ONLY \
 -o \${outputDirectory}/${stem}.vcf \
