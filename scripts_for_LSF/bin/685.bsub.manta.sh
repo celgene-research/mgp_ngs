@@ -54,7 +54,7 @@ if [ \$inputsample == \"FAILED\" ]; then
 	echo \"Could not transfer \$inputsample\"
 	exit 1
 fi
-outputDirectory=\$( setOutput \$inputsample ${step} )
+outputDirectory=\$( setOutput \$inputsample ${step}.strvar )
 
 
 celgeneExec.pl --analysistask $analysistask \"\
