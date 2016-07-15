@@ -9,10 +9,8 @@ NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
 mkdir -p $NGS_LOG_DIR
 initiateJob $stem $step $1
 genomeDatabase=${humanGenomeDir}/genome.fa
-genomeIndex=$(echo $genomeDatabase | sed 's%.fa%.dict%') 
-genomeIndex2=${genomeDatabase}.fai
-knownMuts1=${dbsnp}
-cosmicMuts1=${cosmiccoding}
+
+
 memory=28000
 experimentType=$(ngs-sampleInfo.pl $inputNormalBAM experiment_type);
 cores=$(fullcores)
@@ -40,11 +38,11 @@ outputDirectory=\$( setOutput \$inputTumorBAM ${step} )
 celgeneExec.pl --analysistask $analysistask \"\
 java -Xmx${memory}m -jar ${gatkbin} \
 -T MuTect2 \
--R \${genomeDatabase} \
+-R ${genomeDatabase} \
 -I:normal \${inputNormalBAM} \
 -I:tumor \${inputTumorBAM} \
 --dbsnp ${dbsnp} \
---cosmic ${ cosmiccoding }\
+--cosmic ${cosmiccoding} \
 --dontUseSoftClippedBases \
 --output_mode EMIT_VARIANTS_ONLY \
 -o \${outputDirectory}/${stem}.vcf \
