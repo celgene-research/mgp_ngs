@@ -62,7 +62,9 @@ celgeneExec.pl --analysistask $analysistask \"\
 --normalBam \$inputcontrol \
 --tumorBam \$inputsample \
 --referenceFasta $reference \
---runDir \${outputDirectory}/$stem \
+--exome \
+--runDir \${outputDirectory}/$stem ;\
+\${outputDirectory}/$stem/runWorkflow.py -j $cores -m local \
 \"
 
 
