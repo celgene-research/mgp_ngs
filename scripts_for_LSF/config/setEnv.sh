@@ -41,10 +41,10 @@ if [ -n "$CELGENE_AWS" ] ; then
 	if [ "MMGP_AWS" == "true" -o "$FACTER_ENV" == "MMGP" ] ; then
 		NGS_SERVER_PORT=8082
 		# the script assumes a pool of 10 consecutive ports available
-		ip=$(hostname --ip-address)
-		sf=${ip: -1}
-		port= $(($NGS_SERVER_PORT+$port))
-		 NGS_SERVER_PORT=$port
+		#ip=$(hostname --ip-address)
+		#sf=${ip: -1}
+		#port= $(($NGS_SERVER_PORT+$port))
+		# NGS_SERVER_PORT=$port
 		 NGS_SERVER_IP=192.168.8.44
 		export OODT_FILEMGR_PORT=9000
 		export OODT_FILEMGR_IP=192.168.8.44

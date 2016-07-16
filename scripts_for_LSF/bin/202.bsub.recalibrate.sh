@@ -5,6 +5,10 @@ index=$(echo $input|sed 's/bam$/bai/');
 analysistask=93
 step="GATK.Recalibrate"
 
+# TODO:
+# one important note for WES data. We need to use the -L option to restrict the analysis of BQSR only in the target regions
+
+
 NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
 mkdir -p $NGS_LOG_DIR
 stem=$( fileStem $input )
