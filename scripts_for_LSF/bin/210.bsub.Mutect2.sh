@@ -46,8 +46,6 @@ java -Xmx${memory}m -jar ${gatkbin} \
 --dontUseSoftClippedBases \
 --output_mode EMIT_VARIANTS_ONLY \
 -o \${outputDirectory}/${stem}.vcf \
---bamOutput \${outputDirectory}/$stem.bam \
---bamWriterType ALL_POSSIBLE_HAPLOTYPES \
 -nct $cores \"
 if [ \$? != 0 ] ; then
 	echo \"Failed to run command\"

@@ -54,7 +54,7 @@ if [ \$inputsample == \"FAILED\" ]; then
 	echo \"Could not transfer \$inputsample\"
 	exit 1
 fi
-outputDirectory=\$( setOutput \$inputsample ${step}.strvar )
+outputDirectory=\$( setOutput \$inputsample ${step} )
 
 
 celgeneExec.pl --analysistask $analysistask \"\
@@ -63,11 +63,12 @@ celgeneExec.pl --analysistask $analysistask \"\
 --tumorBam \$inputsample \
 --referenceFasta $reference \
 --exome \
---runDir \${outputDirectory}/$stem ;\
-\${outputDirectory}/$stem/runWorkflow.py -j $cores -m local \
+--runDir \${outputDirectory}/$stem.strvar ; \
+\${outputDirectory}/$stem.strvar/runWorkflow.py -j $cores -m local \
 \"
 
-
+# remove the workspace directory with temporary and working copies.
+rm -rf \${outputDirectory}/$stem.strvar/workspace 
 if [ \$? != 0 ] ; then
 	echo "Failed to run command"
 	exit 1
