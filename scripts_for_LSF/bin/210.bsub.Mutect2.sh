@@ -11,7 +11,7 @@ mkdir -p $NGS_LOG_DIR
 initiateJob $stem $step $1
 genomeDatabase=${humanGenomeDir}/genome.fa
 
-exomeSet=$(ngs-sampleInfo.pl $input bait_set)
+exomeSet=$(ngs-sampleInfo.pl $inputTumorBAM bait_set)
 case  "${exomeSet}" in
 "Nextera_Rapid_Capture_v1.2_Illumina" )
 		baitsfile=${humanGenomeDir}/ExonCapture/nexterarapidcapture_exome_targetedregions_v1.2.intervals.bed
