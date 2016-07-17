@@ -85,7 +85,7 @@ outputDirectory=\$( setOutput \$inputTumorBAM ${step} )
 # finally run Mutect2
 	
 celgeneExec.pl --analysistask $analysistask \"\
-
+grep -v ^@ $baitsfile > \${outputDirectory}/intervals.bed ; \
 java -Xmx${memory}m -jar ${gatkbin} \
 -T MuTect2 \
 -R ${genomeDatabase} \
@@ -95,7 +95,7 @@ java -Xmx${memory}m -jar ${gatkbin} \
 --cosmic ${cosmiccoding} \
 --dontUseSoftClippedBases \
 --output_mode EMIT_VARIANTS_ONLY \
--L $captureKit  \
+-L \${outputDirectory}/intervals.bed \
 -o \${outputDirectory}/${stem}.vcf \
 -nct $cores \"
 if [ \$? != 0 ] ; then
