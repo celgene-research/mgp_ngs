@@ -3,13 +3,13 @@ scriptDir=$( dirname $0 ); source $scriptDir/../lib/shared.sh
 inputNormalBAM=$1
 inputTumorBAM=$2
 stem=$(fileStem $inputTumorBAM )
-step="GATK.Mutect2"
+step="GATK.ContEst"
 analysistask=94
-NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
-mkdir -p $NGS_LOG_DIR
+
 initiateJob $stem $step $1
+
 genomeDatabase=${humanGenomeDir}/genome.fa
-exomeSet=$(ngs-sampleInfo.pl $input bait_set)
+exomeSet=$(ngs-sampleInfo.pl $inputTumorBAM bait_set)
 case  "${exomeSet}" in
 "Nextera_Rapid_Capture_v1.2_Illumina" )
 		baitsfile=${humanGenomeDir}/ExonCapture/nexterarapidcapture_exome_targetedregions_v1.2.intervals.bed
@@ -83,18 +83,18 @@ outputDirectory=\$( setOutput \$inputTumorBAM ${step} )
 
 	
 celgeneExec.pl --analysistask $analysistask \"\
-$tabixbin ${hapmap_gatk} -R $captureKit | tr -s '\t' ':' > \${outputdirectory}/hapmap.intervals ; \
+$tabixbin $af_gatk -r $baitsfile | tr -s '\t' ':' > \${outputDirectory}/hapmap_onTarget.intervals ; \
 java -Xmx${memory}m -jar ${gatkbin} \
   -T ContEst \
   --precision 0.01 \
   -R  ${genomeDatabase} \
   -I:eval \${inputTumorBAM} \
   -I:genotype \${inputNormalBAM} \
-  --popfile ${hapmap_gatk} \
-  -L \${outputdirectory}/hapmap.intervals  \
+  --popfile ${af_gatk} \
+  -L \${outputdirectory}/hapmap_onTarget.intervals  \
   -isr INTERSECTION \
   --population ALL \
-  -o \${outputDirectory}/${stem}.contest.txt ; \
+  -o \${outputDirectory}/${stem}.contest.txt\
 \"
 if [ \$? != 0 ] ; then
 	echo \"Failed to run command\"
