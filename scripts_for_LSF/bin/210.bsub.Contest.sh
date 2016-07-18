@@ -68,7 +68,6 @@ echo \
 source $scriptDir/../lib/shared.sh
 
 initiateJob $stem $step $1
-
 indexNormal=\$( echo $inputNormalBAM | sed 's/bam$/bai/' ) 
 indexNormal=\$( stage.pl --operation out  --type file \$indexNormal )
 inputNormalBAM=\$(stage.pl --operation out --type file  $inputNormalBAM )
@@ -83,15 +82,17 @@ outputDirectory=\$( setOutput \$inputTumorBAM ${step} )
 
 	
 celgeneExec.pl --analysistask $analysistask \"\
-$tabixbin $af_gatk -r $baitsfile | tr -s '\t' ':' > \${outputDirectory}/hapmap_onTarget.intervals ; \
+grep -v ^@ $baitsfile > \${outputDirectory}/baits.bed ; \
+$tabixbin -h $af_gatk -R \${outputDirectory}/baits.bed  > \${outputDirectory}/hapmap_onTarget.vcf ; \
 java -Xmx${memory}m -jar ${gatkbin} \
   -T ContEst \
-  --precision 0.01 \
+  --precision 0.001 \
   -R  ${genomeDatabase} \
   -I:eval \${inputTumorBAM} \
   -I:genotype \${inputNormalBAM} \
   --popfile ${af_gatk} \
-  -L \${outputdirectory}/hapmap_onTarget.intervals  \
+  -L \${outputdirectory}/hapmap_onTarget.vcf  \
+  -L \${outputDirectory}/baits.bed \
   -isr INTERSECTION \
   --population ALL \
   -o \${outputDirectory}/${stem}.contest.txt\
