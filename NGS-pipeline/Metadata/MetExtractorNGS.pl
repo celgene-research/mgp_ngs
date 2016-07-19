@@ -104,7 +104,15 @@ foreach my $d(@$derivedFrom){
 	my $reference_db=[];
 	foreach my $dfile (@{$darray}){
 	$logger->debug("Getting information for the derived_from file $dfile");
-		my $sampleId = metadataFunc::serverCall('metadataInfo.getSampleIDByFilename', $dfile);
+		my ($bname, $path, $suffix)=File::Basename( $dfile );
+	$logger->debug("File $dfile has basename $bname");
+		#my $sampleId = metadataFunc::serverCall('metadataInfo.getSampleIDByFilename', $dfile);
+		
+		#Dangerous territory: the following line is trying to find the sample id of a file using its basename not the full file
+		# this may be useful in cases where the crawler has failed and need to re-ingest files afterwards but should not be set permanently
+		my $sampleId = metadataFunc::serverCall('metadataInfo.getSampleIDByBaseename', $dfile);
+		#
+		#
 		@{$sample_id}=( @$sample_id, @$sampleId) if (defined($sampleId) and scalar(@$sampleId)>0);
 		my $referenceDB = metadataFunc::serverCall('metadataInfo.getReferenceInfoByFilename', $dfile);
 		if(!defined($referenceDB)){
