@@ -91,7 +91,7 @@ java -Xmx${memory}m -jar ${gatkbin} \
   -I:eval \${inputTumorBAM} \
   -I:genotype \${inputNormalBAM} \
   --popfile ${af_gatk} \
-  -L \${outputdirectory}/hapmap_onTarget.vcf  \
+  -L \${outputDirectory}/hapmap_onTarget.vcf  \
   -L \${outputDirectory}/baits.bed \
   -isr INTERSECTION \
   --population ALL \
