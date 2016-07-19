@@ -25,7 +25,7 @@ my $ignoreExistingSample_id;
 if(defined($ENV{ 'IGNORE_MET_SAMPLEID' })){ $ignoreExistingSample_id=1;}
 my $NGS_LOG_DIR=$ENV{NGS_LOG_DIR};
 if(!defined($NGS_LOG_DIR)){$NGS_LOG_DIR= $FindBin::RealBin;}
-my ($logLevel,$logFile)=("FATAL",$NGS_LOG_DIR."/ExtractMetadata-${filehost}.log");
+my ($logLevel,$logFile)=("DEBUG",$NGS_LOG_DIR."/ExtractMetadata-${filehost}.log");
 my $logConf=qq{
 	log4perl.rootLogger          = $logLevel, Logfile,Screen
     log4perl.appender.Logfile          = Log::Log4perl::Appender::File
@@ -97,20 +97,20 @@ $oodt->addMetadata('FilePath', $fpath );
 my $server = metadataFunc::getServer();
 my $derivedFrom=$oodt->getMetadata( 'derived_from');
 foreach my $d(@$derivedFrom){
-			
-	$logger->debug("Getting information from the derived_from file(s) $d");
+	$logger->info("Extracting information from derived_from file $d");			
 	my $darray=getAbsPath($d);
 	my $sample_id=[];
 	my $reference_db=[];
 	foreach my $dfile (@{$darray}){
-	$logger->debug("Getting information for the derived_from file $dfile");
-		my ($bname, $path, $suffix)=File::Basename( $dfile );
-	$logger->debug("File $dfile has basename $bname");
+		$logger->debug("Getting information for the derived_from file [$dfile]");
+		next if $dfile eq '';
+		my ($bname, $path, $suffix)=fileparse( $dfile );
+		$logger->debug("File $dfile has basename $bname");
 		#my $sampleId = metadataFunc::serverCall('metadataInfo.getSampleIDByFilename', $dfile);
 		
 		#Dangerous territory: the following line is trying to find the sample id of a file using its basename not the full file
 		# this may be useful in cases where the crawler has failed and need to re-ingest files afterwards but should not be set permanently
-		my $sampleId = metadataFunc::serverCall('metadataInfo.getSampleIDByBaseename', $dfile);
+		my $sampleId = metadataFunc::serverCall('metadataInfo.getSampleIDByBasename', $bname);
 		#
 		#
 		@{$sample_id}=( @$sample_id, @$sampleId) if (defined($sampleId) and scalar(@$sampleId)>0);
@@ -123,7 +123,7 @@ foreach my $d(@$derivedFrom){
 		@{$reference_db}= (@$reference_db, @$referenceDB) if( defined($referenceDB) and scalar(@$referenceDB) >0);
 	}
 	$sample_id=Celgene::Utils::ArrayFunc::unique( $sample_id );
-	$reference_db=Celgene::Utils::ArrayFunc::unique( $reference_db );
+	#$reference_db=Celgene::Utils::ArrayFunc::unique( $reference_db );
 	if(defined($sample_id) and scalar(@$sample_id)>0){
 		$oodt->addMetadata('sample_id', $sample_id);
 		$logger->debug("Found sample_id =[", join(",",@$sample_id),"] from $d");
@@ -140,7 +140,6 @@ foreach my $d(@$derivedFrom){
 		$logger->debug("Found reference db [", join(",",@$reference_db),"]");
 	}
 }
-
 
 sub getAbsPath{
 	my($fn)=@_;
