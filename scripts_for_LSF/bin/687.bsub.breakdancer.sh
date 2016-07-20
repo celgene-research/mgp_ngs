@@ -69,7 +69,7 @@ ln \$inputsampleidx \$inputsample.bai
 ln \$inputcontrolidx \$inputcontrol.bai
 
 celgeneExec.pl --analysistask $analysistask \
---metadatastring analyze='if \[ \"\$1\"==\"chrT\" \] \; then\
+--metadatastring analyze='if \[ \"\$1\" == \"chrT\" \] \; then\
 		$breakdancermaxbin -t -q 10 -d $stem \${outputDirectory}/$stem.strvar/$stem.cfg > \${outputDirectory}/$stem.strvar/$stem.transchrom.ctx\
 	else\
 		$breakdancermaxbin -o \$1 -q 10 -d $stem \${outputDirectory}/$stem.strvar/$stem.cfg > \${outputDirectory}/$stem.strvar/$stem.\$1.ctx\
