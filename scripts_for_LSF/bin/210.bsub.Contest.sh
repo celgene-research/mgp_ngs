@@ -92,7 +92,6 @@ java -Xmx${memory}m -jar ${gatkbin} \
   -I:genotype \${inputNormalBAM} \
   --popfile ${af_gatk} \
   -L \${outputDirectory}/hapmap_onTarget.vcf  \
-  -L \${outputDirectory}/baits.bed \
   -isr INTERSECTION \
   --population ALL \
   -o \${outputDirectory}/${stem}.contest.txt\
@@ -101,7 +100,6 @@ if [ \$? != 0 ] ; then
 	echo \"Failed to run command\"
 	exit 1
 fi 
-fi
 
 
 ingestDirectory \$outputDirectory
