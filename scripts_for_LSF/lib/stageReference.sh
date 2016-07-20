@@ -112,6 +112,9 @@ case "$option" in
 "BWAmem.human" )
 	dispatch $humanBWAidxAWS $humanBWAidx
 ;;
+"fusioncatcher" )
+	dispatch $fusioncatcherAWS $fusioncatcheridx
+;;
 "RSEM.human" )
 	dispatch $humanrsemidxAWS $humanrsemidx
 ;;
