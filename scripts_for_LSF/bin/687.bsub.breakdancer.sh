@@ -1,7 +1,7 @@
 #!/bin/bash
+inputcontrol=$1
+inputsample=$2
 
-inputsample=$1
-inputcontrol=$2
 
 echo "This script is running the breakdancer pipeline"
 echo "it requires as input the sample file and if available the control file "

@@ -1,7 +1,7 @@
 #!/bin/bash
+inputcontrol=$1
+inputsample=$2
 
-inputsample=$1
-inputcontrol=$2
 
 echo "This script is running the controlFreec"
 echo "it requires as input the sample file and if available the control file "
@@ -16,12 +16,14 @@ stem=$(fileStem $inputsample)
 
 
 nameinputsample=$(stage.pl --name $inputsample )
-if [ -n "$inputcontrol" ]; then
+if [ -n "$inputsample" ]; then
 	echo "User provided control as well"
 	stemB=$(fileStem $inputcontrol)
 	stem=${stem}-${stemB}
 	
 	nameinputcontrol=$(stage.pl --name $inputcontrol )
+else
+	$inputsample=$inputcontrol 
 fi
 initiateJob $stem $step $1
 memory=54000
