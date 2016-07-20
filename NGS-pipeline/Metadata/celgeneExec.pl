@@ -82,7 +82,9 @@ if(defined($derived_from)){
 foreach my $mstring(@$metadata_string){
 	my $metadataString="";
 
-	my ($mKey,$mFn)=split( "=",$mstring);
+	my ($mKey,@mFn)=split( "=",$mstring);
+	my $mFn=join("=", @mFn); # do this to avoid splitting the value of the metadata string on an '=' sign
+	
 	if( !defined($mKey ) or !defined($mFn)){
 		$logger->logdie("Option [metadatastring] provided but without the correct amount of arguments ($metadata_string)");
 	}
