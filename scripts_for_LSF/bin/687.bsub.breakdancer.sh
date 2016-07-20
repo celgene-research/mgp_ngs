@@ -9,7 +9,7 @@ echo "it requires as input the sample file and if available the control file "
 
 scriptDir=$( dirname $0 ); source $scriptDir/../lib/shared.sh
 analysistask=59
-step="manta.human"
+step="breakdancer"
 stem=$(fileStem $inputsample)
 
 
@@ -76,7 +76,7 @@ celgeneExec.pl --analysistask $analysistask \
 	fi'  \"\
 mkdir -p \${outputDirectory}/$stem.strvar/ ; \
 perl $bam2cfgbin -g -h \$inputsample \$inputcontrol > \${outputDirectory}/$stem.strvar/$stem.cfg ; \
-parallel -j${cores} analyze chr{} :::  {1..22} X Y T; \
+parallel -j${cores} analyze chr{} :::  {1..22} X Y T \
 \"
 
 # remove the workspace directory with temporary and working copies.
