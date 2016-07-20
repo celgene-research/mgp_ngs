@@ -54,7 +54,11 @@ fi
 outputDirectory=\$( setOutput \$inputsample ${step} )
 
 analyze() {
-$breakdancermaxbin -o $1 -q 10 -d $stem \${outputDirectory}/$stem.strvar/$stem.cfg > \${outputDirectory}/$stem.strvar/$stem.$1.ctx
+	if [ \"\$1\"==\"chrT\" ] ; then
+		$breakdancermaxbin -t -q 10 -d $stem \${outputDirectory}/$stem.strvar/$stem.cfg > \${outputDirectory}/$stem.strvar/$stem.transchrom.ctx
+	else
+		$breakdancermaxbin -o \$1 -q 10 -d $stem \${outputDirectory}/$stem.strvar/$stem.cfg > \${outputDirectory}/$stem.strvar/$stem.\$1.ctx
+	fi
 }
 
 export -f analyze
@@ -65,15 +69,17 @@ ln \$inputsampleidx \$inputsample.bai
 ln \$inputcontrolidx \$inputcontrol.bai
 
 celgeneExec.pl --analysistask $analysistask \
---metadatastring analyze='$breakdancermaxbin -o $1 -q 10 -d $stem \${outputDirectory}/$stem.strvar/$stem.cfg > $stem.$1.ctx '  \"\
+--metadatastring analyze='if [ \"\$1\"=="chrT" ] ; then\
+		$breakdancermaxbin -t -q 10 -d $stem \${outputDirectory}/$stem.strvar/$stem.cfg > \${outputDirectory}/$stem.strvar/$stem.transchrom.ctx\
+	else\
+		$breakdancermaxbin -o \$1 -q 10 -d $stem \${outputDirectory}/$stem.strvar/$stem.cfg > \${outputDirectory}/$stem.strvar/$stem.\$1.ctx\
+	fi'  \"\
 mkdir -p \${outputDirectory}/$stem.strvar/ ; \
 perl $bam2cfgbin -g -h \$inputsample \$inputcontrol > \${outputDirectory}/$stem.strvar/$stem.cfg ; \
-parallel -j${cores} analyze chr{} :::  {1..22} X Y ; \
-$breakdancermaxbin -t -q 10 -d $stem \${outputDirectory}/$stem.strvar/$stem.cfg > \${outputDirectory}/$stem.strvar/$stem.transchrom.ctx \
+parallel -j${cores} analyze chr{} :::  {1..22} X Y T; \
 \"
 
 # remove the workspace directory with temporary and working copies.
-rm -rf \${outputDirectory}/$stem.strvar/workspace 
 if [ \$? != 0 ] ; then
 	echo "Failed to run command"
 	exit 1
