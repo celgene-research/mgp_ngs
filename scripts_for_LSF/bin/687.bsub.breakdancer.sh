@@ -75,6 +75,7 @@ celgeneExec.pl --analysistask $analysistask \
 		$breakdancermaxbin -o \$1 -q 10 -d $stem \${outputDirectory}/$stem.strvar/$stem.cfg > \${outputDirectory}/$stem.strvar/$stem.\$1.ctx\
 	fi'  \"\
 mkdir -p \${outputDirectory}/$stem.strvar/ ; \
+cd \${outputDirectory}/$stem.strvar/ ; \
 perl $bam2cfgbin -g -h \$inputsample \$inputcontrol > \${outputDirectory}/$stem.strvar/$stem.cfg ; \
 parallel -j${cores} analyze chr{} :::  {1..22} X Y T \
 \"
