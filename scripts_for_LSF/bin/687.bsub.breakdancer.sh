@@ -55,9 +55,9 @@ outputDirectory=\$( setOutput \$inputsample ${step} )
 
 analyze() {
 	if [ \"\$1\" == \"chrT\" ] ; then
-		$breakdancermaxbin -t -q 10 -d $stem \${outputDirectory}/$stem.strvar/$stem.cfg > \${outputDirectory}/$stem.strvar/$stem.transchrom.ctx
+		$breakdancermaxbin -t -q 10 -d \${outputDirectory}/$stem.strvar/$stem \${outputDirectory}/$stem.strvar/$stem.cfg > \${outputDirectory}/$stem.strvar/$stem.transchrom.ctx
 	else
-		$breakdancermaxbin -o \$1 -q 10 -d $stem \${outputDirectory}/$stem.strvar/$stem.cfg > \${outputDirectory}/$stem.strvar/$stem.\$1.ctx
+		$breakdancermaxbin -o \$1 -q 10 -d \${outputDirectory}/$stem.strvar/$stem \${outputDirectory}/$stem.strvar/$stem.cfg > \${outputDirectory}/$stem.strvar/$stem.\$1.ctx
 	fi
 }
 
@@ -76,7 +76,7 @@ celgeneExec.pl --analysistask $analysistask \
 	fi'  \"\
 mkdir -p \${outputDirectory}/$stem.strvar/ ; \
 cd \${outputDirectory}/$stem.strvar/ ; \
-perl $bam2cfgbin -g -h \$inputsample \$inputcontrol > \${outputDirectory}/$stem.strvar/$stem.cfg ; \
+perl $bam2cfgbin  \$inputsample \$inputcontrol > \${outputDirectory}/$stem.strvar/$stem.cfg ; \
 parallel -j${cores} analyze chr{} :::  {1..22} X Y T \
 \"
 
