@@ -22,13 +22,14 @@ use Getopt::Long;
 
 my $version=Celgene::Utils::SVNversion::version( '$Date: 2015-08-16 22:19:49 -0700 (Sun, 16 Aug 2015) $ $Revision: 1625 $ by $Author: kmavrommatis $' );
 
-my($help,$log_level,$log_file,$analysis_task,$derived_from,$derived_from_file,$showversion,@output_file,$norun,$metadata_string);
+my($help,$log_level,$log_file,$analysis_task,$derived_from,$derived_from_file,$showversion,@output_file,$norun,$metadata_string,$ignoreFail);
 GetOptions(
 	"analysis_task|analysistask|a=s"=>\$analysis_task,
 	"h|help!"=>\$help,
 	"norun!"=>\$norun,
 	"loglevel=s"=>\$log_level,
 	"logfile=s"=>\$log_file,
+	"ignorefail!"=>\$ignoreFail,
 	"derivedfrom|derived_from|d=s"=>\$derived_from,
 	"derivedfromfile|derived_from_file|D=s"=>\$derived_from_file,
 	"outputfile|output|output_file|o=s"=>\@output_file,
@@ -192,26 +193,39 @@ my @UserCommands=split(";", $UserCommand);
 foreach my $u( @UserCommands ){
 	if($u eq "" or $u eq " " or $u eq "  "){next;}
 	$logger->info("Executing sub command : $u");
+	if(defined($norun)){
+		$logger->info("The command will not be executed but will try to generate the .met file");
+		next;
+	}
+	
 	open( my $fh, '-|', qw(bash -c), $u ) ;
 	while(my $l=<$fh>){
 		$logger->info("$l");	
 	}
 	close($fh);
-	
+	my $capturedCode=0;
 	if ($? == -1) {
-	   $logger->logdie( "failed to execute: $!\n" );
+		$capturedCode=-1;
+	   $logger->warn( "failed to execute: $!\n" );
 	}
 	elsif ($? & 127) {
-	    $logger->logdie( sprintf( "child died with signal %d, %s coredump\n",
+	    $logger->warn( sprintf( "child died with signal %d, %s coredump\n",
 	    ($? & 127),  ($? & 128) ? 'with' : 'without' ));
+	    $capturedCode=127;
 	}
 	else {
 		my $returnCode=$?>>8;
+		$capturedCode=$returnCode;
 		if($returnCode !=0){
-	    	$logger->logdie( (sprintf( "child process exited with value %d\n", $returnCode)));
+	    	$logger->warn( (sprintf( "child process exited with value %d\n", $returnCode)));
 		}else{
 			$logger->info("Command executed successfully");
 		}
+	}
+	if($capturedCode != 0 and defined($ignoreFail) ){
+		$logger->warn("celgeneExec failed to run the command $u. But execution was continued");
+	}elsif($capturedCode != 0 and !defined($ignoreFail) ){
+		$logger->warn("celgeneExec failed to run the command $u.");
 	}
 }
 
@@ -329,6 +343,7 @@ c. creates a .met file with metadata which can be added to the OODT NGS database
     In order for the metadata to be captured the OODT crawler needs to be run.
 
 Optional arguments include:
+	--ignorefail the script will capture errors from executed commands and continue with a warning. Otherwise it exits when a command fails
 	--analysis_task --analysistask -a <integer> the analysis task for each command in the NGS database
 	--loglevel  Log Level. Log level is by default set to [INFO]
 		Environmental variable [\$CELGENE_EXEC_LOGLEVEL] can be used to set the Log file. 
