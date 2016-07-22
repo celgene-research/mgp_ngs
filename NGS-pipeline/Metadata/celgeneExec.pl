@@ -162,14 +162,14 @@ foreach my $pf(@possibleFiles){
 
 }
 
-	if(defined($derived_from_file)){
-		my @tmpfiles=split(",", $derived_from_file);
-		foreach my $tmpfile( @tmpfiles ){
-			$logger->debug("Adding in the list of derived from files file : $tmpfile");
-			push  @{$hash->{derived_from}}, $tmpfile;	
-		}
-		
+if(defined($derived_from_file)){
+	my @tmpfiles=split(",", $derived_from_file);
+	foreach my $tmpfile( @tmpfiles ){
+		$logger->debug("Adding in the list of derived from files file : $tmpfile");
+		push  @{$hash->{derived_from}}, $tmpfile;	
 	}
+	
+}
 	
 
 if( !defined($hash->{derived_from}) or scalar(@{$hash->{derived_from}})  ==0) {
@@ -179,10 +179,6 @@ $logger->debug("derived_from " , join(",", @{$hash->{derived_from}}),"\n");
 # execute the command
 # get the current time - time where the command is executed
 
-if(defined($norun)){
-	$logger->info("Program will exit because user used the 'norun' command");
-	exit(0);
-}
 my $start=time();
 $logger->info("Executing command\n**     $UserCommand");
 
@@ -234,14 +230,16 @@ $hash->{start_execution}=scalar(localtime($start));chomp( $hash->{start_executio
 $hash->{end_execution}=scalar(localtime($end));chomp($hash->{end_execution});
 
 # find the files that are modified after the time the command was run.
+getNewFiles(\@possibleFiles, $hash, $start);
+# add  the output files the user has provided
 if(scalar(@output_file)>0){
 	foreach my $o( @output_file){
 		my $outputObj=fileObj->new( $o, "regular");
-		$logger->debug("Adding $o in the list of possible files");
-		push @possibleFiles, $outputObj
+		$logger->debug("Adding $o in the list of output files");
+		push @{$hash->{output}}, $outputObj;
 	}
 }
-getNewFiles(\@possibleFiles, $hash, $start);
+
 @{$hash->{output}}=Celgene::Utils::ArrayFunc::unique($hash->{output});
 
 
@@ -343,6 +341,7 @@ c. creates a .met file with metadata which can be added to the OODT NGS database
     In order for the metadata to be captured the OODT crawler needs to be run.
 
 Optional arguments include:
+	--norun The script will not execute the command, but will try to generate the .met file. User needs to have specified the output in the command line arguments.
 	--ignorefail the script will capture errors from executed commands and continue with a warning. Otherwise it exits when a command fails
 	--analysis_task --analysistask -a <integer> the analysis task for each command in the NGS database
 	--loglevel  Log Level. Log level is by default set to [INFO]
@@ -371,6 +370,9 @@ Examples
 	     identify file /test/test.bam as input (aka derived_from)
 	     identify file /test/test.sorted.bam as output 
 	     will create the file /test/test.sorted.bam.met with metadata for ingestion to OODT
+	     
+	celgeneExec.pl --outputfile /test/test.sorted.bam --norun \"samtools sort /test/test.bam > /test/test.sorted.bam\"
+	will not execute the command but will try to generate the output met file 
 ============================================================================================================		
 	\n";
 	
