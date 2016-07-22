@@ -45,13 +45,13 @@ initiateJob $stem $step $1
 inputControl1=\$( stage.pl --operation out --type file  $inputControl1 )
 inputControl2=\$( stage.pl --operation out --type file  $inputControl2 )
 cmdAdd=\" -i \${inputControl1},\${inputControl2} \"
-if [ -n "$inputTumor1" ] ; then
+if [ -n \"$inputTumor1\" ] ; then
 	inputTumor1=\$( stage.pl --operation out --type file  $inputTumor1 )
 	inputTumor2=\$( stage.pl --operation out --type file  $inputTumor2 )
 	cmdAdd=\" -i \$inputTumor1,\$inputTumor2 -I \$inputControl1,\$inputControl2 \"
 fi
 
-if [ \"\$inputControl1\" == "FAILED" -o \"\$inputControl2\" == "FAILED" -o  \"\$inputTumor1\" == "FAILED" -o \"\$inputTumor2\" == "FAILED"] ; then
+if [ \"\$inputControl1\" == \"FAILED\" -o \"\$inputControl2\" == \"FAILED\" -o  \"\$inputTumor1\" == \"FAILED\" -o \"\$inputTumor2\" == \"FAILED\"] ; then
 	echo "Could not transfer  one of the fastq files"
 	exit 1
 fi
