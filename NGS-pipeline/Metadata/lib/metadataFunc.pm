@@ -10,7 +10,7 @@ use Log::Log4perl;
 
 my $logger=Log::Log4perl->get_logger("metadataFunc");
 # A function to receive data and update data to the database (Postgres and SOLR)
-our $retries=3;
+our $retries=10;
 our $server;
 
 sub getServer{
