@@ -61,6 +61,7 @@ outputDirectory=\$( setOutput \$inputControl1 ${step} )
 celgeneExec.pl --analysistask ${analysistask} \"$fusioncatcherbin \
 -d \$fusioncatcheridx \
  \$cmdAdd \
+--aligners=star,bowtie2,bwa,blat \
 -o \${outputDirectory}/$stem.strvar \
 -p ${cores} \
 -V  \"
