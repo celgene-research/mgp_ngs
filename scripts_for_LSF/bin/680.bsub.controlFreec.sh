@@ -112,8 +112,10 @@ fi
 outputDirectory=\$( setOutput \$inputsample ${step} )
 
 bedfile=\$outputDirectory/\$(basename $baitsfile)
-grep -f '^@' $baitsfile > \$bedfile
-
+grep -v '^@' $baitsfile > \$bedfile
+freecMappability=$freecMappability
+freecSNPs=$freecSNPs
+freecBAF=$freecBAF
 source ${scriptDir}/${configTemplate} > \$outputDirectory/${stem}-${step}.config
 
 celgeneExec.pl --metadatastring config=${stem}-${step}.config --analysistask $analysistask \"\
