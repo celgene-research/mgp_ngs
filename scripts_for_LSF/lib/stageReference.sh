@@ -44,7 +44,7 @@ function stageDirectory(){
 			
 	mkdir -p $localDirectory
 	touch $localDirectory/LOCKFILE
-	aws s3 cp --recursive $awsDirectory/ $localDirectory/  &> $localDirectory/transfer.$$.log
+	aws s3 sync --exclude "" $awsDirectory/ $localDirectory/  &> $localDirectory/transfer.$$.log
 	
 	if [ $? -ne 0 ] ; then
 		echo "Failed to run command"
@@ -112,7 +112,7 @@ case "$option" in
 "BWAmem.human" )
 	dispatch $humanBWAidxAWS $humanBWAidx
 ;;
-"fusioncatcher" )
+"FusionCatcher" )
 	dispatch $fusioncatcherAWS $fusioncatcheridx
 ;;
 "RSEM.human" )
