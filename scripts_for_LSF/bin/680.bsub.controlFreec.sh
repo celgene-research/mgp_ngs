@@ -44,52 +44,9 @@ fi
 
 outputDirectory=$( setOutput $nameinputsample ${step} no )
 # first we create the config file per http://bioinfo-out.curie.fr/projects/freec/tutorial.html
-echo \
-"[general]
-bedtools=$bedtoolsbin
-breakPointThreshold=0.6
-breakPointType=2
-chrFiles=$humanChromosomesDir
-chrLenFile=${humanChromosomesDir}/freec.len
-coefficientOfVariation=0.05
-contamination=TRUE
-contaminationAdjustment=FALSE
-gemMappabilityFile=${freecMappability}
-outputDir=OUTPUTDIRECTORY
-ploidy=2,3,4
-samtools=${samtoolsbin}
-sex="XX"
-maxThreads=${cores}
-BedGraphOutput=TRUE
-
-[sample]
-mateFile=INPUTSAMPLE
-inputFormat=pileup
-mateOrientation=${mateorientation}
+# config file for WGS with BAF, for tumor nomral samples:
 
 
-
-# the following lines can be added to the config file to generate BAF files
-# but the process relies on mpileup which can be very time consuming
-[BAF]
-SNPfile=${freecSNPs}
-minimalCoveragePerPosition=6
-#fastaFile=$humanGenomeDir/genome.fa
-#makePileup=${freecBAF}
-shiftInQuality=${encoding}
-
-
-" > ${stem}-${step}.config
-
-
-if [ -n "$inputcontrol" ] ; then
-echo \
-"[control]
-mateFile=INPUTCONTROL
-inputFormat=bam
-mateOrientation=${mateorientation}
-" >> ${stem}-${step}.config
-fi
 
 
 
@@ -114,14 +71,12 @@ fi
 outputDirectory=\$( setOutput \$inputsample ${step} )
 
 
-sed \"s|INPUTSAMPLE|\$inputsample|\" ${stem}-${step}.config >$$; mv $$ ${stem}-${step}.config
-sed \"s|INPUTCONTROL|\$inputcontrol|\" ${stem}-${step}.config >$$; mv $$ ${stem}-${step}.config
-sed \"s|OUTPUTDIRECTORY|\$outputDirectory|\" ${stem}-${step}.config >$$; mv $$ ${stem}-${step}.config
 
 
+source \$scriptDir/680.template.controlFreec.WGS-NT.txt  > \$outputDirectory/${stem}-${step}.config
 
 celgeneExec.pl --metadatastring config=${stem}-${step}.config --analysistask $analysistask \"\
-\$freecbin -conf ${stem}-${step}.config \
+\$freecbin -conf \${outputDirectory}/${stem}-${step}.config \
 \"
 
 
