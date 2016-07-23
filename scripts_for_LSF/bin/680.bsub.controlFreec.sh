@@ -41,13 +41,7 @@ else
 	mateorientation="0"
 fi
 
-
-outputDirectory=$( setOutput $nameinputsample ${step} no )
-# first we create the config file per http://bioinfo-out.curie.fr/projects/freec/tutorial.html
-# config file for WGS with BAF, for tumor nomral samples:
-
-
-
+configTemplate="680.template.controlFreec.WGS-NT.txt"
 
 
 mkdir -p $NGS_LOG_DIR
@@ -73,7 +67,7 @@ outputDirectory=\$( setOutput \$inputsample ${step} )
 
 
 
-source \$scriptDir/680.template.controlFreec.WGS-NT.txt  > \$outputDirectory/${stem}-${step}.config
+source ${scriptDir}/${configTemplate} > \$outputDirectory/${stem}-${step}.config
 
 celgeneExec.pl --metadatastring config=${stem}-${step}.config --analysistask $analysistask \"\
 \$freecbin -conf \${outputDirectory}/${stem}-${step}.config \
