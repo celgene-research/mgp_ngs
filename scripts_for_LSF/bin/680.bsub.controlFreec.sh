@@ -35,6 +35,8 @@ freecSNPs=$(dirname $freecbin)/../hg19_snp142.SingleDiNucl.1based.txt
 freecBAF=$(dirname $freecbin)/../hg19_snp142.SingleDiNucl.1based.bed
 encoding=$(ngs-sampleInfo.pl $inputsample encoding_base)
 paired_end=$(ngs-sampleInfo.pl $inputsample paired_end)
+
+
 if [ $paired_end == "1" ]; then
 	mateorientation="FR"
 else
@@ -116,10 +118,12 @@ grep -v '^@' $baitsfile > \$bedfile
 freecMappability=$freecMappability
 freecSNPs=$freecSNPs
 freecBAF=$freecBAF
+cores=$cores
+mateorientation=$mateorientation
 source ${scriptDir}/${configTemplate} > \$outputDirectory/${stem}-${step}.config
 
 celgeneExec.pl --metadatastring config=${stem}-${step}.config --analysistask $analysistask \"\
-\$freecbin -conf \${outputDirectory}/${stem}-${step}.config \
+$freecbin -conf \${outputDirectory}/${stem}-${step}.config \
 \"
 
 
