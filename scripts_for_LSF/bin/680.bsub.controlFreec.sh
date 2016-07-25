@@ -111,8 +111,8 @@ if [ \$inputsample == \"FAILED\" ]; then
 	echo \"Could not transfer \$inputsample\"
 	exit 1
 fi
-outputDirectory=\$( setOutput \$inputsample ${step} )
-
+outputDirectoryBase=\$( setOutput \$inputsample ${step} )
+outputDirectory=\${outputDirectory}/${stem}.strvar
 bedfile=\$outputDirectory/\$(basename $baitsfile)
 grep -v '^@' $baitsfile > \$bedfile
 freecMappability=$freecMappability
@@ -120,9 +120,15 @@ freecSNPs=$freecSNPs
 freecBAF=$freecBAF
 cores=$cores
 mateorientation=$mateorientation
+
+
+
 source ${scriptDir}/${configTemplate} > \$outputDirectory/${stem}-${step}.config
 
-celgeneExec.pl --metadatastring config=${stem}-${step}.config --analysistask $analysistask \"\
+celgeneExec.pl --metadatastring config=${stem}-${step}.config \
+--analysistask $analysistask \
+--output ${outputDirectoryBase} \
+--derived_from \$inputsample,\$inputcontrol \"\
 $freecbin -conf \${outputDirectory}/${stem}-${step}.config \
 \"
 
@@ -132,7 +138,7 @@ if [ \$? != 0 ] ; then
 	exit 1
 fi 
 
-ingestDirectory \$outputDirectory
+ingestDirectory \$outputDirectoryBase yes
 if [ \$? != 0 ] ; then
 	echo "Failed to ingest data"
 	exit 1
