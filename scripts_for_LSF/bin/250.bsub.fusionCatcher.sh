@@ -58,10 +58,12 @@ fi
 
 outputDirectory=\$( setOutput \$inputControl1 ${step} )
 
+
+# aligners option include bowtie2, bwa and star, but not blat because it takes extremely long time.
 celgeneExec.pl --analysistask ${analysistask} \"$fusioncatcherbin \
 -d $fusioncatcheridx \
  \$cmdAdd \
---aligners=star,bowtie2,bwa,blat \
+--aligners=star,bowtie2,bwa \
 -o \${outputDirectory}/$stem.strvar \
 -p ${cores} \
 -V  \"
