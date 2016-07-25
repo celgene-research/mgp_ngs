@@ -92,14 +92,12 @@ esac
 
 configTemplate="680.template.controlFreec.WES-NT.txt"
 
-
-mkdir -p $NGS_LOG_DIR
 header=$(bsubHeader $stem $step $memory $cores)
 echo \
 "$header
 
 #$Date: 2015-10-01 15:43:49 -0700 (Thu, 01 Oct 2015) $ $Revision: 1676 $
-source $scriptDir/../lib/shared.sh 
+
 initiateJob $stem $step $1
 
 inputsample=\$( stage.pl --operation out --type file  $inputsample)
