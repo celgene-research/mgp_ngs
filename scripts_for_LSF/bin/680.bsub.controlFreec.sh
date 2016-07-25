@@ -129,7 +129,7 @@ source ${scriptDir}/${configTemplate} > \$outputDirectory/${stem}-${step}.config
 celgeneExec.pl --metadatastring config=${stem}-${step}.config \
 --analysistask $analysistask \
 --output ${outputDirectoryBase} \
---derived_from \$inputsample,\$inputcontrol \"\
+--derived_from_file \$inputsample,\$inputcontrol \"\
 $freecbin -conf \${outputDirectory}/${stem}-${step}.config \
 \"
 
