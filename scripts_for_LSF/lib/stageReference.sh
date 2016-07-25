@@ -105,7 +105,9 @@ case "$option" in
  "Bowtie2.ERCC" )
 	dispatch $erccDirAWS $erccDir 
 ;;
-
+"JAFFA" )
+	dispatch $jaffarefAWS $jaffaref
+;;
 ##############
 # Homo sapiens
 # download the human indexes for bwa
