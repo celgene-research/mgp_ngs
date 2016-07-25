@@ -112,7 +112,8 @@ if [ \$inputsample == \"FAILED\" ]; then
 	exit 1
 fi
 outputDirectoryBase=\$( setOutput \$inputsample ${step} )
-outputDirectory=\${outputDirectory}/${stem}.strvar
+outputDirectory=\${outputDirectoryBase}/${stem}.strvar
+mkdir -p \${outputDirectory}
 bedfile=\$outputDirectory/\$(basename $baitsfile)
 grep -v '^@' $baitsfile > \$bedfile
 freecMappability=$freecMappability
