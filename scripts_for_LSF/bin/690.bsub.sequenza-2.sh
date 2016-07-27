@@ -43,8 +43,8 @@ outputDirectory=\$( setOutput \$inputPileupTumor $step )
 
 analyze() {
 /celgene/software/sequenza/sequenza-2.1.2/sequenza/exec/sequenza-utils.py pileup2seqz \
--n <($tabixbin \${inputPileup} $1) \
--t <($tabixbin \${inputPileupTumor} $1) \
+-n <($tabixbin \${inputPileup} \$1) \
+-t <($tabixbin \${inputPileupTumor} \$1) \
 -gc ${gcfile} |\
 gzip > \${outputDirectory}/\$1.seqz.gz ; echo \"Output in \${outputDirectory}/\$1.seqz.gz\"
 }
