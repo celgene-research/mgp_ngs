@@ -358,6 +358,8 @@ function initiateJob(){
 }
 
 function closeJob(){
+	echo "Closing job " 1>&2
+	df -h  1>&2
 	rm -rf $NGS_TMP_DIR
 	echo "$NGS_TMP_DIR was removed"
 	export NGS_TMP_DIR=${NGS_TMP_DIR_ORIGINAL}	
