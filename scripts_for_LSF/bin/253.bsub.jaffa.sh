@@ -3,7 +3,7 @@ scriptDir=$( dirname $0 ); source $scriptDir/../lib/shared.sh
 step="JAFFA"
 if [ -n "$1" ]
 then
-	inputControl1=$1
+	inputFastq1=$1
 else
 	echo "253.bsub.JAFFA.sh"
 	echo "script to distribute JAFFA jobs to the cluster"
@@ -15,9 +15,9 @@ else
 	exit;
 fi
 
-checkfile $inputControl1
-stem=$(fileStem $inputControl1)
-inputControl2=$( getSecondReadFile $inputControl1 )
+checkfile $inputFastq1
+stem=$(fileStem $inputFastq1)
+inputFastq2=$( getSecondReadFile $inputFastq1 )
 analysistask=63
 
 initiateJob $stem $step $1
@@ -34,26 +34,25 @@ echo \
 initiateJob $stem $step $1
 
 
-inputControl1=\$( stage.pl --operation out --type file  $inputControl1 )
-inputControl2=\$( stage.pl --operation out --type file  $inputControl2 )
-cmdAdd=\" -i \${inputControl1},\${inputControl2} \"
+inputFastq1=\$( stage.pl --operation out --type file  $inputFastq1 )
+inputFastq2=\$( stage.pl --operation out --type file  $inputFastq2 )
 
-if [ \"\$inputControl1\" == \"FAILED\" -o \"\$inputControl2\" == \"FAILED\"] ; then
+if [ \"\$inputFastq1\" == \"FAILED\" -o \"\$inputFastq2\" == \"FAILED\"] ; then
 	echo "Could not transfer  one of the fastq files"
 	exit 1
 fi
 
-outputDirectory=\$( setOutput \$inputControl1 ${step} )
+outputDirectory=\$( setOutput \$inputFastq1 ${step} )
 
 jaffadir=\$(dirname $jaffabin)
-fqdir=\$(dirname \$inputControl1 )
+fqdir=\$(dirname \$inputFastq1 )
 # aligners option include bowtie2, bwa and star, but not blat because it takes extremely long time.
 celgeneExec.pl --analysistask ${analysistask} \"$jaffabin run \
-\$jaffadir/JAFFA_hybrid.groovy \
-\$fqdir/*.gz \
--p refbase=$jaffaref \
 -p readLayout='paired' \
 -p threads=${cores} \
+\$jaffadir/../../JAFFA_hybrid.groovy \
+\$fqdir/*.gz \
+
   \"
 
 if [ \$? != 0 ] ; then

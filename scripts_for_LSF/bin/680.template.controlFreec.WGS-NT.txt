@@ -30,7 +30,7 @@ mateOrientation=${mateorientation}
 # but the process relies on mpileup which can be very time consuming
 [BAF]
 SNPfile=${freecSNPs}
-minimalCoveragePerPosition=6
+minimalCoveragePerPosition=4
 #fastaFile=$humanGenomeDir/genome.fa
 #makePileup=${freecBAF}
 
