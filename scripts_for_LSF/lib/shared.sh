@@ -45,7 +45,13 @@ function setLogging(){
 		NGS_LOG_DIR=${NGS_LOG_DIR}/${da}/${step}
 		echo "Logging: Data assets is set to  $da" 1>&2
 	fi
-	export NGS_LOG_DIR=$(echo $NGS_LOG_DIR | sed 's|//|/|g' )
+	
+	NGS_LOG_DIR=$(echo $NGS_LOG_DIR | sed 's|//|/|g' )
+	export FINAL_NGS_LOG_DIR=$NGS_LOG_DIR
+	mkdir -p $FINALS_NGS_LOG_DIR
+	
+	# to avoid overwhelming the fileserver
+	NGS_LOG_DIR=${NGS_TMP_DIR}/LOGS/
 	mkdir -p $NGS_LOG_DIR
 	echo "Logging: Created directory $NGS_LOG_DIR" 1>&2
 	if [ -z "$LSB_ERRORFILE" ] ; then
@@ -361,6 +367,8 @@ function initiateJob(){
 function closeJob(){
 	echo "Closing job " 1>&2
 	df -h  1>&2
+	
+	cp $MASTER_LOGFILE $FINAL_NGS_LOG_DIR
 	rm -rf $NGS_TMP_DIR
 	echo "$NGS_TMP_DIR was removed"
 	export NGS_TMP_DIR=${NGS_TMP_DIR_ORIGINAL}	
