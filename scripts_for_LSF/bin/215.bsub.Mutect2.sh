@@ -96,7 +96,7 @@ export -f analyze
 export inputNormalBAM
 export inputTumorBAM
 export outputDirectory
-export baitsfile
+
 
 
 # first create the intervals
@@ -104,6 +104,7 @@ export baitsfile
 # finally run Mutect2
 	
 celgeneExec.pl --analysistask $analysistask \
+--derived_from_files $baitsfile,\$inputNormalBAM,\$inputTumorBAM \
 --metadatastring analyze='grep -v ^@ $baitsfile | grep \$1 > \${outputDirectory}/intervals.\$1.bed \
 java -Xmx6g -jar ${gatkbin} \
 -T MuTect2 \
