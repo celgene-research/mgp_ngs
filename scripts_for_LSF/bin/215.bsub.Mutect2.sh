@@ -5,9 +5,8 @@ inputNormalBAM=$1
 inputTumorBAM=$2
 stem=$(fileStem $inputTumorBAM )
 step="GATK.Mutect2"
-analysistask=94
-NGS_LOG_DIR=${NGS_LOG_DIR}/${step}
-mkdir -p $NGS_LOG_DIR
+analysistask=$step
+
 initiateJob $stem $step $1
 genomeDatabase=${humanGenomeDir}/genome.fa
 
