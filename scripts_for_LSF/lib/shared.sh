@@ -140,7 +140,7 @@ function getQueue(){
 	queues["ExtractFastq"]="normal"
 	queues["GATK.GenotypeGVCFs"]="bigdisk"
 	queues["GATK.VariantRecalibration"]="bigdisk"
-	queues["GATK.Mutect2"]="bigmem"
+	queues["GATK.Mutect2"]="bigdisk"
 	queues["mpileup"]="bigdisk"
 	queues["controlFreec.human"]="bigdisk"
 	queues["STARaln.xenograft"]="bigmem"
