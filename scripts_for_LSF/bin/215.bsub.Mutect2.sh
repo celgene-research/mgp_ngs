@@ -119,8 +119,9 @@ celgeneExec.pl --analysistask $analysistask \
 -o \${outputDirectory}/${stem}.\$1.vcf ' \"\
 grep -v ^@ $baitsfile > \${outputDirectory}/intervals.bed ; \
 parallel -j${cores} analyze chr{} :::  {1..22} X Y ; \
-$bcftoolsbin concat \${outputDirectory}/${stem}.chr{{1..22},{X,Y}}.vcf -o \${outputDirectory}/${stem}.vcf;
-rm \${outputDirectory}/${stem}.chr{{1..22},{X,Y}}.vcf\"
+$bcftoolsbin concat \${outputDirectory}/${stem}.chr{{1..22},{X,Y}}.vcf -o \${outputDirectory}/${stem}.vcf ;
+rm \${outputDirectory}/${stem}.chr{{1..22},{X,Y}}.vcf ; \
+rm \${outputDirectory}/${stem}.chr{{1..22},{X,Y}}.vcf.idx \"
 if [ \$? != 0 ] ; then
 	echo \"Failed to run command\"
 	exit 1
