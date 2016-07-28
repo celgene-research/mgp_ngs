@@ -47,7 +47,7 @@ fi
 
 
 exptype=$(ngs-sampleInfo.pl $input experiment_type)
-
+configTemplate=""
 if [ "$exptype" == "DNA-Seq_whole_genome_sequencing_WGS" ]; then
 	echo "Processing whole genome sequencing data"
 	configTemplate="680.template.controlFreec.WGS-NT.txt"
