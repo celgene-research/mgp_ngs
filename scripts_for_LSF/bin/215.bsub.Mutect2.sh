@@ -116,7 +116,7 @@ celgeneExec.pl --analysistask $analysistask \
 --output_mode EMIT_VARIANTS_ONLY \
 -L \${outputDirectory}/intervals.bed \
 -L \$1 \
--o \${outputDirectory}/${stem}.\$1.vcf '\"\
+-o \${outputDirectory}/${stem}.\$1.vcf ' \"\
 grep -v ^@ $baitsfile > \${outputDirectory}/intervals.bed ; \
 parallel -j${cores} analyze chr{} :::  {1..22} X Y ; \
 $bcftoolsbin concat \${outputDirectory}/${stem}.chr{{1..22},{X,Y}}.vcf -o \${outputDirectory}/${stem}.vcf;
