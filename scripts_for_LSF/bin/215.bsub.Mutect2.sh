@@ -79,6 +79,7 @@ inputTumorBAM=\$(stage.pl --operation out --type file  $inputTumorBAM )
 outputDirectory=\$( setOutput \$inputTumorBAM ${step} )
 
 analyze() {
+grep -v ^@ $baitsfile | grep \$1 > \${outputDirectory}/intervals.\$1.bed \
 java -Xmx6g -jar ${gatkbin} \
 -T MuTect2 \
 -R ${genomeDatabase} \
@@ -88,15 +89,14 @@ java -Xmx6g -jar ${gatkbin} \
 --cosmic ${cosmiccoding} \
 --dontUseSoftClippedBases \
 --output_mode EMIT_VARIANTS_ONLY \
--L \${outputDirectory}/intervals.bed \
--L \$1 \
+-L \${outputDirectory}/intervals.\$1.bed \
 -o \${outputDirectory}/${stem}.\$1.vcf 
 }
 export -f analyze
 export inputNormalBAM
 export inputTumorBAM
 export outputDirectory
-
+export baitsfile
 
 
 # first create the intervals
@@ -104,7 +104,8 @@ export outputDirectory
 # finally run Mutect2
 	
 celgeneExec.pl --analysistask $analysistask \
---metadatastring analyze='java -Xmx${memory}m -jar ${gatkbin} \
+--metadatastring analyze='grep -v ^@ $baitsfile | grep \$1 > \${outputDirectory}/intervals.\$1.bed \
+java -Xmx6g -jar ${gatkbin} \
 -T MuTect2 \
 -R ${genomeDatabase} \
 -I:normal \${inputNormalBAM} \
@@ -113,10 +114,8 @@ celgeneExec.pl --analysistask $analysistask \
 --cosmic ${cosmiccoding} \
 --dontUseSoftClippedBases \
 --output_mode EMIT_VARIANTS_ONLY \
--L \${outputDirectory}/intervals.bed \
--L \$1 \
--o \${outputDirectory}/${stem}.\$1.vcf '\"\
-grep -v ^@ $baitsfile > \${outputDirectory}/intervals.bed ; \
+-L \${outputDirectory}/intervals.\$1.bed \
+-o \${outputDirectory}/${stem}.\$1.vcf  '  \"\
 parallel -j${cores} analyze chr{} :::  {1..22} X Y ; \
 $bcftoolsbin concat \${outputDirectory}/${stem}.chr{{1..22},{X,Y}}.vcf -o \${outputDirectory}/${stem}.vcf;
 rm \${outputDirectory}/${stem}.chr{{1..22},{X,Y}}.vcf\"
