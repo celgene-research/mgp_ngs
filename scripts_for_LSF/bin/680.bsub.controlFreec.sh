@@ -29,7 +29,7 @@ initiateJob $stem $step $1
 memory=54000
 cores=$(fullcores)
 
-seqtype=$(ngs-sampleInfo.pl $inputsample experiment_type) # decide if WES or WGS
+exptype=$(ngs-sampleInfo.pl $inputsample experiment_type) # decide if WES or WGS
 freecMappability=$(dirname $freecbin)/../hg19/out100m1_hg19.gem
 freecSNPs=$(dirname $freecbin)/../hg19_snp142.SingleDiNucl.1based.txt
 freecBAF=$(dirname $freecbin)/../hg19_snp142.SingleDiNucl.1based.bed
@@ -46,7 +46,6 @@ fi
 
 
 
-exptype=$(ngs-sampleInfo.pl $input experiment_type)
 configTemplate=""
 if [ "$exptype" == "DNA-Seq_whole_genome_sequencing_WGS" ]; then
 	echo "Processing whole genome sequencing data"
