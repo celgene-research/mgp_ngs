@@ -47,12 +47,17 @@ function setLogging(){
 	fi
 	
 	NGS_LOG_DIR=$(echo $NGS_LOG_DIR | sed 's|//|/|g' )
-	export FINAL_NGS_LOG_DIR=$NGS_LOG_DIR
-	mkdir -p $FINALS_NGS_LOG_DIR
+
 	
-	# to avoid overwhelming the fileserver
-	NGS_LOG_DIR=${NGS_TMP_DIR}/LOGS/
+	# to avoid overwhelming the fileserver store the logs locally on the node
+	# and transfer them to the logs directory when the job finishes
+	if [ -n "${LSB_JOBID} ] ; then
+		FINAL_LOG_DIR=$NGS_LOG_DIR
+		NGS_LOG_DIR=$NGS_TMP_DIR/LOGS/${LSB_JOBID}
+		export FINAL_LOG_DIR
+	fi	
 	mkdir -p $NGS_LOG_DIR
+	export NGS_LOG_DIR
 	echo "Logging: Created directory $NGS_LOG_DIR" 1>&2
 	if [ -z "$LSB_ERRORFILE" ] ; then
 		export LSB_ERRORFILE=${NGS_LOG_DIR}/${LSB_JOBID}.stderr
@@ -368,7 +373,8 @@ function closeJob(){
 	echo "Closing job " 1>&2
 	df -h  1>&2
 	
-	cp $MASTER_LOGFILE $FINAL_NGS_LOG_DIR
+	cp -r $NGS_LOG_DIR/* $FINAL_LOG_DIR/
+	
 	rm -rf $NGS_TMP_DIR
 	echo "$NGS_TMP_DIR was removed"
 	export NGS_TMP_DIR=${NGS_TMP_DIR_ORIGINAL}	
