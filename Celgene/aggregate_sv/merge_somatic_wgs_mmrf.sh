@@ -1,7 +1,7 @@
 #/bin/sh
 
 # Merge MMRF WGS data
-mkdir /mnt/celgene.rnd.combio.mmgp.external/SeqData/WGS/ProcessedData/MMRF/manta.human_1469074811_merged
+mkdir /mnt/celgene.rnd.combio.mmgp.external/SeqData/WGS/ProcessedData/MMRF/manta.human_1469074811/manta.human_1469074811_merged
 find /mnt/celgene.rnd.combio.mmgp.external/SeqData/WGS/ProcessedData/MMRF/manta.human_1469074811 -name "somaticSV.vcf.gz" -type f >/mnt/celgene.rnd.combio.mmgp.external/SeqData/WGS/ProcessedData/MMRF/manta.human_1469074811/manta.human_1469074811_merged/file_list_somatic.txt
 cat /mnt/celgene.rnd.combio.mmgp.external/SeqData/WGS/ProcessedData/MMRF/manta.human_1469074811/manta.human_1469074811_merged/file_list_somatic.txt | xargs vcf-merge >/mnt/celgene.rnd.combio.mmgp.external/SeqData/WGS/ProcessedData/MMRF/manta.human_1469074811/manta.human_1469074811_merged/merged_somatic.vcf
 
