@@ -178,7 +178,7 @@ case "$option" in
 	dispatch $humanGenomeDirAWS $humanGenomeDir
 ;;
 "manta.human" | \
-"Strelka )
+"Strelka" )
 	dispatch $humanGenomeDirAWS $humanGenomeDir
 ;;
 # Download the reference variant dbs for human
