@@ -51,7 +51,7 @@ function setLogging(){
 	
 	# to avoid overwhelming the fileserver store the logs locally on the node
 	# and transfer them to the logs directory when the job finishes
-	if [ -n "${LSB_JOBID} ] ; then
+	if [ -n "${LSB_JOBID}" ] ; then
 		FINAL_LOG_DIR=$NGS_LOG_DIR
 		NGS_LOG_DIR=$NGS_TMP_DIR/LOGS/${LSB_JOBID}
 		export FINAL_LOG_DIR
