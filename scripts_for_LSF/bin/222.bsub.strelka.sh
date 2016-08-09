@@ -37,13 +37,13 @@ outputDirectory=\$( setOutput \$inputTumorBAM ${step} )
 # finally run Mutect2
 	
 celgeneExec.pl --analysistask $analysistask  \"\
-mkdir \${outputDirectory}\${stem}.seqvar ; \
 $strelkabin \
  --normal=\${inputNormalBAM} \
  --tumor=\${inputTumorBAM} \
  --ref=$genomeDatabase \
  --config=$strelkaini \
  --output-dir=\${outputDirectory}\${stem}.seqvar ; \
+cd \${outputDirectory}\${stem}.seqvar ; \
 make -j ${cores} \
 \"
 if [ \$? != 0 ] ; then
