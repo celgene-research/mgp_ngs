@@ -42,8 +42,8 @@ $strelkabin \
  --tumor=\${inputTumorBAM} \
  --ref=$genomeDatabase \
  --config=$strelkaini \
- --output-dir=\${outputDirectory}\${stem}.seqvar ; \
-make -C \${outputDirectory}\${stem}.seqvar -j ${cores} \
+ --output-dir=\${outputDirectory}/${stem}.seqvar ; \
+make -C \${outputDirectory}/${stem}.seqvar -j ${cores} \
 \"
 if [ \$? != 0 ] ; then
 	echo \"Failed to run command\"
