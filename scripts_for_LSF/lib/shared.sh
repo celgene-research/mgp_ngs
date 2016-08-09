@@ -53,14 +53,14 @@ function setLogging(){
 	# and transfer them to the logs directory when the job finishes
 	if [ -n "${LSB_JOBID}" ] ; then
 		FINAL_LOG_DIR=$NGS_LOG_DIR
-		NGS_LOG_DIR=$NGS_TMP_DIR/LOGS/${LSB_JOBID}
+		NGS_LOG_DIR=$NGS_TMP_DIR/LOGS/
 		export FINAL_LOG_DIR
 	fi	
 	mkdir -p $NGS_LOG_DIR
 	export NGS_LOG_DIR
 	echo "Logging: Created directory $NGS_LOG_DIR" 1>&2
 	if [ -z "$LSB_ERRORFILE" ] ; then
-		export LSB_ERRORFILE=${NGS_LOG_DIR}/${LSB_JOBID}.stderr
+		export LSB_ERRORFILE=${NGS_LOG_DIR}/${LSB_JOBID}.bsub.stderr
 	fi
 	export MASTER_LOGFILE=${NGS_LOG_DIR}/$( basename $LSB_ERRORFILE | sed 's/bsub.stderr/log/' )
 	export STAGEFILE_LOGFILE=${MASTER_LOGFILE}
@@ -94,13 +94,14 @@ file=$1
 function setTemp(){
 	step=$1
 	NGS_TMP_DIR_ORIGINAL=${NGS_TMP_DIR}
-	#if [ -n "$LSB_JOB_ID" ] ; then
-		NGS_TMP_DIR=${NGS_TMP_DIR_ORIGINAL}/${step}/${LSB_JOBID}
-	#else
-		#	NGS_TMP_DIR=${NGS_TMP_DIR_ORIGINAL}/${step}/TMP_$$
-	#fi
+	NGS_TMP_DIR=$( echo $NGS_TMP_DIR| sed 's|/'${step}'||g')
+	NGS_TMP_DIR=${NGS_TMP_DIR}/${step}/${LSB_JOBID}
+	NGS_TMP_DIR=$( echo $NGS_TMP_DIR| sed 's|//|/|g')
 	export NGS_TMP_DIR
 	mkdir -p $NGS_TMP_DIR
+	
+	echo "Original temporary directory was set to ${NGS_TMP_DIR_ORIGINAL}" 1>&2
+	echo "Temporary directory for this run is set to $NGS_TMP_DIR" 1>&2
 }
 
 
@@ -346,9 +347,9 @@ function initiateJob(){
 	da=$( getDataAssets $filename  )
 	getQueue $step 
 
-
-	  setLogging $stem $step $da
-	  setTemp $step			
+	setTemp $step	
+	setLogging $stem $step $da
+	  		
 	
 	# get the size of the file
 	bname=$(basename $filename)
@@ -372,14 +373,16 @@ function initiateJob(){
 function closeJob(){
 	echo "Closing job " 1>&2
 	df -h  1>&2
-	
-	cp -r $NGS_LOG_DIR/* $FINAL_LOG_DIR/
-	
-	rm -rf $NGS_TMP_DIR
-	echo "$NGS_TMP_DIR was removed"
-	export NGS_TMP_DIR=${NGS_TMP_DIR_ORIGINAL}	
-	
-	
+	if [ -d $NGS_LOG_DIR ]; then
+		echo "Copying log files from  $NGS_LOG_DIR to $FINAL_LOG_DIR" 1>&2
+		cp -r $NGS_LOG_DIR/* $FINAL_LOG_DIR/
+	fi
+	if [ "$NGS_TMP_DIR" != "$NGS_TMP_DIR_ORIGINAL" ] ; then
+		rm -rf $NGS_TMP_DIR
+		echo "$NGS_TMP_DIR was removed"1>&2
+		export NGS_TMP_DIR=${NGS_TMP_DIR_ORIGINAL}	
+	fi
+	echo "Temporary directory restored to $NGS_TMP_DIR"  1>&2
 	echo "End of job"
 	echo "######################"
 }
