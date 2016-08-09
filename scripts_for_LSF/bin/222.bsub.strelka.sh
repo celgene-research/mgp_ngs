@@ -43,8 +43,7 @@ $strelkabin \
  --ref=$genomeDatabase \
  --config=$strelkaini \
  --output-dir=\${outputDirectory}\${stem}.seqvar ; \
-cd \${outputDirectory}\${stem}.seqvar ; \
-make -j ${cores} \
+make -C \${outputDirectory}\${stem}.seqvar -j ${cores} \
 \"
 if [ \$? != 0 ] ; then
 	echo \"Failed to run command\"
