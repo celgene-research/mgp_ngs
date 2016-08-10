@@ -1,0 +1,23 @@
+---
+title: "Sample Inventory"
+author: "Fadi Towfic"
+date: "August 10, 2016"
+output: html_document
+---
+
+```{r setup, xlsx, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+qcWES.path <- 'C:/Users/ftowfic/Documents/qcWES.XLSX'
+qcWGS.path <- 'C:/Users/ftowfic/Documents/qcWGS.XLSX'
+qcRNA.path <- 'C:/Users/ftowfic/Documents/qcRNA.XLSX'
+```
+
+## Overview
+
+This is a simple inventory of the samples we have available for RNA-seq, WGS, and WES.
+
+## Data loading and filtering
+Let's load the Excel spreadsheets with the QC statistics
+```{r}
+qcWES <- read.
+```
