@@ -50,7 +50,7 @@ if [ \$? != 0 ] ; then
 	exit 1
 fi 
 
-
+rm -rf \${outputDirectory}/${stem}.seqvar/chromosomes
 ingestDirectory \$outputDirectory yes
 if [ \$? != 0 ] ; then
 	echo \"Failed to ingest data\"
