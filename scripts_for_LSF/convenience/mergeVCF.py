@@ -27,8 +27,8 @@ args=parser.parse_args()
 try: args.directory
 except NameError: ars.directory=None
 else:
-    bamDirectory=args.bam
-    logging.info("BAM directory set to " + bamDirectory)
+    vcfDirectory=args.directory
+    logging.info("BAM directory set to " + vcfDirectory)
 
 try: args.temp
 except NameError: ars.temp=None
