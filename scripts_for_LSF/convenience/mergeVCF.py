@@ -31,13 +31,13 @@ else:
     logging.info("BAM directory set to " + vcfDirectory)
 
 try: args.temp
-except NameError: ars.temp=None
+except NameError: args.temp=None
 else:
-    scriptFname=args.temp 
-    logging.info("Script to call set to " + scriptFname)
+    tempDirectory=args.temp 
+    logging.info("Temporary directory set to " + tempDirectory)
 try: args.output
 except NameError: 
-    outputFname="peakCaller"
+    outputFname="mergevcf"
 else:
     outputFname=args.output 
 
