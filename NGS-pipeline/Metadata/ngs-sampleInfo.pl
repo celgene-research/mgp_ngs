@@ -59,7 +59,12 @@ my %supportedFields =( 'stranded'=>1,
 						'condition'=>1,
 						'celgene_id'=>1,
 						'compound_array'=>1,
-						'dose_array'=>1
+						'dose_array'=>1,
+						'mean_target_coverage'=>1,
+						'wgs_mean_coverage'=>1,
+						'wgs_sd_coverage' =>1,
+						'wgs_median_coverage'=>1
+						
 			);
 			
 			
@@ -149,7 +154,10 @@ foreach my $id ( @{$idArray}){
 			$data=serverCall('metadataInfo.getDerivedFromByFilename', $filename);
 		}elsif ($field eq 'encoding' or $field eq 'encoding_base' or $field eq 'sequenced_reads'){
 			$data=serverCall('sampleInfo.getSampleFastQCByID', $id);
-		}elsif ($field eq 'pf_reads_aligned'){
+		}elsif ($field eq 'pf_reads_aligned' or 
+				$field eq 'mean_target_coverage'or
+				$field eq 'wgs_mean_coverage' or $field eq 'wgs_sd_coverage' or
+				$field eq 'wgs_median_coverage'){
 			$data=serverCall('sampleInfo.getSampleBamQCByID', $id);
 		}else{
 			$data=serverCall('sampleInfo.getSampleByID', $id);

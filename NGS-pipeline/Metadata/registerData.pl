@@ -158,7 +158,7 @@ while(my $line= shift @filelines){
 	
 	}
 	
-	# check the if the files are available
+	# check  if the files are available
 	if(!defined($data[$titles{filename}])){
 	   	$logger->logdie("This line does not have a filename or points to a file [$data[$titles{filename}]] that does not exist");
 	}
@@ -231,13 +231,14 @@ while(my $line= shift @filelines){
 		$logger->info("Found sample id $sample_id corresponding to vendor id $data[$titles{vendor_id}]. ");
 	}else{
 	
-		# need to break down compounds and doses in order to be placed in the corresponding arrays
+		# need to break down condition compounds and doses in order to be placed in the corresponding arrays
 		# the user has provided ifnormation in the form Compound1, Dose1, Compound2, Dose2 etc
 		# same applies for response_desc and response_array fields
 		my @compound_array;
 		my @dose_array;
 		my @response_desc_array;
 		my @response_array;
+		my @condition_array;
 		for(my $i=0; $i<100; $i++){
 			if($i==0){ $i = "";}
 			my $l="compound".$i;
@@ -256,6 +257,17 @@ while(my $line= shift @filelines){
 			if(defined($titles{ $l4 } )){
 				push @response_array, $data[ $titles{$l4} ];
 			}
+			my $l5="condition".$i;
+			if(defined($titles{ $l5 } )){
+				push @condition_array, $data[ $titles{$l5} ];
+			}
+		}
+		# ensure that condition is set (for backwards compatibility)
+		if( defined( $data[$titles{"condition"}])){
+			push @condition_array, $data[$titles{"condition"}];
+		}
+		if(!defined( $data[$titles{"condition"}]) ){
+			$data[$titles{"condition"}]=$condition_array[0];
 		}
 
 		
@@ -367,6 +379,7 @@ while(my $line= shift @filelines){
 		$sqlHash->{host_genome}=$data[$titles{host_genome}];
 		$sqlHash->{tissue}=$data[$titles{tissue}];
 		$sqlHash->{condition}=$data[$titles{condition}];
+		$sqlHash->{condition_array}=\@condition_array;
 		$sqlHash->{vendor_project_name}=$data[$titles{vendor_project_name}];
 		$sqlHash->{ technology}=$technology;
 		$sqlHash->{experiment_type}=$experiment_type,
@@ -384,6 +397,7 @@ while(my $line= shift @filelines){
 		$sqlHash->{exome_bait_set}= $exome_bait_set;
 		validateValues( $sqlHash,$line);
 	
+	    
 	
 		# add the remaining data in teh avs
 		my %neededColumns=databaseMandatory();
@@ -396,7 +410,8 @@ while(my $line= shift @filelines){
 			$logger->debug("Will be added in the database");
 	
 		}
-		
+		$logger->trace("Dump of main hash follows:");
+		$logger->trace(  Dumper( $sqlHash )) ;
 		if(!defined($nocommit)){
 			$sample_id=my $result = $server->call('sampleInfo.createSample', $sqlHash);
 		}
@@ -763,12 +778,12 @@ sub validateValues{
 		$logger->warn("No xenograft information was provided. Assuming this dataset is not a xenograft model");
 	}
 	if(!defined($sqlHash->{reference_genome})){
-		$logger->warn("No reference genome provided. Assumint it is Homo sapiens");
+		$logger->warn("No reference genome provided. Assuming it is Homo sapiens");
 	}
 	
 	if(defined($sqlHash->{xenograft}) and lc($sqlHash->{xenograft}eq 'yes') and 
 		!defined($sqlHash->{host_genome} )){
-		$logger->warn("Athough the sample is a xenograft, there is no host genome provided");
+		$logger->warn("Although the sample is a xenograft, there is no host genome provided");
 		$totalWarn++;
 	}
 	if(!defined($sqlHash->{vendor_project_name})){
