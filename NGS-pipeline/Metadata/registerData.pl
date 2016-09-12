@@ -746,16 +746,25 @@ sub omicssoft2pg{
 {
 	my $vendor_ids={};
 	my $display_names={};
-	
+	my $dupCounter={};
 sub validateValues{
 	my($sqlHash, $line)=@_;
 	my $totalWarn=0;
 	my %bool=("yes"=>1, "no"=>1);
-	if(!defined($sqlHash->{vendor_id}) or defined($vendor_ids->{$sqlHash->{vendor_id}}) ){ 
-		
+	if(!defined($sqlHash->{vendor_id}) ){ 
 		$logger->warn("Please provide a unique vendor_id for each sample");
 		$totalWarn++;
 	};
+	if(  defined($vendor_ids->{$sqlHash->{vendor_id}}) ){
+		if(!defined($dupCounter->{vendor_id}->{$sqlHash->{vendor_id} }  ) ){
+			$dupCounter->{vendor_id}->{ $sqlHash->{vendor_id} }=2;
+		}else{ 
+			$dupCounter->{vendor_id}->{ $sqlHash->{vendor_id}} ++ ; 
+		}
+		$logger->warn("$sqlHash->{vendor_id}} is a duplicate vendor_id ...");
+		$sqlHash->{vendor_id}= $sqlHash->{vendor_id}.".".$dupCounter->{vendor_id}->{  $sqlHash->{vendor_id} };
+		$logger->warn("    ... and will be replaced with ",$sqlHash->{vendor_id} );
+	}
 	$vendor_ids->{ $sqlHash->{vendor_id} }=1;
 	
 	if(!defined($sqlHash->{project_id}) ){
@@ -763,10 +772,26 @@ sub validateValues{
 		$totalWarn++;
 	};
 
-	if(!defined($sqlHash->{display_name}) or defined($display_names->{$sqlHash->{display_name}}) ){
+	if(!defined($sqlHash->{display_name})  ){
 		$logger->warn("Please provide a unique display_name for this sample");
 		$totalWarn++;
 	}
+	
+	
+	if(  defined($vendor_ids->{$sqlHash->{display_name}}) ){
+		if(!defined($dupCounter->{display_name}->{$sqlHash->{display_name} }  ) ){
+			$dupCounter->{display_name}->{ $sqlHash->{display_name} }=2;
+		}else{ 
+			$dupCounter->{display_name}->{ $sqlHash->{display_name}} ++ ; 
+		}
+		$logger->warn("$sqlHash->{display_name}} is a duplicate display_name ...");
+		$sqlHash->{display_name}= $sqlHash->{display_name}.".".$dupCounter->{display_name}->{  $sqlHash->{display_name} };
+		$logger->warn("    ... and will be replaced with ",$sqlHash->{display_name} );
+	}
+	
+	
+	
+	
 	$display_names->{ $sqlHash->{display_name}}=1;
 	
 #	$sqlHash->{response}=$data[$titles{response}];
