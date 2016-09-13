@@ -772,19 +772,19 @@ sub validateValues{
 		$totalWarn++;
 	};
 
-	if(!defined($sqlHash->{display_name})  ){
+	if(!defined($sqlHash->{display_name}) ){
 		$logger->warn("Please provide a unique display_name for this sample");
 		$totalWarn++;
 	}
 	
 	
-	if(  defined($vendor_ids->{$sqlHash->{display_name}}) ){
+	if(  defined($display_names->{$sqlHash->{display_name}}) ){
 		if(!defined($dupCounter->{display_name}->{$sqlHash->{display_name} }  ) ){
 			$dupCounter->{display_name}->{ $sqlHash->{display_name} }=2;
 		}else{ 
 			$dupCounter->{display_name}->{ $sqlHash->{display_name}} ++ ; 
 		}
-		$logger->warn("$sqlHash->{display_name}} is a duplicate display_name ...");
+		$logger->warn("$sqlHash->{display_name}} is a duplicate vendor_id ...");
 		$sqlHash->{display_name}= $sqlHash->{display_name}.".".$dupCounter->{display_name}->{  $sqlHash->{display_name} };
 		$logger->warn("    ... and will be replaced with ",$sqlHash->{display_name} );
 	}
