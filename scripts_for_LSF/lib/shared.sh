@@ -157,6 +157,7 @@ function getQueue(){
 	queues["controlFreec.human"]="bigdisk"
 	queues["STARaln.xenograft"]="bigmem"
 	queues["MarkDuplicates"]="bigmem"
+	queues["RemoveDuplicates"]="bigmem"
 	queues["LibraryComplexity"]="bigmem"
 	queues["BWAmem"]="bigmem"
 	queues["Bismark"]="bigdisk"
@@ -353,7 +354,10 @@ function initiateJob(){
 	
 	# get the size of the file
 	bname=$(basename $filename)
-	filesize=$(aws s3 ls $filename | grep ${bname}$ |  awk -v N=$3 '{print $3}' )
+	filesize=1000000000
+	if [ "${filename:0:5}" == "s3://" -a -z "$NGS_DISABLE_FILESIZE_CHECK" ] ; then 
+		filesize=$(aws s3 ls $filename | grep ${bname}$ |  awk -v N=$3 '{print $3}' )
+	fi
 #echo "Filesize for file $filename is $filesize"
 	filesize=$(( $filesize / 1000000000 ))
 	echo "###############################"
@@ -496,9 +500,9 @@ function fileStem(){
 	stem=$(echo $stem| sed 's%\.fa$%%'| sed 's%\.fai$%%'| sed 's%\.fna$%%' | sed 's%\.faa$%%')
 	stem=$(echo $stem| sed 's%\.bcf$%%'| sed 's%\.vcf$%%')
 	stem=$(echo $stem| sed 's%GATK\.%%' )
-	stem=$(echo $stem| sed 's%Realign%%'|sed 's%Recalibrate%%' | sed 's%HaplotypeCallerCombinedCalls%%' | sed 's%Haplotype_gvcf%%')
-	stem=$(echo $stem| sed 's%VariantRecalibration%%'| sed 's%GenotypeGVCFs%%' | sed 's%SplitNCigarReads%%')
-	
+	stem=$(echo $stem| sed 's%\.Realign%%'|sed 's%\.Recalibrate%%' | sed 's%\.HaplotypeCallerCombinedCalls%%' | sed 's%\.Haplotype_gvcf%%')
+	stem=$(echo $stem| sed 's%\.VariantRecalibration%%'| sed 's%\.GenotypeGVCFs%%' | sed 's%\.SplitNCigarReads%%')
+	stem=$(echo $stem| sed 's%chromhmm\.%%'| sed 's%ChromHMM\.%%' | sed 's%chromHMM\.%%'|sed 's%\.chrom%%'| sed 's%BinarizeBed_%%' | sed 's%BinarizeBam_%%')
 	if [ -n "${NGS_STEM_DISPLAYNAME}" ] ; then
 		stem=$( ngs-sampleInfo.pl $input display_name )
 	fi
@@ -567,7 +571,15 @@ function ingestDirectory(){
 
 function getSecondReadFile(){
 	FirstReadFile=$1
-	SecondReadFile=$( echo $FirstReadFile | sed 's/_R1.fastq/_R2.fastq/' | sed 's/_1.fastq/_2.fastq/'|sed 's/_R1.fq/_R2.fq/' | sed 's/_1.fq/_2.fq/' | sed 's/_R1.001.fastq/_R2.001.fastq/' | sed 's/read1.fastq/read2.fastq/'| sed 's/read1.fq/read2.fq/')
+	SecondReadFile=$( echo $FirstReadFile | \
+sed 's/_R1.fastq/_R2.fastq/' | \
+sed 's/_1.fastq/_2.fastq/'| \
+sed 's/_R1.fq/_R2.fq/' | \
+sed 's/_1.fq/_2.fq/' | \
+sed 's/_R1_001.fastq/_R2_001.fastq/' | \
+sed 's/_R1\.001.fastq/_R2\.001.fastq/' | \
+sed 's/read1.fastq/read2.fastq/'| \
+sed 's/read1.fq/read2.fq/')
 	
 	
 	if [ "$FirstReadFile" == "$SecondReadFile" ] ; then
