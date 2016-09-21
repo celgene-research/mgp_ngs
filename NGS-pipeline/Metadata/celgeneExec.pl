@@ -22,7 +22,7 @@ use Getopt::Long;
 
 my $version=Celgene::Utils::SVNversion::version( '$Date: 2015-08-16 22:19:49 -0700 (Sun, 16 Aug 2015) $ $Revision: 1625 $ by $Author: kmavrommatis $' );
 
-my($help,$log_level,$log_file,$analysis_task,$derived_from,$derived_from_file,$showversion,@output_file,$norun,$metadata_string,$ignoreFail);
+my($help,$log_level,$log_file,$analysis_task,$derived_from,$derived_from_file,$showversion,@output_file,$norun,$metadata_string,$ignoreFail,@executable);
 GetOptions(
 	"analysis_task|analysistask|a=s"=>\$analysis_task,
 	"h|help!"=>\$help,
@@ -33,6 +33,7 @@ GetOptions(
 	"derivedfrom|derived_from|d=s"=>\$derived_from,
 	"derivedfromfile|derived_from_file|D=s"=>\$derived_from_file,
 	"outputfile|output|output_file|o=s"=>\@output_file,
+	"executable|e=s"=>\@executable,
 	"metadatastring=s@"=>\$metadata_string,
 	"version!"=>\$showversion
 );
@@ -120,7 +121,7 @@ my @cmds=splitCommand($UserCommand); # split at the pipe symbol
 my @possibleFiles=();
 foreach my $cmd(@cmds){
 	$logger->trace("Parsing command '$cmd'");
-	my ($binaryObj, $interpreterObj)=getBinary($cmd); # get the name of the binary (including the interpreter if necessary) Both return as fileOjb
+	my ($binaryObj, $interpreterObj)=getBinary($cmd, $executable[0]); # get the name of the binary (including the interpreter if necessary) Both return as fileOjb
 	if(!defined($interpreterObj)){$interpreterObj=fileObj->new("","");} # create a dummy interpreter if there isn't one
 	$logger->trace("Setting runcommand ");
 	
@@ -339,6 +340,9 @@ c. creates a .met file with metadata which can be added to the OODT NGS database
 	The metadata will contain the time,host of execution, the user that executed it, AWS specific information if applicable,
 	command line, version of script or binary that was executed etc.   
     In order for the metadata to be captured the OODT crawler needs to be run.
+    
+NOTE: After version Sep132016 this script supports commands that call docker containers. However in that case only 
+one docker command can be used in the command line argument and the executable field needs to be used
 
 Optional arguments include:
 	--norun The script will not execute the command, but will try to generate the .met file. User needs to have specified the output in the command line arguments.
@@ -356,6 +360,7 @@ Optional arguments include:
 		check if these file exist. This is an option suitable for adding s3 objects in the derived_from list.
 	--outputfile --output --output_file -o output_file (can be used multiple times)
 		Used in cases where output file is not mentioned in the command line.
+ 	--executable -e  The executable to use. This is used only when the command is a docker container.
 	--metadatastring a string that contains the metadata key and either a value or a filename with the values. This option can be provided multiple times
 	    E.g. config=rumnme.config, 
 	    will add the metadata field config with value the contents of the runme.config file.

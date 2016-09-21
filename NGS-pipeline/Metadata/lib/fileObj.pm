@@ -20,7 +20,7 @@ sub new
 {
     my $class = shift;
     my $filename=shift;
-    my $type=shift; # can be either regular file [regular](default) or indicate that this is an executable [binary]
+    my $type=shift; # can be either regular file [regular](default) or indicate that this is an executable [binary] or 'asis' to indicate no change at all
     my $shadow=shift;
 	if(!defined($type)){ $type= "regular";}   
 	my $self = {};
@@ -79,6 +79,11 @@ sub type{
 		if($self->{fileType} eq 'binary'){
 			$self->_getFullBinary( );
 		}
+		if($self->type() eq 'asis'){
+			$self->absFilename( $self->filename());
+			$self->onlyFilename( $self->filename());
+			return $self->{fileType};
+		}	
 		my($volume,$directories,$file) = File::Spec->splitpath( $self->{fileName} );
 		$self->onlyFilename( $file );
 		$self->{logger}->trace("type: Finished setting the file type to $self->{fileType}");
@@ -147,7 +152,12 @@ sub onlyFilename{
 # get teh full path for a binary by running which if it is not already specified
 sub _getFullBinary{
 	my($self)=@_;
+	
 	my $binary=$self->filename();
+	if($self->type() eq 'asis'){
+		$self->absFilename( $self->filename());
+		return;
+	}
 	my ($volume,$directories,$file) = File::Spec->splitpath( $binary );
 	
 	# if we have provided the full path to the binary do nothing
@@ -188,6 +198,10 @@ sub _getFullFile{
 	my($self)=@_;
 	
 	my $file=$self->filename();
+	if($self->type() eq 'asis'){
+		$self->absFilename( $self->filename());
+		return;
+	}
 	if($file =~/^s3:/){
 	}else{
 		$file=File::Spec->rel2abs( $file);

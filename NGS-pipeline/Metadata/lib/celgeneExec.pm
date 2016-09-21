@@ -84,7 +84,7 @@ sub setRunCommand{
 # attention is paid if we have java (or other interpreters) preceding the command
 # input is the full command
 sub getBinary{
-	my($cmd)=@_;
+	my($cmd,$userbinary)=@_;
 	chomp $cmd;
 	my $interpreter;
 	$cmd=~/^\s*(.+)\s*$/; $cmd =$1;
@@ -104,11 +104,33 @@ sub getBinary{
 		$interpreter= 'java'
 	};
 
+	#docker is a more complicated case
+	# it has a series of arguments with values eg -h <hostname> and the last two are the image and command
+	if($binary =~/docker$/){
+		if(!defined($userbinary) ){
+			$logger->logdie("User submitted a docker container command, but not executable in the executable field of celgeneExec.pl");
+		}
+		my $idx=index( $cmd , $userbinary );
+			
+		if( $idx==-1){
+			$logger->logdie("User submitted a docker container command, but the executable is not in the list");
+		}
+		
+		$binary=substr( $cmd, 0, $idx)." ".$userbinary;
+		$binary =~s/docker\s+run//g;
+		$interpreter='docker';
+	}
+
 	$logger->trace("Detected binary as $binary");
 	$logger->trace("Detected interpreter as $interpreter")if defined($interpreter);
-	
 	$logger->trace("Starting object for binary '$binary'");
-	my $binaryObj= fileObj->new( $binary , "binary");
+	my $binaryObj;
+	if(defined($interpreter) and $interpreter eq 'docker'){
+		$binaryObj= fileObj->new( $binary , "asis");
+	}else{
+	
+		$binaryObj= fileObj->new( $binary , "binary");
+	}
 	$logger->trace("Starting object for interpreter '$interpreter'")if defined($interpreter);
 	my $interpreterObj= fileObj->new($interpreter, "binary") if defined($interpreter);
 	
