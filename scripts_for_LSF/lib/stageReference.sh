@@ -34,9 +34,26 @@ function waitLoop(){
 	if [ -d $directory -a -e $directory/DONETRANSFER ] ; then
 		return
 	fi
-	echo 'Although the lock file is not in the directory anymore, there is no DONETRANSFER file. Something must have gone wrong'
+	echo 'Although the lock file is not in the directory '$directory' anymore, there is no DONETRANSFER file. Something must have gone wrong'
 	exit 10	
 }
+
+# wait until the lock ;;le disappears and then exit
+function waitLoopFile(){
+	file=$1
+	
+	while [ -e $file.LOCKFILE ]
+	do
+		sleep 15s
+	done
+	if [ -e $file.DONETRANSFER ] ; then
+		return
+	fi
+	echo 'Although the lock file is not present for file '$file' anymore, there is no DONETRANSFER file. Something must have gone wrong'
+	exit 10	
+}
+
+
 
 function stageDirectory(){
 	awsDirectory=$1
@@ -44,7 +61,9 @@ function stageDirectory(){
 			
 	mkdir -p $localDirectory
 	touch $localDirectory/LOCKFILE
-	aws s3 sync --exclude "" $awsDirectory/ $localDirectory/  &> $localDirectory/transfer.$$.log
+	printenv > $localDirectory/transfer.$$.log
+	echo "Using aws s3 sync to copy $awsDirectory/ to $localDirectory/" >> $localDirectory/transfer.$$.log
+	aws s3 sync --exclude "" $awsDirectory/ $localDirectory/  &>> $localDirectory/transfer.$$.log
 	
 	if [ $? -ne 0 ] ; then
 		echo "Failed to run command"
@@ -57,6 +76,29 @@ function stageDirectory(){
 	while [[ $f != "/" ]]; do chmod 777 $f &>/dev/null; f=$(dirname $f); done;
 	rm $localDirectory/LOCKFILE
 	touch $localDirectory/DONETRANSFER
+				
+	return		
+	
+}
+function stageFile(){
+	awsFile=$1
+	localFile=$2
+			
+	mkdir -p $(dirname localFile)
+	touch $localFile.LOCKFILE
+	printenv > $localFile.transfer.$$.log
+	echo "Using aws s3 cp $awsFile to $localFile/" >> $localFile.transfer.$$.log
+	aws s3 cp $awsFile $localFile  &>> $localFile.transfer.$$.log
+	
+	if [ $? -ne 0 ] ; then
+		echo "Failed to run command"
+		rm $localFile.LOCKFILE
+		touch $localFile.FAILED_TRANSFER
+		exit 102
+	fi
+	chmod -R 777 $localFile &>/dev/null
+	rm $localFile.LOCKFILE
+	touch $localFile.DONETRANSFER
 				
 	return		
 	
@@ -81,10 +123,28 @@ function dispatch(){
 	
 }
 
+function dispatchfile(){
+	awsfile=$1
+	localfile=$2
+	type=$3
+	if [ -e $localfile -a -e $localfile.LOCKFILE ] ; then
+		waitLoopFile $localImage
+		return
+	fi
+	if [ -d $localfile -a -e $localfile.DONETRANSFER ] ; then
+		return
+	fi
+	stageFile $awsfile $localfile 
+	if [ "$type" == "docker" ] ; then
+		docker load < $localfile
+	fi
+}
+
+
 # check if there is enough disk space on the node.
 # if not exit with 34
 # the job will be restarted 
-usedDisk=$( df | grep scratch  | rev | cut -f2 -d ' ' | rev | tr -d '%' )
+usedDisk=$( df | grep ' /scratch'  | rev | cut -f2 -d ' ' | rev | tr -d '%' )
 if [ "$usedDisk" -gt "80" ] ; then
 	date >> $HOME/pre-exec.log
 	echo "Starting job $option on node "$(hostname)" cannot start because the disk has  $usedDisk % available and the maximum requirement is 80%" >> $HOME/pre-exec-$(hostname).log
@@ -215,6 +275,15 @@ case "$option" in
 	dispatch $ratGenomeDirAWS $ratGenomeDir
 	
 ;;
+"SICER" )
+	dispatchfile ${CELGENE_NGS_BUCKET_DATA}/data/containers/${sicerpydocker}.tar ${NGS_TMP_DIR}/${sicerpydocker}.tar docker
+	
+;;
+"VEP" )
+	dispatchfile ${CELGENE_NGS_BUCKET_DATA}/data/containers/${vepdocker}.tar ${NGS_TMP_DIR}/${vepdocker}.tar docker
+	
+;;
+
 
 
 ##################

@@ -16,16 +16,19 @@ declare queue_name
 # bigmem  = r3.2xlarge: 8cores, 61GB RAM, 1 x 160 HD
 # hugemem = r3.4xlarge:16cores,	122GB RAM, 1 x 320 HD
 queueCores["normal"]=16
+queueCores["spot"]=16
 queueCores["bigdisk"]=8
 queueCores["bigmem"]=8
 queueCores["hugemem"]=16
 queueCores["small"]=16
 queueMem["normal"]=30
+queueMem["spot"]=30
 queueMem["bigdisk"]=61
 queueMem["bigmem"]=61
 queueMem["hugemem"]=122
 queueMem["small"]=61
 queueDisk["normal"]=320
+queueDisk["spot"]=320
 queueDisk["bigdisk"]=1600
 queueDisk["bigmem"]=160
 queueDisk["hugemem"]=320
@@ -153,6 +156,7 @@ function getQueue(){
 	queues["GATK.GenotypeGVCFs"]="bigdisk"
 	queues["GATK.VariantRecalibration"]="bigdisk"
 	queues["GATK.Mutect2"]="bigdisk"
+	queues["GATK.Haplotype_gvcf"]="hugemem"
 	queues["mpileup"]="bigdisk"
 	queues["controlFreec.human"]="bigdisk"
 	queues["STARaln.xenograft"]="bigmem"
@@ -216,7 +220,6 @@ function bsubHeader(){
             cores=$(printf "%.0f" $coresFraction)
             echo "The number of requested cores will need to be changed to $cores" 1>&2
     fi
-		
 	
 	#if the requested cores are more than the cores the system can provide
 	# then downsize to as many cores the node has

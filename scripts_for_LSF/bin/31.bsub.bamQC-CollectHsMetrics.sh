@@ -1,6 +1,7 @@
 #!/bin/bash
 scriptDir=$( dirname $0 ); source $scriptDir/../lib/shared.sh
 input=$1
+baitsUserFile=$2
 
 checkfile $input
 
@@ -41,6 +42,9 @@ initiateJob $stem $step $1
 
 exomeSet=$(ngs-sampleInfo.pl $input bait_set)
 case  "${exomeSet}" in
+"Lymphoma_HG19" )
+	baitsfile=${humanGenomeDir}/ExonCapture/Lymphoma_HG19_capture_targets.intervals.bed
+;;
 "Nextera_Rapid_Capture_v1.2_Illumina" )
 		baitsfile=${humanGenomeDir}/ExonCapture/nexterarapidcapture_exome_targetedregions_v1.2.intervals.bed
 	;;
@@ -84,6 +88,9 @@ case  "${exomeSet}" in
 	echo "Cannot recognize exome capture kit"
 	;;
 esac
+
+
+
 captureKit=${exomeSet}
 #mkdir -p bamQC
 
