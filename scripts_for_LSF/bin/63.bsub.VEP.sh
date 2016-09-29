@@ -1,11 +1,5 @@
 #!/bin/bash
 
-# this script is using SICER to call peaks from chipseq datasets
-#
-# it can be used to either call broad or sharp peaks
-# it will ask the db for the type of ChIPseq experiment and adjust accordingly
-
-
 
 scriptDir=$( dirname $0 ); source $scriptDir/../lib/shared.sh
 inputVCF=$1
@@ -13,16 +7,16 @@ inputVCF=$1
 
 checkfile $inputVCF
 
-stem1=$(fileStem $inputVCF)
+stem=$(fileStem $inputVCF)
 step="VEP"
 executable=$(echo $vepbin | rev | cut -d ' ' -f 1 | rev)
-
+initiateJob $stem $step $1
 analysistask=38
 
 cores=$(fullcores) #VEP uses a lot of memory (~10GB/fork). We request for all the cores, to get the full node, but we use only 2 forks.
 memory=$(fullmemory)
 
-initiateJob $stem $step $1
+
 header=$(bsubHeader $stem $step $memory $cores)
 
 echo \
@@ -58,11 +52,13 @@ $vepbin  \
 --cache \
 --offline \
 --merged \
---everything \
+--uniprot --hgvs --symbol --domains, --regulatory \
+--canonical --protein --biotype --uniprot \
+--tsl --gene_phenotype \
+--gmaf --maf_1kg --maf_esp --maf_esp --variant_class \
 --force_overwrite \
+--fork ${cores} \
 -o \${outputDirectory}/${stem} \
---fork 2
- ; \
 \"
 
 
