@@ -1,0 +1,1 @@
+../bin/24.bsub.haplotypeCallerCombined.sh

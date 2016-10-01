@@ -1,0 +1,1 @@
+../bin/60.bsub.samtoolsMpileUP.GRCh37.sh

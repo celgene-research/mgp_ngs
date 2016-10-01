@@ -1,0 +1,37 @@
+echo "
+[general]
+bedtools=$bedtoolsbin
+breakPointThreshold=0.6
+breakPointType=2
+chrFiles=$humanChromosomesDir
+chrLenFile=${humanChromosomesDir}/freec.len
+coefficientOfVariation=0.05
+contamination=TRUE
+contaminationAdjustment=FALSE
+gemMappabilityFile=${freecMappability}
+outputDir=$outputDirectory
+ploidy=2,3,4
+samtools=${samtoolsbin}
+sex="XX"
+maxThreads=${cores}
+BedGraphOutput=TRUE
+
+[sample]
+mateFile=$inputsample
+inputFormat=pileup
+mateOrientation=${mateorientation}
+
+[control]
+mateFile=$inputcontrol
+inputFormat=pileup
+mateOrientation=${mateorientation}
+
+# the following lines can be added to the config file to generate BAF files
+# but the process relies on mpileup which can be very time consuming
+[BAF]
+SNPfile=${freecSNPs}
+minimalCoveragePerPosition=4
+#fastaFile=$humanGenomeDir/genome.fa
+#makePileup=${freecBAF}
+
+"

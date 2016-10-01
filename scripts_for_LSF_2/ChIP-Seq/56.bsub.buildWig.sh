@@ -1,0 +1,1 @@
+../bin/56.bsub.buildWig.sh
