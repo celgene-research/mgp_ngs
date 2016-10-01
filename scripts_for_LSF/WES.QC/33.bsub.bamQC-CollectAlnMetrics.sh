@@ -1,1 +1,0 @@
-../bin/33.bsub.bamQC-CollectAlnMetrics.sh

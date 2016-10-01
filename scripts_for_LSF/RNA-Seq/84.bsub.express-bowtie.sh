@@ -1,1 +1,0 @@
-../bin/84.bsub.express-bowtie.sh

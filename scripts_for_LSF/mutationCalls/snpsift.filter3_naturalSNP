@@ -1,9 +1,0 @@
-(
-        ((na dbNSFP_1000Gp1_AF) | (dbNSFP_1000Gp1_AF < 0.03))&
-        ((na dbNSFP_1000Gp1_AFR_AF) | (dbNSFP_1000Gp1_AFR_AF < 0.03))&
-        ((na dbNSFP_1000Gp1_EUR_AF) | (dbNSFP_1000Gp1_EUR_AF < 0.03))&
-        ((na dbNSFP_1000Gp1_AMR_AF) | (dbNSFP_1000Gp1_AMR_AF < 0.03))&
-        ((na dbNSFP_1000Gp1_ASN_AF) | (dbNSFP_1000Gp1_ASN_AF < 0.03))&
-        ((na AF_TWINSUK) | (AF_TWINSUK < 0.03))&
-        ((na AF_ALSPAC) | (AF_ALSPAC < 0.03))
-)
