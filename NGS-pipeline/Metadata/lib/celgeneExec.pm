@@ -76,7 +76,9 @@ sub setRunCommand{
 	if($interpreter =~/java$/){
 		return "$interpreter -jar $binary";
 	}
-	
+	if($interpreter =~/docker/){
+		return "$binary";
+	}
 	return "$interpreter $binary";
 }
 
