@@ -117,7 +117,7 @@ sub getBinary{
 		}
 		
 		$binary=substr( $cmd, 0, $idx)." ".$userbinary;
-		$binary =~s/docker\s+run//g;
+		#$binary =~s/docker\s+run//g;
 		$interpreter='docker';
 	}
 
@@ -128,7 +128,6 @@ sub getBinary{
 	if(defined($interpreter) and $interpreter eq 'docker'){
 		$binaryObj= fileObj->new( $binary , "asis");
 	}else{
-	
 		$binaryObj= fileObj->new( $binary , "binary");
 	}
 	$logger->trace("Starting object for interpreter '$interpreter'")if defined($interpreter);
