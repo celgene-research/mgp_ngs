@@ -118,7 +118,7 @@ sub getBinary{
 			$logger->logdie("User submitted a docker container command, but the executable is not in the list");
 		}
 		
-		$binary=substr( $cmd, 0, $idx)." ".$userbinary;
+		$binary=substr( $cmd, 0, $idx)." ".$userbinary; # 
 		#$binary =~s/docker\s+run//g;
 		$interpreter='docker';
 	}
@@ -272,7 +272,8 @@ sub getVersion{
 	my $runCommand=$binaryObj->absFilename();
 	if(defined($interpreterObj)){ $runCommand= setRunCommand($binaryObj->absFilename(), $interpreterObj->absFilename());}
 	# try different methods to find the version of the program
-	$logger->trace("getVersion: Looking for version of command $runCommand");
+	$logger->info("getVersion: Looking for version of command $runCommand");
+	$logger->info("getVersion: trying with --version, -version and by just running the command");
 	
 	my $version= checkFileVersion( $runCommand); # check if version is stored in a file (maintained by us)
 	
@@ -295,7 +296,7 @@ sub getVersion{
 		else{ $version=$thr->join();}
 	}
 	if(!defined($version)){$version="$runCommand unknown version";}
-	$logger->trace("getVersion: version is $version");
+	$logger->info("getVersion: version detected is $version");
 	my $p1=$binaryObj->onlyFilename();
 	my $p2=$binaryObj->absFilename();
 	my $p3=$binaryObj->filename();
