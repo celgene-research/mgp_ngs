@@ -76,9 +76,7 @@ sub setRunCommand{
 	if($interpreter =~/java$/){
 		return "$interpreter -jar $binary";
 	}
-	if($interpreter =~/docker/){
-		return "$binary";
-	}
+	
 	return "$interpreter $binary";
 }
 
@@ -118,8 +116,8 @@ sub getBinary{
 			$logger->logdie("User submitted a docker container command, but the executable is not in the list");
 		}
 		
-		$binary=substr( $cmd, 0, $idx)." ".$userbinary; # 
-		#$binary =~s/docker\s+run//g;
+		$binary=substr( $cmd, 0, $idx)." ".$userbinary;
+		$binary =~s/docker\s+run//g;
 		$interpreter='docker';
 	}
 
@@ -130,6 +128,7 @@ sub getBinary{
 	if(defined($interpreter) and $interpreter eq 'docker'){
 		$binaryObj= fileObj->new( $binary , "asis");
 	}else{
+	
 		$binaryObj= fileObj->new( $binary , "binary");
 	}
 	$logger->trace("Starting object for interpreter '$interpreter'")if defined($interpreter);
@@ -272,8 +271,7 @@ sub getVersion{
 	my $runCommand=$binaryObj->absFilename();
 	if(defined($interpreterObj)){ $runCommand= setRunCommand($binaryObj->absFilename(), $interpreterObj->absFilename());}
 	# try different methods to find the version of the program
-	$logger->info("getVersion: Looking for version of command $runCommand");
-	$logger->info("getVersion: trying with --version, -version and by just running the command");
+	$logger->trace("getVersion: Looking for version of command $runCommand");
 	
 	my $version= checkFileVersion( $runCommand); # check if version is stored in a file (maintained by us)
 	
@@ -296,7 +294,7 @@ sub getVersion{
 		else{ $version=$thr->join();}
 	}
 	if(!defined($version)){$version="$runCommand unknown version";}
-	$logger->info("getVersion: version detected is $version");
+	$logger->trace("getVersion: version is $version");
 	my $p1=$binaryObj->onlyFilename();
 	my $p2=$binaryObj->absFilename();
 	my $p3=$binaryObj->filename();
@@ -361,7 +359,7 @@ sub _parseVersion{
 			$logger->debug( "Decided that version is [$returnVersion]");
 			last;
 		}
-		if(lc($l)=~/version(.+)/ and lc($l)!~/-version/  
+		if(lc($l)=~/version(.+)/ and lc($l)!~/-version/ and lc($l)!~/GNU GPL/ 
 			){
 			my $v=$1;
 			$returnVersion=$v;
