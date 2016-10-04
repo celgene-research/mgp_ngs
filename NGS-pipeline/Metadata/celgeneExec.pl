@@ -22,7 +22,7 @@ use Getopt::Long;
 
 my $version=Celgene::Utils::SVNversion::version( '$Date: 2015-08-16 22:19:49 -0700 (Sun, 16 Aug 2015) $ $Revision: 1625 $ by $Author: kmavrommatis $' );
 
-my($help,$log_level,$log_file,$analysis_task,$derived_from,$derived_from_file,$showversion,@output_file,$norun,$metadata_string,$ignoreFail,@executable);
+my($help,$log_level,$log_file,$analysis_task,$derived_from,$derived_from_comma_list,$showversion,@output_file,$norun,$metadata_string,$ignoreFail,@executable);
 GetOptions(
 	"analysis_task|analysistask|a=s"=>\$analysis_task,
 	"h|help!"=>\$help,
@@ -31,7 +31,7 @@ GetOptions(
 	"logfile=s"=>\$log_file,
 	"ignorefail!"=>\$ignoreFail,
 	"derivedfrom|derived_from|d=s"=>\$derived_from,
-	"derivedfromfile|derived_from_file|D=s"=>\$derived_from_file,
+	"derivedfromfile|derived_from_file|C=s"=>\$derived_from_comma_list,
 	"outputfile|output|output_file|o=s"=>\@output_file,
 	"executable|e=s"=>\@executable,
 	"metadatastring=s@"=>\$metadata_string,
@@ -69,15 +69,6 @@ my $hash={};
 if(defined($analysis_task)){ 
 	$logger->debug("Analysis task specified to be [$analysis_task]");
 	$hash->{analysis_task}= $analysis_task;
-}
-if(defined($derived_from)){
-	$logger->debug("Derived from files are found in file [$derived_from]");
-	my $rfh=Celgene::Utils::FileFunc::newReadFileHandle( $derived_from );
-	while(my $l=<$rfh>){ 
-		chomp $l; 
-		push  @{$hash->{derived_from}}, $l;
-	}
-	close($rfh);
 }
 
 
@@ -163,13 +154,25 @@ foreach my $pf(@possibleFiles){
 
 }
 
-if(defined($derived_from_file)){
-	my @tmpfiles=split(",", $derived_from_file);
+if(defined($derived_from_comma_list)){
+	my @tmpfiles=split(",", $derived_from_comma_list);
+	$logger->info("Using user provided derived_from files as a comma separated list");
 	foreach my $tmpfile( @tmpfiles ){
-		$logger->debug("Adding in the list of derived from files file : $tmpfile");
+		$logger->info("Using user provided derived_from files, adding file [ $tmpfile ]");
 		push  @{$hash->{derived_from}}, $tmpfile;	
 	}
 	
+}
+if(defined($derived_from)){
+	$logger->debug("Derived from files are found in file [$derived_from]");
+	my $rfh=Celgene::Utils::FileFunc::newReadFileHandle( $derived_from );
+	$logger->info("Using user provided derived_from files, found in file [ $derived_from ]");
+	while(my $l=<$rfh>){ 
+		chomp $l; 
+		$logger->info("Using user provided derived_from files, adding file [ $l ]");
+		push  @{$hash->{derived_from}}, $l;
+	}
+	close($rfh);
 }
 	
 
@@ -214,7 +217,7 @@ foreach my $u( @UserCommands ){
 		my $returnCode=$?>>8;
 		$capturedCode=$returnCode;
 		if($returnCode !=0){
-	    	$logger->warn( (sprintf( "child process exited with value %d\n", $returnCode)));
+	    		$logger->warn( (sprintf( "child process exited with value %d\n", $returnCode)));
 		}else{
 			$logger->info("Command executed successfully");
 		}
@@ -223,6 +226,8 @@ foreach my $u( @UserCommands ){
 		$logger->warn("celgeneExec failed to run the command $u. But execution was continued");
 	}elsif($capturedCode != 0 and !defined($ignoreFail) ){
 		$logger->warn("celgeneExec failed to run the command $u.");
+		$logger->warn("          The program will abort with exit code $capturedCode"); 
+		exit( $capturedCode ); 
 	}
 }
 
@@ -356,7 +361,7 @@ Optional arguments include:
 		This option has priority over other methods
 	--derivedfrom --derived_from -d a file with a list of input files. 
 		Typically used when the command line reads the input from a list file.
-	--derivedfromfiles --derived_from_files -D a comma separated list of derived from files. The script does not
+	--derivedfromfiles --derived_from_files -C a comma separated list of derived from files. The script does not
 		check if these file exist. This is an option suitable for adding s3 objects in the derived_from list.
 	--outputfile --output --output_file -o output_file (can be used multiple times)
 		Used in cases where output file is not mentioned in the command line.
