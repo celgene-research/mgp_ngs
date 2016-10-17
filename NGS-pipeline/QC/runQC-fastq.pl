@@ -20,37 +20,38 @@ my $host=hostname;
 my $arguments=join(" ",@ARGV);
 #my $annotationFile="/opt/reference/Homo_sapiens/GENCODE/hg19/Annotation/gencode.v14.refFlat"; # for ENSEMBL
 my $version=Celgene::Utils::SVNversion::version( '$Date: 2015-10-14 08:34:44 -0700 (Wed, 14 Oct 2015) $ $Revision: 1707 $' );
-my ($logLevel,$logFile,$manifest,$help,$inputFQ,$inputBAM,$samplename,$nocommit,$reuse, $mapper)=('INFO',undef,undef);
-my($ribosomal_intervals,$annotationFile,$strand,$genomeFile,$qcStep,$outputFile,$sampleFlag);
+my ($logLevel,$logFile,$manifest,$help,$inputFQ,$inputBAM,$usersample_id,$nocommit,$reuse, $mapper)=('INFO',undef,undef);
+my($ribosomal_intervals,$annotationFile,$strand,$genomeFile,$qcStep,$outputFile,$sampleFlag,$compatibility);
 GetOptions(
 	"loglevel=s"=>\$logLevel,
 	"logfile=s"=>\$logFile,
+	"qcfile=s"=>\$outputFile,
+	"reuse!"=>\$reuse,
+	"outputfile=s"=>\$compatibility,
 	"inputfq=s"=>\$inputFQ,
-	"outputfile=s"=>\$outputFile,
-	"samplename=s"=>\$samplename,
+	"sample_id=s"=>\$usersample_id,
 	"sample_flag=s"=>\$sampleFlag,
 	"nocommit"=>\$nocommit,
-	"reuse"=>\$reuse,
 	"qcStep=s"=>\$qcStep,
 	"help"=>\$help
 );
-if(!defined($inputFQ) ) {printHelp();die "Please provide  fastq files for the QC\n";}
 if(!defined($logFile)){
-	if(defined($samplename)){$logFile= $samplename.".log";}
+	if(defined($usersample_id)){$logFile= $usersample_id.".log";}
 	else{$logFile = "runQC.log";}
 }
+
+#outputfile is an option that is not use any more, but kept for compatibility
+if(defined($compatibility)) { $outputFile=$compatibility;}
 
 sub printHelp{
 	print
 	"$0. $version program that drives the QC analysis of samples\n".
 	"arguments\n".
-	" --samplename <sample name> [sample]\n".
-	" --inputfq <input fastq file> (should be a comma separated list of two files)\n".
-	" --outputfile <file to store QC output>. The contents of this file will be automatically added to the database\n".
+	" --sample_id <sample id of the file> (script will try to find it from the filename)\n".
+	" --qcfile <file to store QC output>. The contents of this file will be automatically added to the database\n".
 	" --sample_flag a flag the defines the type of sample information to store 
 	('original' : for the standard information [default]
 	 'trimmed'  : for Qc on reads after trimming)".
-	" --reuse will search for existing output files before it runs fastqc \n".
 	" --qcStep define QC module to run ('FastQC','LaneDistribution','Adapter')\n".
 	" --nocommit will not update the database\n".
 	" --logLevel/--logFile standard logger arguments\n".
@@ -89,6 +90,12 @@ my $logConf=qq{
 Log::Log4perl->init(\$logConf);
 my $logger=Log::Log4perl->get_logger("runQC");
 
+
+if(!defined($outputFile)){
+	printHelp();
+	$logger->logdie("Please provide the name of the qcstats file (qcfile)");
+}
+
 $logger->info("Connecting to server $server_url");
 
 
@@ -98,24 +105,39 @@ $logger->info("$0 ($version).");
 $logger->info("Host: $host");
 $logger->info("Arguments $arguments");
 
-	if(!defined($samplename)){$samplename="sample";}
 
    
 if( !defined($sampleFlag)){ $sampleFlag='original'}
-if( $sampleFlag ne 'original' and $sampleFlag ne 'trimmed'){
-	$logger->logdie("Unknown sample flag $sampleFlag");
-}   
-   
-
-
+ 
+my $sample_id;
+if(!defined($usersample_id)){
+	$logger->info("Getting the sample id from the file $outputFile");
+	$sample_id=getsampleid( $outputFile,$sampleFlag );
+	if( (!defined($sample_id )or $sample_id eq 'NA') and defined($inputFQ)){
+		my @a=split(",",$inputFQ);
+		$logger->info("Getting the sample id from the file $a[0]");
+		my $s1=getsampleid( $a[0],$sampleFlag);
+		my $s2;
+		if(scalar(@a)>1){ 
+			$logger->info("Getting the sample id from the file $a[1]");
+			$s2=getsampleid( $a[1],$sampleFlag);
+		}
+		if(!defined($s2)){$s2=$s1;}
+		if($s1 ne 'NA' ){
+			$sample_id=$s1
+		}else{ 
+			$sample_id=$s2;
+		}
+	}
 	
-my($name, $inlist)=( $samplename, $inputFQ);
+	
+	if(!defined($sample_id) or $sample_id eq 'NA'){ $logger->logdie("Neither a sample id was provided nor was it possible to get from the name of the qc file ($outputFile)");}
+	}else{
+		$sample_id=$usersample_id;
+	}   
+	
+my($name, $inlist)=( $sample_id, $inputFQ);
 $logger->info("Processing fastq: $inlist") if(defined($inlist));
-
-
-my ($sample_id,$is_paired_end,$is_stranded,$technology)=getsampleid( $name, $inlist);
-
-if($samplename eq "sample"){$samplename .=$sample_id;}
 
 
 my $fastQC=fastQCsteps->new();
@@ -129,9 +151,9 @@ my $binary3=`which getLibraryDistribution.pl`; chomp $binary3;
 $logger->info("Found getLibraryDistribution.pl at [$binary3]");
 $fastQC->binaryLaneDistribution( $binary3 );
 $fastQC->outputFile($outputFile );
-$fastQC->technology( $technology );
-if(defined($reuse)){$fastQC->reuse();}
-my($fq1,$fq2)=split(",",$inputFQ);
+#$fastQC->technology( $technology );
+$fastQC->reuse();
+my($fq1,$fq2)=split('null','null');
 $fastQC->runFastqQC($fq1, $fq2,$qcStep);
 $fastQC->parseFile( $fq1, $fq2, $qcStep);
 
@@ -148,7 +170,7 @@ if($qcStep eq 'LaneDistribution'){
 }
 if($qcStep eq 'Adapter'){
 	my $fqc=processAdapter( $fastQC );
-	
+	print Dumper($fqc);
 	getFromXMLserver("sampleQC.updateReadQC", $fqc,$sample_id, $sampleFlag);
 }
 
@@ -206,7 +228,7 @@ sub processLane{
 }
 
 sub getsampleid{
-	my ($vendor_id,$fastqfile)=@_;
+	my ($fastqfile, $flag)=@_;
 	my($is_paired_end,$is_stranded,$technology)=(undef,undef,undef);
 	my ($sql,$cur,$sample_id);
 	# get the sample id from the  metadata
@@ -229,8 +251,8 @@ sub getsampleid{
 		$logger->logdie("Cannot assign file $fastqfile to multiple samples (got ",join(",",@irodsSampleID),")");
 	}
 	elsif(scalar(@irodsSampleID)==0){ #This file is not registred in irods
-		$logger->warn("Files are not register to metadata or don't have sample information");
-		($sample_id)=getFromXMLserver('sampleInfo.getSampleByVendorID', $vendor_id);
+		$logger->warn("File $fastqfile is not register to metadata or don't have sample information");
+		return undef;
 	}else{
 		$sample_id= $irodsSampleID[0];
 		$logger->debug("From file metadata the sample was found to be $sample_id");
@@ -240,12 +262,12 @@ sub getsampleid{
 	$logger->info("Retrieving information for sample $sample_id");
 	# check if the sample exists in sample_sequencing
 	if(defined($fastqfile)){
-		my $result=getFromXMLserver('sampleInfo.getSampleFastQCByID', $sample_id);
+		my $result=getFromXMLserver('sampleInfo.getSampleFastQCByID', $sample_id,$flag);
 		if( $result eq ""){
 			$logger->info("Inserting entry for $sample_id in table sample_readqc");
 			my %h=('sample_id'=>$sample_id);
-			getFromXMLserver('sampleInfo.createSampleFastQC', \%h);
-			$result=getFromXMLserver('sampleInfo.getSampleFastQCByID', $sample_id);
+			getFromXMLserver('sampleInfo.createSampleFastQC', \%h,$flag);
+			$result=getFromXMLserver('sampleInfo.getSampleFastQCByID', $sample_id,$flag);
 		}
 		
 		my($check_id,$mr,$sr,$tech)=($result->{sample_id}, $result->{mate_reads},$result->{stranded},$result->{technology});
@@ -267,7 +289,8 @@ sub getsampleid{
 	if(!defined($is_paired_end)){$is_paired_end='undef';}
 	$logger->info("Is paired end: $is_paired_end");
 	$logger->info("Is stranded: $is_stranded");
-	return ($sample_id, $is_paired_end,$is_stranded,$technology);
+	#return ($sample_id, $is_paired_end,$is_stranded,$technology);
+	return($sample_id);
 }
 
 

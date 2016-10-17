@@ -23,23 +23,17 @@ my $arguments=join(" ",@ARGV);
 #my $annotationFile="/opt/reference/Homo_sapiens/GENCODE/hg19/Annotation/gencode.v14.refFlat"; # for ENSEMBL
 
 my ($logLevel,$logFile,$manifest,$help,$inputFQ,$inputBAM,$samplename,$nocommit,$reuse, $nofilecheck, $mapper,$baitsFile,$captureKit)=('INFO',undef,undef);
-my($ribosomal_intervals,$annotationFile,$strand,$genomeFile,$outputFile,$programVersion,$usersample_id,$genomeVersion,$sampleFlag);
+my($ribosomal_intervals,$annotationFile,$strand,$genomeFile,$outputFile,$programVersion,$usersample_id,$genomeVersion,$sampleFlag,$compatibility);
 my $qcStep;
 GetOptions(
 	"loglevel=s"=>\$logLevel,
 	"logfile=s"=>\$logFile,
-	"inputbam=s"=>\$inputBAM,
-	"outputfile=s"=>\$outputFile,
-	"baitsfile=s"=>\$baitsFile,
-	"captureKit=s"=>\$captureKit,
-	"ribosomal_intervals=s"=>\$ribosomal_intervals,
-	"annotationfile=s"=>\$annotationFile,
-	"genomefile=s"=>\$genomeFile,
-	"genomeversion=s"=>\$genomeVersion,
-	"strand=s"=>\$strand,	
+	"qcfile=s"=>\$outputFile,
 	"qcStep=s"=>\$qcStep,
-	"nocommit"=>\$nocommit,
+	"inputbam=s"=>\$inputBAM,
 	"reuse"=>\$reuse,
+	"outputfile=s"=>\$compatibility,
+	"nocommit"=>\$nocommit,
 	"sample_flag=s"=>\$sampleFlag,
 	"nofilecheck"=>\$nofilecheck,
 	"version"=>\$programVersion,
@@ -47,6 +41,15 @@ GetOptions(
 	"help"=>\$help
 );
 
+
+#outputfile is an option that is not use any more, but kept for compatibility
+if(defined($compatibility)) { $outputFile=$compatibility;}
+
+
+if(defined($help)){
+	printHelp();
+	exit 0;
+}
 
 if(!defined($logFile)){
 	if(defined($samplename)){$logFile= $samplename.".log";}
@@ -57,16 +60,8 @@ sub printHelp{
 	print
 	"$0. $version program that drives the QC analysis of samples\n".
 	"arguments\n".
-	" --inputbam <input bam file>\n".
-	" --outputfile <file to store QC output>. The contents of this file will be automatically added to the database\n".
-	"   --ribosomal_intervals <file with the ribosomal intervals. If no file is provided this module will not run\n".
-	"   --annotationfile <annotation file in refFlat format> \n".
-	"   --strand <strandness> {[NONE], FIRST_READ_TRANSCRIPTION_STRAND, SECOND_READ_TRANSCRIPTION_STRAND}\n".
-	"   --genomefile <fasta file with the genome used for reference>\n".
-	"   --genomeversion the version of the genome used (must match the version used with homer) e.g. hg19\n".
-	"   --baitsFile <intervals file with baits used for exome sequencing\n".
-	"   --captureKit <name of the capture kit>\n".
-	" --reuse will search for existing output files before it runs any QC module\n".
+	" --qcfile <file with stored QC output>. The contents of this file will be automatically added to the database\n".
+	" --sample_id : the sample id of the dataset. (in case of tools that need normal/tumor pairs it corresponds to the 'tumor' pair\n".
 	" --sample_flag a flag the defines the type of sample information to store 
 	('original' : for the standard information [default]
 	 'tumor'/'host'  : for Qc on processed xenograft data, used to store either host or tumor data)\n".
@@ -77,9 +72,9 @@ sub printHelp{
 	'CollectRNASeqMetrics': used only for RNA Sequencing projects,
 	'CaptureHsMetrics': used only for Whole Exome Sequencing projects,
 	'Xenograft': used only for Xenograft models,
-	'Homer': used only for ChIP Sequencing projects)\n".
+	'Homer': used only for ChIP Sequencing projects,
+	'Sequenza': used for WES and WGS datasets)\n".
 	" --nocommit will not update the database\n".
-	
 	" --nofilecheck will not check if input files (bam) exists.\n".
 	" --version will return the version(s) of the QC programs\n".
 	" --logLevel/--logFile standard logger arguments\n".
@@ -118,79 +113,52 @@ my $logConf=qq{
 Log::Log4perl->init(\$logConf);
 my $logger=Log::Log4perl->get_logger("runQC-bam");
 
+
+
+
 my $picardQC=picardQCsteps->new();
 my $homerQC=homerQCsteps->new();
 my $QCversion=$picardQC->getVersion();
 my $QChomerversion=$homerQC->getVersion();
 if(defined($programVersion)){ print $QCversion," ",$QChomerversion,"\n"; exit(0);}
 
-if (    (!defined($inputBAM)   )  ){
+if(!defined($outputFile)){
 	printHelp();
-#	$logger->warn("manifest: $manifest, sample; $samplename, fastq: $inputFQ, bam: $inputBAM");
-	$logger->logdie("Please provide individual sample name and input bam");
+	$logger->logdie("Please provide the name of the qcstats file (qcfile)");
+		
 }
-
-if(defined($inputBAM) and !defined($reuse) and(!defined($ribosomal_intervals) or !defined($genomeFile) )){
-   	printHelp();
-   	$logger->logdie("Please provide additional alignment metadata");
-   }
-   
 if( !defined($sampleFlag)){ $sampleFlag='original'}
-if( $sampleFlag ne 'original' and $sampleFlag ne 'host' and $sampleFlag ne 'tumor'){
-	$logger->logdie("Unknown sample flag $sampleFlag");
-}   
-   
-if( $inputBAM !~/^s3/){
-	require File::Spec;
-	require Cwd;
-	$inputBAM=File::Spec->rel2abs( $inputBAM );
-	$inputBAM=Cwd::abs_path( $inputBAM );
-	if(!-e $inputBAM and !defined($nofilecheck)){
-		$logger->logdie("Cannot find file $inputBAM");
-	}
-}
+
 
 $logger->info("$0 ($version).");
 $logger->info("Host: $host");
 $logger->info("Arguments $arguments");
-$logger->info("Processing input files $inputBAM");
-
-	if(!defined($samplename)){$samplename="sample";}
-
-	
-my($name,$bamfile)=( $samplename,$inputBAM);
-$logger->info("Processing bam:   $bamfile") if(defined($bamfile));
+$logger->info("Processing qc  files $outputFile");
 
 
-my ($sample_id,$is_paired_end,$is_stranded)=getsampleid( $name,$bamfile);
-
-if($samplename eq "sample"){$samplename .=$sample_id;}
-
+my $sample_id;
+if(!defined($usersample_id)){
+	$sample_id=getsampleid( $outputFile,$sampleFlag );
+	if( (!defined($sample_id) or $sample_id eq 'NA') and defined($inputBAM)){
+		$sample_id=getsampleid( $inputBAM,$sampleFlag );	
+	}
+	if($sample_id eq 'NA'){ $logger->logdie("Neither a sample id was provided nor was it possible to get from the name of the qc file ($outputFile)");}
+}else{
+	$sample_id=$usersample_id;
+}
 
 #############################################
 # run the steps
 
-
+my $bamfile='null'; 
 $picardQC->outputFile($outputFile );
-if(defined($reuse)){$picardQC->reuse();}
-$picardQC->refflat( $annotationFile );
-$picardQC->ribosomalintervals( $ribosomal_intervals);
-$picardQC->genomeFile( $genomeFile );
-$picardQC->mateReads( $is_paired_end );
-$picardQC->strandness( $is_stranded );
-$picardQC->baitsFile( $baitsFile ) if defined($baitsFile);
-$picardQC->captureKit( $captureKit ) if defined($captureKit);
-
+$picardQC->reuse();
 $picardQC->runPicardQC($bamfile,$qcStep);
-
-
 $picardQC->parseFile( $bamfile, $qcStep);
 
 
 $homerQC->outputDirectory($outputFile );
-if(defined($reuse)){$homerQC->reuse();}
-
-$homerQC->genomeFile( $genomeVersion );
+$homerQC->reuse();
 $homerQC->runHomerQC($bamfile,$qcStep);
 $homerQC->parseFile( $bamfile, $qcStep);
 
@@ -254,7 +222,13 @@ if($qcStep eq 'Xenograft'){
 
 	getFromXMLserver('sampleQC.updateAlignmentQC',$bq, $sample_id, $sampleFlag);
 }
+if($qcStep eq 'Sequenza'){
+	my $bq=processSequenza( $picardQC );
+	$logger->debug( Dumper( $bq ) );
+#	exit;
 
+	getFromXMLserver('sampleQC.updateAlignmentQC',$bq, $sample_id, $sampleFlag);
+}
 
 
 $logger->info("Processing finished successfully");
@@ -262,7 +236,7 @@ $logger->info("Processing finished successfully");
 
 
 sub getsampleid{
-	my ($vendor_id,$bamfile)=@_;
+	my ($bamfile,$flag)=@_;
 	if(defined($usersample_id)){return ($usersample_id,undef,undef);}
 	my($is_paired_end,$is_stranded)=(undef,undef);
 	my ($sql,$cur,$sample_id);
@@ -281,10 +255,8 @@ sub getsampleid{
 	@irodsSampleID=Celgene::Utils::ArrayFunc::unique( \@irodsSampleID );
 	if(scalar(@irodsSampleID) >1){
 		$logger->logdie("Cannot assign file $bamfile to multiple samples (got ",join(",",@irodsSampleID),")");
-	}
-	elsif(scalar(@irodsSampleID)==0){ #This file is not registred in irods
-		$logger->warn("Files are not register to metadata or don't have sample information");
-		($sample_id)=getFromXMLserver('sampleInfo.getSampleByVendorID', $vendor_id);
+	}elsif (scalar(@irodsSampleID)==0){
+		return undef;
 	}else{
 		$sample_id= $irodsSampleID[0];
 		$logger->debug("From file metadata the sample was found to be $sample_id");
@@ -294,7 +266,7 @@ sub getsampleid{
 	$logger->info("Retrieving information for sample $sample_id");
 	# check if the sample exists in sample_sequencing
 
-	my $result1=getFromXMLserver('sampleInfo.getSampleBamQCByID', $sample_id);
+	my $result1=getFromXMLserver('sampleInfo.getSampleBamQCByID', $sample_id,$flag);
 	my $result2=getFromXMLserver('sampleInfo.getSampleExperimentByID', $sample_id);
 	
 	#print Dumper( $result1 );
@@ -302,7 +274,7 @@ sub getsampleid{
 	if(!defined($result1) or $result1 eq ""){
 		$logger->info("Inserting entry for $sample_id in table sample_alignmentqc");
 		my %h=('sample_id'=>$sample_id);
-		getFromXMLserver('sampleInfo.createSampleBamQC', \%h);
+		getFromXMLserver('sampleInfo.createSampleBamQC', \%h, $flag);
 	}else{
 		$logger->info("Entry for $sample_id in table sample_alignmentqc already exists");
 		my($check_id,$mr,$sr)=($result1->{sample_id}, $result2->{paired_end},$result2->{stranded});
@@ -317,7 +289,7 @@ sub getsampleid{
 	if(!defined($is_paired_end)){$is_paired_end='undef';}
 	$logger->info("Is paired end: $is_paired_end");
 	$logger->info("Is stranded: $is_stranded");
-	return ($sample_id, $is_paired_end,$is_stranded);
+	return $sample_id;
 }
 
 sub processBAMCalculateHsMetrics{
@@ -370,7 +342,8 @@ sub processBAMMarkDuplicates{
 		'read_pair_duplicates' =>  $picardQC->{read_pair_duplicates},
 		'unpaired_reads_examined' =>  $picardQC->{unpaired_reads_examined},
 		'umapped_reads' =>  $picardQC->{umapped_reads},
-		'read_pair_optical_duplicates' =>  $picardQC->{read_pair_optical_duplicates}
+		'read_pair_optical_duplicates' =>  $picardQC->{read_pair_optical_duplicates},
+		'mdup_library_size'=>$picardQC->{mdup_library_size}
 	};
 	
 }
@@ -497,6 +470,17 @@ sub processXenograft{
 	};	
 }
 
+sub processSequenza{
+	my($picardQC)=@_;
+
+
+	return {
+		'sequenza_cellularity'=>$picardQC->{sequenza_cellularity},
+		'sequenza_ploidy'=>$picardQC->{sequenza_ploidy},
+		'sequenza_slpp'=>$picardQC->{sequenza_slpp}	
+	};	
+}
+
 sub processBAMLibraryComplexity{
 	my($picardQC)=@_;
 	return {
@@ -559,6 +543,10 @@ sub getFromXMLserver{
 	my $retArray;
 	my $result;
 	my $retries = 10;
+	if(defined($nocommit)){
+		$logger->info("getFromXMLserver: nothing will be commited to the database.");
+		return;
+	}
 	for(my $r=1; $r<= $retries; $r++){
 		$retArray=eval{$server->call( @args ); } ;
 		
