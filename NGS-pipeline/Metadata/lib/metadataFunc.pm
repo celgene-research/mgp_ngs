@@ -43,6 +43,7 @@ sub serverCall{
 			if( $r==$retries){
 				$logger->logdie("serverCall: Cannot contact server. Aborting !!!")
 			}
+			sleep( 5 );
 			
 		}else{
 			if($r>1){

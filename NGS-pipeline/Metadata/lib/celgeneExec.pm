@@ -117,7 +117,6 @@ sub getBinary{
 		}
 		
 		$binary=substr( $cmd, 0, $idx)." ".$userbinary;
-		$binary =~s/docker\s+run//g;
 		$interpreter='docker';
 	}
 
