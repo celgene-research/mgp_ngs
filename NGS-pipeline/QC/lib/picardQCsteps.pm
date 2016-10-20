@@ -383,6 +383,7 @@ sub parseFile{
 	elsif(lc($step) eq 'capturehsmetrics'){ $self->parseHsMetrics( $self->outputFile() );}
 	elsif(lc($step) eq 'collectwgsmetrics'){ $self->parseWgsMetrics($self->outputFile());}
 	elsif(lc($step) eq 'xenograft'){ $self->parseXenograft( $self->outputFile() );}
+	elsif(lc($step) eq 'sequenza'){ $self->parseSequenza( $self->outputFile() ); }
 	elsif(lc($step) eq 'homer'){ ;}
 	else{ $self->{logger}->warn("Unknown QC module $step for picard"); return ; }
 }
@@ -400,6 +401,27 @@ sub parseXenograft{
 		if($type eq 'HOST_READS'){ $self->{xenograft_host_reads}= $reads;}
 		if($type eq 'TUMOUR_READS'){ $self->{xenograft_graft_reads}= $reads;}
 		if($type eq 'AMBIGUOUS_READS'){ $self->{xenograft_grafthost_reads}= $reads;}
+	}
+	close($rfh);
+
+}
+
+sub parseSequenza{
+	my($self,$file)=@_;
+	$self->{logger}->debug("parseSequenza:Processing file $file for general information");
+	my $rfh=Celgene::Utils::FileFunc::newReadFileHandle($file);
+	my $l=<$rfh>; # read the first line that contains the headers
+	# "cellularity"   "ploidy.estimate"       "ploidy.mean.cn"
+	$self->{sequenza_cellularity}=[];
+	$self->{sequenza_ploidy}=[];
+	$self->{sequenza_slpp}=[];
+	while(my $l=<$rfh>){
+		
+		chomp $l;
+		my($cellularity,$ploidy,$slpp)=split(/\t/, $l);
+		push @{ $self->{sequenza_cellularity}},$cellularity;
+		push @{ $self->{sequenza_ploidy}}, $ploidy;
+		push @{ $self->{sequenza_slpp}},$slpp;
 	}
 	close($rfh);
 
@@ -548,7 +570,7 @@ sub parseDuplicates{
 	$self->{logger}->debug("parseDuplicates:Processing file $file for general information");
 	my $rfh=Celgene::Utils::FileFunc::newReadFileHandle($file);
 	while(my $l=<$rfh>){
-		if($l=~/# METRICS CLASS/){
+		if($l=~/# METRICS CLASS/ or $l=~/#METRICS/){ #either Picard or biobambam2 markduplicates
 			$l=<$rfh>;
 			
 			$self->{unpaired_reads_examined}=0;
@@ -557,6 +579,7 @@ sub parseDuplicates{
 			$self->{unpaired_read_duplicates}=0;
 			$self->{read_pair_duplicates}=0;
 			$self->{read_pair_optical_duplicates}=0;
+			$self->{mdup_library_size}=0;
 			while(my $l2=<$rfh>){
 				chomp $l2;
 				if($l2 eq ""){last;}
@@ -569,7 +592,9 @@ sub parseDuplicates{
 					$umapped_reads,
 					$unpaired_read_duplicates,
 					$read_pair_duplicates,
-					$read_pair_optical_duplicates
+					$read_pair_optical_duplicates,
+					$percent_duplication,
+					$library_size
 				)=split("\t", $l2);
 				$self->{unpaired_reads_examined}+=$unpaired_reads_examined;
 				$self->{read_pairs_examined}+=$read_pairs_examined;
@@ -577,6 +602,7 @@ sub parseDuplicates{
 				$self->{unpaired_read_duplicates}+=$unpaired_read_duplicates;
 				$self->{read_pair_duplicates}+=$read_pair_duplicates;
 				$self->{read_pair_optical_duplicates}+=$read_pair_optical_duplicates;
+				$self->{mdup_library_size}=$library_size if $library_size ne "?" and $library_size ne "";
 				$self->{logger}->debug("Found Library:$library\n\tUnpaired Reads: $unpaired_reads_examined");
 				
 			}
