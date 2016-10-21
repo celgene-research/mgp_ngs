@@ -1,7 +1,7 @@
 #!/bin/bash
 ##
 ##  Get bam file names and parse them into dataset specific columns
-##  Return: ./file_inventory.txt
+##  Transfer results to s3://.../ClinicalData/Inventory/file_inventory.txt
 ## 
 ##  Dan Rozelle, PhD
 ##  drozelle@ranchobiosciences.com
@@ -55,4 +55,4 @@ BEGIN     { FS="/"; OFS="	";
 
 aws s3 cp file_inventory.txt s3://celgene.rnd.combio.mmgp.external/ClinicalData/Inventory/file_inventory.txt --sse
 rm file_inventory
-#rm file_inventory.txt
+rm file_inventory.txt
