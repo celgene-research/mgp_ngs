@@ -52,6 +52,14 @@ After updating this file make sure that is copied in the
 		<sub-class-of type="text/plain"/>
 	</mime-type>
 	
+	<mime-type type="text/fusionlist">
+		<glob pattern="*.fusions"/>
+		<glob pattern="*.fusionlist"/>
+		<glob pattern="*.fusion.txt"/>
+		<glob pattern="*.chimera"/>
+		<glob pattern="*.mapsplice"/>
+		<sub-class-of type="text/plain"/>
+	</mime-type>
 	
 	<mime-type type="text/pileup">
 		<glob pattern="*.pileup.gz"/>
