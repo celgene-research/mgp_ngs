@@ -1,14 +1,34 @@
 
-# system('./s3_inventory.sh')
-df <- read.delim("file_inventory.txt", stringsAsFactors = F)
+# The inventory script captures filenames of all bam files from SeqData/OriginalData
+system('./s3_inventory.sh')
 
-#uams needs to be curated before using as lookup table
-# uams_lookup <- read.delim()
-# append_df(df, uams_lookup[,c("Sample_name", "Patient")], id = "SampleName")
+# we need to lookup patient and sample names for UAMS filenames 
+system('aws s3 cp "s3://celgene.rnd.combio.mmgp.external/ClinicalData/UAMS/UAMS_UK_sample info.xlsx" ./uams.xlsx')
+
+inv   <- read.delim("file_inventory.txt", stringsAsFactors = F)
+uams  <- readxl::read_excel("uams.xlsx")
+
+filenames <- inv[inv$Study == "UAMS" , "Sample_Name"]
+trial_id <- unlist(lapply(filenames, function(code){
+  uams[uams$filename == code, "MyXI_Trial_ID"]
+}))
+sample_name <- unlist(lapply(filenames, function(code){
+  uams[uams$filename == code, "Sample_name"]
+}))
+patient_id <- sprintf("UAMS_%04d", as.numeric(trial_id))
+
+inv[inv$Study == "UAMS" , "Patient"]     <- patient_id
+inv[inv$Study == "UAMS" , "Sample_Name"] <- sample_name
+inv[inv$Study == "UAMS" , "File_Name"]   <- filenames
 
 
+write.table(inv, "file_inventory.txt", sep = "\t", row.names = F, col.names = T)
 
 
+# put the new inventory sheet on S3, remove local files
+system('aws s3 cp file_inventory.txt s3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/Integrated/file_inventory.txt --sse')
+system('rm file_inventory.txt uams.xlsx')
+rm(inv, uams)
 
 # 
 # 
