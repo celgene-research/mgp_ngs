@@ -36,7 +36,7 @@ grep "bam$" file_inventory | grep -v "ump.bam$" |
 # parse path/filename into columns
 awk '
 BEGIN     { FS="/"; OFS="	"; 
-			print "Data_Type","Study","Phase","Patient","Sample_Name","Filename","Path"}
+			print "Sequencing_Type","Study","Study_Phase","Patient","Sample_Name","File_Name","File_Path"}
 # trim leader details from ls row
 {sub("^.*SeqData","SeqData"); path=$0;}
 
@@ -53,4 +53,6 @@ BEGIN     { FS="/"; OFS="	";
           print $2,$4,"","",$5,file,path  }
 
 '  >file_inventory.txt
+
 rm file_inventory
+
