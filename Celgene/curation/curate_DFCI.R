@@ -29,74 +29,74 @@ original <- file.path(s3clinical,study)
 system(  paste('aws s3 cp', original, local, '--recursive', sep = " "))
 
 ################################################
-# name <- "DFCI_WES_clinical_info_new.xlsx"
-# df <- readxl::read_excel(file.path(local,name), sheet = 1)
-# df<-df[complete.cases(df$Sample),]
-# df[["Study"]] <- study
-# 
-# # move data that doesn't need to be cleaned to proper column names
-# df[,c("Sample_ID","Patient", "D_Age", "D_OS_FLAG", "D_OS",          "D_PFS_FLAG", "D_PFS")] <-
-# df[,c("Sample",   "Patient", "Age",   "Death",     "Days_survived", "Relapse.1",  "Days_until_relapse")]
-# 
-# # encode and rename columns from yes/no to 1/0
-# df[,c( "CYTO_t(11;14)_FISH", "CYTO_t(4;14)_FISH", "CYTO_t(14;16)_FISH",
-#       "CYTO_del(1p)_FISH", "CYTO_1q_plus_FISH", "CYTO_del(12p)_FISH", "CYTO_del(13q)_FISH",
-#       "CYTO_del(14q)_FISH", "CYTO_del(16q)_FISH")] <- unlist(apply(df[,26:34], MARGIN = 2, function(x){
-#         as.numeric(dplyr::recode(tolower(x), yes="1", no="0" , .default = NA_character_))
-#       }))
-# 
-# # rename columns already encoded 1/0
-# df[,c("CYTO_Hyperdiploid_FISH","CYTO_del(17)_FISH")] <- df[,c("HYPER", "Del(17p)")]
-# 
-# # we don't currently have these fields, but they may come in handy
-# df["D_Diagnosis_Date"] <-format(lubridate::ymd_hms(df$Diagnosis), format = "%Y-%m-%d")
-# df["D_Relapse_Date"] <-format(df$Relapse, format = "%Y-%m-%d")
-# df["D_Last_Visit_Date"] <-format(df$Last_visit, format = "%Y-%m-%d")
-# 
-# name <- paste("curated", d, name, sep = "_")
-# name <- gsub("xlsx", "txt", name)
-# path <- file.path(local,name)
-# write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
-# rm(df)
-# 
-# ### second tab of this workbook, even though many fields are overlapping, some patients are new
-# name <- "DFCI_WES_clinical_info_new.xlsx"
-# df <- readxl::read_excel(file.path(local,name), sheet = 2)
-# df[['Sample_id']] <- df$Sample
-# df[['Patient']] <- gsub("(PD\\d+)[a-z]", "\\1", df$Sample)
-# df[["Study"]] <- study
-# df[['CYTO_Karyotype_FISH']] <- df$Karyotype
-# df[['D_Age']] <- df$Age
-# df[,"D_OS_FLAG"] <- dplyr::recode(tolower(df$Death), yes="1", no="0" , .default = NA_character_)
-# 
-# name <- paste("curated_sheet2", d, name, sep = "_")
-# name <- gsub("xlsx", "txt", name)
-# path <- file.path(local,name)
-# write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
-# rm(df)
-# 
-# ### third tab of this workbook, this has patient-level data for a few responses, misc.
-# name <- "DFCI_WES_clinical_info_new.xlsx"
-# df <- readxl::read_excel(file.path(local,name), sheet = 3, na = "n/a")
-# 
-# df<-df[complete.cases(df$Sex),]
-# df[['Patient']] <- df$`Patient ID`
-# df[["Study"]] <- study
-# df[['D_Gender']] <- dplyr::recode(tolower(df$Sex), m="Male", f="Female" , .default = NA_character_)
-# df[['D_Age']] <- df$`Age at diagnosis`
-# df["D_Diagnosis_Date"] <-format(lubridate::dmy(df$`30/06/Diagnosis date`), format = "%Y-%m-%d")
-# df$`Karyotype at diagnosis`[df$`Karyotype at diagnosis` == "n/a"] <- ""
-# df[['CYTO_Karyotype_FISH']] <- df$`Karyotype at diagnosis`
-# 
-# df[['D_ISS']] <- dplyr::recode(df$ISS, III="3", II="2", I="1" , .default = NA_character_)
-# df["D_Death_Date"] <-format(lubridate::ymd_hms(df$`Date of death`), format = "%Y-%m-%d")
-# 
-# name <- paste("curated_sheet3", d, name, sep = "_")
-# name <- gsub("xlsx", "txt", name)
-# path <- file.path(local,name)
-# write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
-# rm(df)
-# 
+name <- "DFCI_WES_clinical_info_new.xlsx"
+df <- readxl::read_excel(file.path(local,name), sheet = 1)
+df<-df[complete.cases(df$Sample),]
+df[["Study"]] <- study
+
+# move data that doesn't need to be cleaned to proper column names
+df[,c("Sample_Name","Patient", "D_Age", "D_OS_FLAG", "D_OS",          "D_PFS_FLAG", "D_PFS")] <-
+df[,c("Sample",   "Patient", "Age",   "Death",     "Days_survived", "Relapse.1",  "Days_until_relapse")]
+
+# encode and rename columns from yes/no to 1/0
+df[,c( "CYTO_t(11;14)_FISH", "CYTO_t(4;14)_FISH", "CYTO_t(14;16)_FISH",
+      "CYTO_del(1p)_FISH", "CYTO_1q_plus_FISH", "CYTO_del(12p)_FISH", "CYTO_del(13q)_FISH",
+      "CYTO_del(14q)_FISH", "CYTO_del(16q)_FISH")] <- unlist(apply(df[,26:34], MARGIN = 2, function(x){
+        as.numeric(dplyr::recode(tolower(x), yes="1", no="0" , .default = NA_character_))
+      }))
+
+# rename columns already encoded 1/0
+df[,c("CYTO_Hyperdiploid_FISH","CYTO_del(17)_FISH")] <- df[,c("HYPER", "Del(17p)")]
+
+# we don't currently have these fields, but they may come in handy
+df["D_Diagnosis_Date"] <-format(lubridate::ymd_hms(df$Diagnosis), format = "%Y-%m-%d")
+df["D_Relapse_Date"] <-format(df$Relapse, format = "%Y-%m-%d")
+df["D_Last_Visit_Date"] <-format(df$Last_visit, format = "%Y-%m-%d")
+
+name <- paste("curated", d, name, sep = "_")
+name <- gsub("xlsx", "txt", name)
+path <- file.path(local,name)
+write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
+rm(df)
+
+### second tab of this workbook, even though many fields are overlapping, some patients are new
+name <- "DFCI_WES_clinical_info_new.xlsx"
+df <- readxl::read_excel(file.path(local,name), sheet = 2)
+df[['Sample_Name']] <- df$Sample
+df[['Patient']] <- gsub("(PD\\d+)[a-z]", "\\1", df$Sample)
+df[["Study"]] <- study
+df[['CYTO_Karyotype_FISH']] <- df$Karyotype
+df[['D_Age']] <- df$Age
+df[,"D_OS_FLAG"] <- dplyr::recode(tolower(df$Death), yes="1", no="0" , .default = NA_character_)
+
+name <- paste("curated_sheet2", d, name, sep = "_")
+name <- gsub("xlsx", "txt", name)
+path <- file.path(local,name)
+write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
+rm(df)
+
+### third tab of this workbook, this has patient-level data for a few responses, misc.
+name <- "DFCI_WES_clinical_info_new.xlsx"
+df <- readxl::read_excel(file.path(local,name), sheet = 3, na = "n/a")
+
+df<-df[complete.cases(df$Sex),]
+df[['Patient']] <- df$`Patient ID`
+df[["Study"]] <- study
+df[['D_Gender']] <- dplyr::recode(tolower(df$Sex), m="Male", f="Female" , .default = NA_character_)
+df[['D_Age']] <- df$`Age at diagnosis`
+df["D_Diagnosis_Date"] <-format(lubridate::dmy(df$`30/06/Diagnosis date`), format = "%Y-%m-%d")
+df$`Karyotype at diagnosis`[df$`Karyotype at diagnosis` == "n/a"] <- ""
+df[['CYTO_Karyotype_FISH']] <- df$`Karyotype at diagnosis`
+
+df[['D_ISS']] <- dplyr::recode(df$ISS, III="3", II="2", I="1" , .default = NA_character_)
+df["D_Death_Date"] <-format(lubridate::ymd_hms(df$`Date of death`), format = "%Y-%m-%d")
+
+name <- paste("curated_sheet3", d, name, sep = "_")
+name <- gsub("xlsx", "txt", name)
+path <- file.path(local,name)
+write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
+rm(df)
+
 ################################################
 ## import and curate raw data tables individually into patient-level tables
 name <- "DFCI_WES_Cyto.xlsx"
@@ -117,6 +117,7 @@ df2 <- readxl::read_excel(file.path(local,name), sheet = 2)
   df2[["Sample_Type"]] <- ifelse(df2$Type == "Normal", "Normal", "NotNormal")
 
 df <- merge(df,df2, by = "Sample", all = T)
+df[['Sample_Name']] <- df$Sample
 name <- paste("curated", d, name, sep = "_")
 name <- gsub("xlsx", "txt", name)
 path <- file.path(local,name)
@@ -128,7 +129,7 @@ rm(df, df2)
 name <- "WES-Metadata.xlsx"
 df <- readxl::read_excel(file.path(local,name), sheet = 1, na = "n/a")
 df <- df[,c("display_name","cell_type", "tissue")]
-names(df) <- c("sample_ID","Cell_Type", "Tissue_Type")
+names(df) <- c("Sample_Name","Cell_Type", "Tissue_Type")
 name <- paste("curated", d, name, sep = "_")
 name <- gsub("xlsx", "txt", name)
 path <- file.path(local,name)
@@ -144,6 +145,7 @@ df <- readxl::read_excel(file.path(local,name), na = "n/a")
 df <- df[,unique( names(df)[!is.na(names(df))] )]
 df[['Patient']] <- df$Group
 df[["Study"]] <- study
+df[['Sample_Name']] <- df$Sample
 
 df[['CYTO_Hyperdiploid_FISH']] <- ifelse(grepl("YES", df$HYPER),1,0)
 df[['CYTO_del(17p)_FISH']] <- ifelse(grepl("YES", df$`Del(17p)`),1,0)
