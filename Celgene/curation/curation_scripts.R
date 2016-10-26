@@ -26,12 +26,13 @@ clean_values <- function(x, delim = "; "){
 append_df <- function(main, new, id = "Patient", 
                       mode = "safe", verbose = TRUE, delim = "; "){
   
-  
+  # subset new df to only columns in main
+  new <- new[,names(new) %in% names(main)]
   
   # add new rows if new patients are found
   if( any(!new[[id]] %in% main[[id]]) ) {
-    for(i in new[[id]][!new[[id]] %in% main[[id]]]){
-      main[nrow(main)+1,"Patient"] <- i 
+    for(i in unique(new[[id]][!new[[id]] %in% main[[id]]])){
+      main[nrow(main)+1,id] <- i 
     }
   }
   
@@ -47,16 +48,16 @@ append_df <- function(main, new, id = "Patient",
   
   # merge without any "by" arguments duplicates non-identical rows
   m <- merge(main_subset, new, all = T)
-  m <- m[with(m, order(Patient, table)), ]
+  m <- m[ order(m[,id], m[,"table"]), ]
   
   field_update_count <<- 0
   # lapply for each patient, this allows to 
   #  subset to just the rows of a single patient
-  l <- lapply(unique(m[[id]]), function(patient){
+  l <- lapply(unique(m[[id]]), function(identifier){
     
     # inside the apply, we then perform the merge for each column set
     # x is a character vector of the available values that needs to be collapsed
-    a<- apply(m[m[[id]] == patient, 2:(length(names(m))-1) ], MARGIN = 2, function(x){
+    a<- apply(m[m[[id]] == identifier, !names(m) %in% c("table")], MARGIN = 2, function(x){
       field_update_count <<- field_update_count + 1
       
       # capture pre-existing vs new values separately
@@ -85,7 +86,7 @@ append_df <- function(main, new, id = "Patient",
       }else if(mode == "replace"){
         out <- new_values
       }else if(mode == "safe"){
-        warning(paste0("Patient:", patient, " has existing value (",paste(original_values, collapse = "; "),"), attempted overwrite with (",paste(new_values, collapse = "; "), ") with safe mode enabled"))  
+        warning(paste0("Identifier:", identifier, " has existing value (",paste(original_values, collapse = "; "),"), attempted overwrite with (",paste(new_values, collapse = "; "), ") with safe mode enabled"))  
         out <- original_values
       }else {
         out <- original_values
@@ -107,8 +108,8 @@ append_df <- function(main, new, id = "Patient",
   })
   
   updated_fields <- as.data.frame(Reduce(rbind, l), stringsAsFactors = F)
-  updated_fields[['Patient']] <- unique(m[[id]])
-  updated_fields <- updated_fields[,n]
+  updated_fields[[id]] <- unique(m[[id]])
+  updated_fields <- updated_fields[, n]
   main[main[[id]] %in% p ,n] <- updated_fields
   # field_update_count
   main$table <- NULL
