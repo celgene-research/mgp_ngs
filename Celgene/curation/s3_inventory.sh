@@ -1,7 +1,8 @@
 #!/bin/bash
+
 ##
 ##  Get bam file names and parse them into dataset specific columns
-##  Transfer results to s3://.../ClinicalData/Inventory/file_inventory.txt
+##  Return: ./file_inventory.txt
 ## 
 ##  Dan Rozelle, PhD
 ##  drozelle@ranchobiosciences.com
@@ -23,6 +24,7 @@
 # Output fields 
 # Data_Type	  Study	  Phase	  Patient	Sample_Name	  Filename	  Path	  
 
+
 # inventory mmrf sequencing files on S3
 aws s3 ls s3://celgene.rnd.combio.mmgp.external/SeqData/RNA-Seq/OriginalData/ --recursive >file_inventory
 aws s3 ls s3://celgene.rnd.combio.mmgp.external/SeqData/WES/OriginalData/ --recursive     >>file_inventory
@@ -39,7 +41,7 @@ BEGIN     { FS="/"; OFS="	";
 {sub("^.*SeqData","SeqData"); path=$0;}
 
 /MMRF/ {  file=$6; sub("\.bam","",$6);
-          print $2, $4, $5, substr($6,1,9), $6, file, path  }
+          print $2, $4, $5, substr($6,1,9), substr($6,1,11), file, path  }
 
 /DFCI/ {  patient=$5; sub("^.{3}","",patient); sample=patient; sub(".$","",patient); 
           file=$7; 
@@ -50,9 +52,5 @@ BEGIN     { FS="/"; OFS="	";
 /UAMS/ {  file=$5; sub("_E[A-Z0-9]+_","",$5); sub("E[A-Z0-9]+_","",$5); sub("\.bam","",$5);
           print $2,$4,"","",$5,file,path  }
 
-' >file_inventory.txt
-
-
-aws s3 cp file_inventory.txt s3://celgene.rnd.combio.mmgp.external/ClinicalData/Inventory/file_inventory.txt --sse
+'  >file_inventory.txt
 rm file_inventory
-rm file_inventory.txt
