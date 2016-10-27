@@ -1,19 +1,5 @@
-# Dan Rozelle
-# Sep 19, 2016
-# rev 20161024 edit to directly acces s3 objects
-
-# Approach to MGP curation follows the following process:
-#  1.) <data.txt> is curated to <curated_data.txt> and moved to /ProcessedData/Study/
-#       In these curated files new columns are added using the format specified in 
-#       the dictionary file and values are coerced into ontologically accurate values. 
-#       This file is not filtered or organized per-se, but provides a nice reference 
-#       for where curated value columns are derived.
-#  2.) mgp_clinical_aggregated.R is used to leverage our append_df() function, which 
-#       loads each table of new data into the main integrated table. Before saving,
-#       this script also enforces ontology rules to ensure all columns adhere to 
-#       type and factor rules detailed in the <mgp_dictionary.xlsx>.
-#  3.) summary scripts are used to generate specific counts and aggregated summary 
-#       values.
+## drozelle@ranchobiosciences.com
+## DFCI file curation
 
 # vars
 study <- "DFCI"
