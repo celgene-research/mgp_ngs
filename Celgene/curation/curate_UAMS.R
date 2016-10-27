@@ -29,7 +29,7 @@ names(df) <- gsub("^\\s+|\\s+$","",names(df))
   df[['File_Name']] <- df$filename
   df[['Sample_Type']] <-  ifelse(grepl("Tumour",df$Type), "NotNormal", "Normal")
   df[['Sample_Type_Flag']] <-  ifelse(grepl("Tumour",df$Type), "1", "0")
-  df[['D_Gender']] <-  ifelse(grepl("M",df$Gender ), "Male", "Female")
+  df[['D_Gender']] <-  ifelse(grepl("M",toupper(df$Gender) ), "Male", "Female")
   df[['Disease_Status']] <-  ifelse(grepl("NDMM",df$experiment), "ND", "MM")
   df[['Tissue_Type']]    <-  ifelse(grepl("BM",df$tissue), "BM", "PB")
   df[['Cell_Type']]      <-  ifelse(grepl("CD138",df$tissue), "CD138pos", "PBMC")
