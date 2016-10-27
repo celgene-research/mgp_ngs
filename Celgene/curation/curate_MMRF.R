@@ -1,19 +1,5 @@
-# Dan Rozelle
-# Sep 19, 2016
-# rev 20161024 edit to directly acces s3 objects, new approach
-
-# Approach to MGP curation follows the following process:
-#  1.) <data.txt> is curated to <curated_data.txt> and moved to /ProcessedData/Study/
-#       In these curated files new columns are added using the format specified in 
-#       the dictionary file and values are coerced into ontologically accurate values. 
-#       This file is not filtered or organized per-se, but provides a nice reference 
-#       for where curated value columns are derived.
-#  2.) mgp_clinical_aggregated.R is used to leverage our append_df() function, which 
-#       loads each table of new data into the main integrated table. Before saving,
-#       this script also enforces ontology rules to ensure all columns adhere to 
-#       type and factor rules detailed in the <mgp_dictionary.xlsx>.
-#  3.) summary scripts are used to generate specific counts and aggregated summary 
-#       values.
+## drozelle@ranchobiosciences.com
+## MMRF file curation
 
 # vars
 study <- "MMRF"
@@ -73,7 +59,6 @@ name <- "PER_PATIENT_VISIT.csv"
   df[['CYTO_del(1p)_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR12 =="Yes" ,1,0) 
   df[['CYTO_t(4;14)_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR3 == "Yes" ,1,0)   
   df[['CYTO_t(6;14)_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR4 == "Yes" ,1,0)   
-  df[['CYTO_t(8;14)_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR5 == "Yes" ,1,0)   
   df[['CYTO_t(11;14)_FISH']]   <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR6 == "Yes" ,1,0)    
   df[['CYTO_t(12;14)_FISH']]   <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR7 == "Yes" ,1,0)    
   df[['CYTO_t(14;16)_FISH']]   <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR8 == "Yes" ,1,0)    
@@ -84,7 +69,9 @@ name <- "PER_PATIENT_VISIT.csv"
   df[['CYTO_del(13q)_FISH']]   <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR == "Yes" ,1,0)    
   
   df[['CYTO_Hyperdiploid_FISH']]  <- ifelse( pervisit$Hyperdiploid == "Yes" ,1,0)    
-
+  df[['CYTO_MYC_translocation_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR5 == "Yes" ,1,0)   
+  
+  
   name <- paste("curated", name, sep = "_")
   path <- file.path(local,name)
   write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
