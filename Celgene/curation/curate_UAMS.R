@@ -1,16 +1,5 @@
-
-# Approach to MGP curation follows the following process:
-#  1.) <data.txt> is curated to <curated_data.txt> and moved to /ProcessedData/Study/
-#       In these curated files new columns are added using the format specified in 
-#       the dictionary file and values are coerced into ontologically accurate values. 
-#       This file is not filtered or organized per-se, but provides a nice reference 
-#       for where curated value columns are derived.
-#  2.) mgp_clinical_aggregated.R is used to leverage our append_df() function, which 
-#       loads each table of new data into the main integrated table. Before saving,
-#       this script also enforces ontology rules to ensure all columns adhere to 
-#       type and factor rules detailed in the <mgp_dictionary.xlsx>.
-#  3.) summary scripts are used to generate specific counts and aggregated summary 
-#       values.
+## drozelle@ranchobiosciences.com
+## UAMS file curation
 
 # vars
 study <- "UAMS"
@@ -29,22 +18,28 @@ system(  paste('aws s3 cp', raw_inventory, local, sep = " "))
 
 ################################################
 name <- "UAMS_UK_sample info.xlsx"
-df <- readxl::read_excel(file.path(local,name), na = "n/a", sheet = 1)
-
+df <- readxl::read_excel(file.path(local,name), sheet = 1)
+df[ df == "N/A" ] = NA
 # chomp column names
 names(df) <- gsub("^\\s+|\\s+$","",names(df))
 
-df[['Patient']] <- sprintf("UAMS_%04d", as.numeric(df$MyXI_Trial_ID))
-df[["Study"]] <- study
-df[['Sample_Name']] <- df$Sample_name
-df[['File_Name']] <- df$filename
-df[['Sample_Type']] <-  ifelse(grepl("Tumour",df$Type), "NotNormal", "Normal")
-df[['Sample_Type_Flag']] <-  ifelse(grepl("Tumour",df$Type), "1", "0")
-df[['D_Gender']] <-  ifelse(grepl("M",df$Gender ), "Male", "Female")
-df[['Disease_Status']] <-  ifelse(grepl("NDMM",df$experiment), "ND", "MM")
-df[['Tissue_Type']]    <-  ifelse(grepl("BM",df$tissue), "BM", "PB")
-df[['Cell_Type']]      <-  ifelse(grepl("CD138",df$tissue), "CD138pos", "PBMC")
-# TODO: still need to parse translocations
+  df[['Patient']] <- sprintf("UAMS_%04d", as.numeric(df$MyXI_Trial_ID))
+  df[["Study"]] <- study
+  df[['Sample_Name']] <- df$Sample_name
+  df[['File_Name']] <- df$filename
+  df[['Sample_Type']] <-  ifelse(grepl("Tumour",df$Type), "NotNormal", "Normal")
+  df[['Sample_Type_Flag']] <-  ifelse(grepl("Tumour",df$Type), "1", "0")
+  df[['D_Gender']] <-  ifelse(grepl("M",df$Gender ), "Male", "Female")
+  df[['Disease_Status']] <-  ifelse(grepl("NDMM",df$experiment), "ND", "MM")
+  df[['Tissue_Type']]    <-  ifelse(grepl("BM",df$tissue), "BM", "PB")
+  df[['Cell_Type']]      <-  ifelse(grepl("CD138",df$tissue), "CD138pos", "PBMC")
+  
+  df[['CYTO_t(11;14)_FISH']]           <-  ifelse( grepl("11", df$Translocation_consensus),1,0) 
+  df[['CYTO_t(4;14)_FISH']]            <-  ifelse( grepl("4", df$Translocation_consensus),1,0) 
+  df[['CYTO_t(6;14)_FISH']]            <-  ifelse( grepl("6", df$Translocation_consensus),1,0) 
+  df[['CYTO_t(14;16)_FISH']]           <-  ifelse( grepl("16", df$Translocation_consensus),1,0) 
+  df[['CYTO_t(14;20)_FISH']]           <-  ifelse( grepl("20", df$Translocation_consensus),1,0) 
+  df[['CYTO_MYC_translocation_FISH']]  <-  ifelse( df$`MYC translocation` != "0" ,1,0) 
 
   name <- paste("curated_sheet1", name, sep = "_")
   name <- gsub("xlsx", "txt", name)
@@ -77,16 +72,16 @@ name <- "file_inventory.txt"
 inv <- read.delim(file.path(local,name), stringsAsFactors = F)
 inv <- inv[inv$Study == "UAMS",]
 
-inv[['Patient']] <- unlist(lapply(inv$File_Name, function(x){
-  df[df$filename == x,"Patient"]
-}))
-inv[['Sample_Name']] <- unlist(lapply(inv$File_Name, function(x){
-  df[df$filename == x,"Sample_Name"]
-}))
+  inv[['Patient']] <- unlist(lapply(inv$File_Name, function(x){
+    df[df$filename == x,"Patient"]
+  }))
+  inv[['Sample_Name']] <- unlist(lapply(inv$File_Name, function(x){
+    df[df$filename == x,"Sample_Name"]
+  }))
  
   name <- paste("curated", study, name, sep = "_")
   path <- file.path(local,name)
-  write.table(df2, path, row.names = F, col.names = T, sep = "\t", quote = F)
+  write.table(inv, path, row.names = F, col.names = T, sep = "\t", quote = F)
 
 rm(df, df2, inv)
 #######
@@ -101,7 +96,4 @@ return_code <- system('echo $?', intern = T)
 # as a failsafe to prevent reading older versions of source files remove the 
 #  cached version file if transfer was successful.
 if(return_code == "0") system(paste0("rm -r ", local))
-
-
-
 
