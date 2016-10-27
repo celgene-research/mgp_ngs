@@ -40,7 +40,7 @@ inv <- inv[inv$Study == "DFCI",]
   #  so we can add the filename to other tables and populate file-level better
 lookup_by_samplename <- lookup.values("Sample_Name")
 
-name <- paste("curated", study, d, name, sep = "_")
+name <- paste("curated", study, name, sep = "_")
 path <- file.path(local,name)
 write.table(inv, path, row.names = F, col.names = T, sep = "\t", quote = F)
 
@@ -74,7 +74,7 @@ df["D_Relapse_Date"] <-format(df$Relapse, format = "%Y-%m-%d")
 df["D_Last_Visit_Date"] <-format(df$Last_visit, format = "%Y-%m-%d")
 df[['File_Name']] <- unlist(lapply(df$Sample_Name, lookup_by_samplename, dat = inv, field = "File_Name"))
 
-name <- paste("curated", d, name, sep = "_")
+name <- paste("curated", name, sep = "_")
 name <- gsub("xlsx", "txt", name)
 path <- file.path(local,name)
 write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
@@ -87,11 +87,17 @@ df[['Sample_Name']] <- df$Sample
 df[['Patient']] <- gsub("(PD\\d+)[a-z]", "\\1", df$Sample)
 df[["Study"]] <- study
 df[['CYTO_Karyotype_FISH']] <- df$Karyotype
+df[['CYTO_del(17p)_FISH']]  <- ifelse(grepl("Del(17p)", df$Karyotype, fixed = T),1,0)
+df[['CYTO_del(12p)_FISH']]  <- ifelse(grepl("Del(12p)", df$Karyotype, fixed = T),1,0)
+df[['CYTO_t(4;14)_FISH']]   <- ifelse(grepl("t(4;14)", df$Karyotype, fixed = T),1,0)
+df[['CYTO_t(14;16)_FISH']]  <- ifelse(grepl("t(14;16)", df$Karyotype, fixed = T),1,0)
+df[['CYTO_Hyperdiploid_FISH']] <- ifelse(grepl("Hyper", df$Karyotype, fixed = T),1,0)
+
 df[['D_Age']] <- df$Age
 df[,"D_OS_FLAG"] <- dplyr::recode(tolower(df$Death), yes="1", no="0" , .default = NA_character_)
 df[['File_Name']] <- unlist(lapply(df$Sample_Name, lookup_by_samplename, dat = inv, field = "File_Name"))
 
-name <- paste("curated_sheet2", d, name, sep = "_")
+name <- paste("curated_sheet2", name, sep = "_")
 name <- gsub("xlsx", "txt", name)
 path <- file.path(local,name)
 write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
@@ -99,7 +105,7 @@ rm(df)
 
 ### third tab of this workbook, this has patient-level data for a few responses, misc.
 name <- "DFCI_WES_clinical_info_new.xlsx"
-df <- readxl::read_excel(file.path(local,name), sheet = 3, na = "n/a")
+df <- as.data.frame(  readxl::read_excel(file.path(local,name), sheet = 3, na = "n/a"))
 
 df<-df[complete.cases(df$Sex),]
 df[['Patient']] <- df$`Patient ID`
@@ -111,13 +117,17 @@ df$`Karyotype at diagnosis`[df$`Karyotype at diagnosis` == "n/a"] <- ""
 df[['CYTO_Karyotype_FISH']] <- df$`Karyotype at diagnosis`
 
 df[['D_ISS']] <- dplyr::recode(df$ISS, III="3", II="2", I="1" , .default = NA_character_)
-df["D_Death_Date"] <-format(lubridate::ymd_hms(df$`Date of death`), format = "%Y-%m-%d")
-
+df[['D_Death_Date']] <- unlist(lapply(df[,grep("Date of death", names(df))+1], function(x){
+  if( grepl("^2", x) ){return(NA)
+  }else if( !is.na(as.numeric(x))  ){
+    format(lubridate::ymd("1899-12-30") +  lubridate::days(as.numeric(x)), format = "%Y-%m-%d")
+  }else {return(NA)}
+}))
 
 # lots of wonky characters in these fields, remove \n and \t before incorporating again
 df <- df[,c("Patient", "Study", "D_Gender", "D_Age", "D_Diagnosis_Date", "D_ISS", "D_Death_Date")]
 
-name <- paste("curated_sheet3", d, name, sep = "_")
+name <- paste("curated_sheet3", name, sep = "_")
 name <- gsub("xlsx", "txt", name)
 path <- file.path(local,name)
 write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
@@ -128,10 +138,10 @@ rm(df)
 name <- "DFCI_WES_Cyto.xlsx"
 df <- readxl::read_excel(file.path(local,name), sheet = 1, na = "n/a")
 df[['Patient']] <- gsub("(PD\\d+).", "\\1",df$Sample)
-  df[['CYTO_del(17p)_FISH']] <- ifelse(grepl("Del(17p)", df$Karyotype, fixed = T),1,0)
-  df[['CYTO_del(12p)_FISH']] <- ifelse(grepl("Del(12p)", df$Karyotype, fixed = T),1,0)
-  df[['CYTO_t(4;14)_FISH']] <- ifelse(grepl("t(4;14)", df$Karyotype, fixed = T),1,0)
-  df[['CYTO_t(14;16)_FISH']] <- ifelse(grepl("t(14;16)", df$Karyotype, fixed = T),1,0)
+  df[['CYTO_del(17p)_FISH']]  <- ifelse(grepl("Del(17p)", df$Karyotype, fixed = T),1,0)
+  df[['CYTO_del(12p)_FISH']]  <- ifelse(grepl("Del(12p)", df$Karyotype, fixed = T),1,0)
+  df[['CYTO_t(4;14)_FISH']]   <- ifelse(grepl("t(4;14)", df$Karyotype, fixed = T),1,0)
+  df[['CYTO_t(14;16)_FISH']]  <- ifelse(grepl("t(14;16)", df$Karyotype, fixed = T),1,0)
   df[['CYTO_Hyperdiploid_FISH']] <- ifelse(grepl("Hyper", df$Karyotype, fixed = T),1,0)
 
 df2 <- readxl::read_excel(file.path(local,name), sheet = 2)
@@ -146,7 +156,7 @@ df <- merge(df,df2, by = "Sample", all = T)
   df[['Sample_Name']] <- df$Sample
   df[['File_Name']] <- unlist(lapply(df$Sample_Name, lookup_by_samplename, dat = inv, field = "File_Name"))
 
-name <- paste("curated", d, name, sep = "_")
+name <- paste("curated", name, sep = "_")
 name <- gsub("xlsx", "txt", name)
 path <- file.path(local,name)
 write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
@@ -164,7 +174,7 @@ df <- readxl::read_excel(file.path(local,name), sheet = 1, na = "n/a")
   df[['File_Name']]       <- unlist(lapply(df$Sample_Name, lookup_by_samplename, dat = inv, field = "File_Name"))
   
 
-name <- paste("curated", d, name, sep = "_")
+name <- paste("curated", name, sep = "_")
 name <- gsub("xlsx", "txt", name)
 path <- file.path(local,name)
 write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
@@ -196,7 +206,7 @@ df <- df[,unique( names(df)[!is.na(names(df))] )]
   df[is.na(df$`Risk group`) | df$`Risk group` == "Uncertain risk", "Risk_group"] <- NA
   df[['File_Name']]       <- unlist(lapply(df$Sample_Name, lookup_by_samplename, dat = inv, field = "File_Name"))
 
-name <- paste("curated", d, name, sep = "_")
+name <- paste("curated", name, sep = "_")
 name <- gsub("xlsx", "txt", name)
 path <- file.path(local,name)
 write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)

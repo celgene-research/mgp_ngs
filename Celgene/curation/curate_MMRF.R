@@ -34,25 +34,26 @@ system(  paste('aws s3 cp', raw_inventory, local, sep = " "))
 ################################################
 # clean up the MMRF inventory entries
 name <- "file_inventory.txt"
-  df <- read.delim(file.path(local,name), stringsAsFactors = F)
-  df <- df[df$Study == "MMRF",]
+  inv <- read.delim(file.path(local,name), stringsAsFactors = F)
+  inv <- inv[inv$Study == "MMRF",]
   # we can also parse a few more fields from the MMRF names
   
-  df[['Sample_Type']]    <-  ifelse(grepl("CD138pos",df$File_Name), "NotNormal", "Normal")
-  df[['Sample_Type_Flag']]<- ifelse(grepl("CD138pos",df$File_Name), "1", "0")
-  df[['Tissue_Type']]    <-  ifelse(grepl("BM",df$File_Name), "BM", "PB")
-  df[['Cell_Type']]      <-  gsub(".{12}[PBM]+_([A-Za-z0-9]+)_[CT]\\d.*","\\1",df$File_Name)
-  df[['Disease_Status']] <-  ifelse(grepl("1$", df$Sample_Name),"ND", "R")
+  inv[['Sample_Type']]    <-  ifelse(grepl("CD138pos",inv$File_Name), "NotNormal", "Normal")
+  inv[['Sample_Type_Flag']]<- ifelse(grepl("CD138pos",inv$File_Name), "1", "0")
+  inv[['Tissue_Type']]    <-  ifelse(grepl("BM",inv$File_Name), "BM", "PB")
+  inv[['Cell_Type']]      <-  gsub(".{12}[PBM]+_([A-Za-z0-9]+)_[CT]\\d.*","\\1",inv$File_Name)
+  inv[['Disease_Status']] <-  ifelse(grepl("1$", inv$Sample_Name),"ND", "R")
   
-  name <- paste("curated", d, name, sep = "_")
+  name <- paste("curated", study, name, sep = "_")
   path <- file.path(local,name)
-  write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
-  rm(df)
+  write.table(inv, path, row.names = F, col.names = T, sep = "\t", quote = F)
+  rm(inv)
 
 ################################################
 # curate per_visit entries with samples taken for the sample-level table
 name <- "PER_PATIENT_VISIT.csv"
-  pervisit <- read.csv(file.path(local,name), stringsAsFactors = F)
+  pervisit <- read.csv(file.path(local,name), stringsAsFactors = F, 
+                       na.strings = c("Not Done", ""))
   # only keep visits with affiliated samples
   pervisit<- pervisit[pervisit$SPECTRUM_SEQ != "",]
   
@@ -66,28 +67,25 @@ name <- "PER_PATIENT_VISIT.csv"
   df[["Sample_Study_Day"]] <- pervisit$BA_DAYOFASSESSM
   df[["CYTO_Has_Conventional_Cytogenetics"]] <- ifelse(pervisit$D_CM_cm == 1, 1,0)
   df[["CYTO_Has_FISH"]] <- ifelse(pervisit$D_TRI_cf == 1, 1,0)
+
+  # df[['CYTO_1q_plus_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR13 =="Yes" ,1,0)   
+    
+  df[['CYTO_del(1p)_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR12 =="Yes" ,1,0) 
+  df[['CYTO_t(4;14)_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR3 == "Yes" ,1,0)   
+  df[['CYTO_t(6;14)_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR4 == "Yes" ,1,0)   
+  df[['CYTO_t(8;14)_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR5 == "Yes" ,1,0)   
+  df[['CYTO_t(11;14)_FISH']]   <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR6 == "Yes" ,1,0)    
+  df[['CYTO_t(12;14)_FISH']]   <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR7 == "Yes" ,1,0)    
+  df[['CYTO_t(14;16)_FISH']]   <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR8 == "Yes" ,1,0)    
+  df[['CYTO_t(14;20)_FISH']]   <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR9 == "Yes" ,1,0)    
+  df[['CYTO_amp(1q)_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR13 == "Yes" ,1,0)
+  df[['CYTO_del(17)_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR2 == "Yes" ,1,0)   
+  df[['CYTO_del(17p)_FISH']]   <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR11 == "Yes" ,1,0)    
+  df[['CYTO_del(13q)_FISH']]   <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR == "Yes" ,1,0)    
   
-  # add FISH/CM results here
-  # D_TRI_CF_ABNORMALITYPR12	1p deletion abnormality present
-  # D_TRI_CF_ABNORMALITYPR13	1q amplification abnormality present
-  # D_TRI_CF_ABNORMALITYPR14	Other abnormality present (first)
-  # D_TRI_CF_ABNORMALITYPR15	Other abnormality present (second)
-  # D_TRI_CF_ABNORMALITYPR	del 13 abnormality present
-  # D_TRI_CF_ABNORMALITYPR10	del 13q abnormality present
-  # D_TRI_CF_ABNORMALITYPR2	del 17 abnormality present
-  # D_TRI_CF_ABNORMALITYPR11	del 17p abnormality present
-  # D_TRI_CF_ABNORMALITYPR3	t(4;14) abnormality present
-  # D_TRI_CF_ABNORMALITYPR4	t(6;14) abnormality present
-  # D_TRI_CF_ABNORMALITYPR5	t(8;14) abnormality present
-  # D_TRI_CF_ABNORMALITYPR6	t(11;14) abnormality present
-  # D_TRI_CF_ABNORMALITYPR7	t(12;14) abnormality present
-  # D_TRI_CF_ABNORMALITYPR8	t(14;16) abnormality present
-  # D_TRI_CF_ABNORMALITYPR9	t(14;20) abnormality present
-  # CM_ABNORMALITYPR9	t(14;20) abnormality present
-  # CM_ABNORMALITYPR3	t(4;14) abnormality present
-  # CM_ABNORMALITYPR8	t(14;16) abnormality present
-  
-  name <- paste("curated", d, name, sep = "_")
+  df[['CYTO_Hyperdiploid_FISH']]  <- ifelse( pervisit$Hyperdiploid == "Yes" ,1,0)    
+
+  name <- paste("curated", name, sep = "_")
   path <- file.path(local,name)
   write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
   rm(df)
@@ -193,7 +191,7 @@ name <- "PER_PATIENT.csv"
   df[["D_Best_Response_Code"]] <-  unlist(lapply(df$Patient, lookup_by_publicid, dat = respo, field = "bestrespcd"))
   df[["D_Best_Response"]] <-  unlist(lapply(df$Patient, lookup_by_publicid, dat = respo, field = "bestresp"))
 
-  name <- paste("curated", d, name, sep = "_")
+  name <- paste("curated", name, sep = "_")
   path <- file.path(local,name)
   write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
   rm(df)

@@ -46,7 +46,7 @@ df[['Tissue_Type']]    <-  ifelse(grepl("BM",df$tissue), "BM", "PB")
 df[['Cell_Type']]      <-  ifelse(grepl("CD138",df$tissue), "CD138pos", "PBMC")
 # TODO: still need to parse translocations
 
-  name <- paste("curated_sheet1", d, name, sep = "_")
+  name <- paste("curated_sheet1", name, sep = "_")
   name <- gsub("xlsx", "txt", name)
   path <- file.path(local,name)
   write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
@@ -65,7 +65,7 @@ df2[["D_PFS"]]     <- round(df2$PFS_months*30.42, digits = 0)
 df2[['D_PFS_FLAG']]<- df2$PFS_status
 df2[['D_Age']]<- df2$Age
 
-  name <- paste("curated_sheet2", d, name, sep = "_")
+  name <- paste("curated_sheet2", name, sep = "_")
   name <- gsub("xlsx", "txt", name)
   path <- file.path(local,name)
   write.table(df2, path, row.names = F, col.names = T, sep = "\t", quote = F)
@@ -84,7 +84,7 @@ inv[['Sample_Name']] <- unlist(lapply(inv$File_Name, function(x){
   df[df$filename == x,"Sample_Name"]
 }))
  
-  name <- paste("curated", d, name, sep = "_")
+  name <- paste("curated", study, name, sep = "_")
   path <- file.path(local,name)
   write.table(df2, path, row.names = F, col.names = T, sep = "\t", quote = F)
 
