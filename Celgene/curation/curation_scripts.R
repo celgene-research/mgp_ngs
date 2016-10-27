@@ -26,6 +26,14 @@ clean_values <- function(x, delim = "; "){
 append_df <- function(main, new, id = "Patient", 
                       mode = "safe", verbose = TRUE, delim = "; "){
   
+  if(!id %in% names(new)){
+    message(paste0("dataframe does not contain specified id column: ", id))
+    return(main)
+  }else if(sum(names(new) %in% names(main)) == 1){
+    message(paste0("dataframe does not contain additional columns to add"))
+    return(main)
+  }
+  
   # subset new df to only columns in main
   new <- new[,names(new) %in% names(main)]
   
@@ -39,7 +47,7 @@ append_df <- function(main, new, id = "Patient",
   # add column to force merged sorting
   main[['table']] <- "main"
   new[['table']]  <- "new"
-  
+
   p <- new[[id]]
   n <- names(new)
   
@@ -50,7 +58,6 @@ append_df <- function(main, new, id = "Patient",
   m <- merge(main_subset, new, all = T)
   m <- m[ order(m[,id], m[,"table"]), ]
   
-  field_update_count <<- 0
   # lapply for each patient, this allows to 
   #  subset to just the rows of a single patient
   l <- lapply(unique(m[[id]]), function(identifier){
@@ -58,7 +65,6 @@ append_df <- function(main, new, id = "Patient",
     # inside the apply, we then perform the merge for each column set
     # x is a character vector of the available values that needs to be collapsed
     a<- apply(m[m[[id]] == identifier, !names(m) %in% c("table")], MARGIN = 2, function(x){
-      field_update_count <<- field_update_count + 1
       
       # capture pre-existing vs new values separately
       original_values <- x[1]
@@ -86,6 +92,7 @@ append_df <- function(main, new, id = "Patient",
       }else if(mode == "replace"){
         out <- new_values
       }else if(mode == "safe"){
+        #TODO: don't warn if replacement is blank.
         warning(paste0("Identifier:", identifier, " has existing value (",paste(original_values, collapse = "; "),"), attempted overwrite with (",paste(new_values, collapse = "; "), ") with safe mode enabled"))  
         out <- original_values
       }else {
@@ -108,9 +115,13 @@ append_df <- function(main, new, id = "Patient",
   })
   
   updated_fields <- as.data.frame(Reduce(rbind, l), stringsAsFactors = F)
-  updated_fields[[id]] <- unique(m[[id]])
-  updated_fields <- updated_fields[, n]
-  main[main[[id]] %in% p ,n] <- updated_fields
+  # updated_fields[[id]] <- unique(m[[id]])
+  # updated_fields <- updated_fields[, n]
+  
+  main <- main[ order(main[[id]]), ]
+  updated_fields <- updated_fields[ order(updated_fields[[id]]), ]
+  
+  main[main[[id]] %in% p, n] <- updated_fields
   # field_update_count
   main$table <- NULL
   
@@ -118,3 +129,29 @@ append_df <- function(main, new, id = "Patient",
   return(main)
 }
 
+lookup.values <- function(id) {
+  function(..., dat, field, separator = "; ") {
+    tryCatch({
+      
+      #if blank or NA search terms are supplied return NA
+      if(any( c(NA, "") %in% c(...))) {return(NA)}
+      
+      # create logical lists for each dat[[id]]==X selection set
+      opts <- mapply(id, c(...), FUN = function(i,x){ dat[[i]] == x }, SIMPLIFY = F)
+      # reduce multiple lists to a single logical selector
+      selector <-  Reduce("&", opts)
+      
+      # this function does have the potential to select multiple fields that
+      #  must be merged before return to conserve proper dimensionality
+      foo <- dat[[field]][selector]
+      # return NA if that's all there is
+      if(all(is.null(foo))){return(NA)}
+      if(all(is.na(foo))){return(NA)}
+      # remove blank elements
+      foo <- foo[foo != ""]
+      # reduce to case-insensitive unique elements, only capitalize if there are case differences
+      if(!identical(toupper(unique(foo)),unique(toupper(foo)))){ foo <- toupper(foo)}
+      paste(unique(na.exclude(foo)), collapse = separator)
+    },error=function(e){NA})
+  }
+}
