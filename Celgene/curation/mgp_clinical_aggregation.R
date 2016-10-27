@@ -25,15 +25,14 @@ if(!dir.exists(local_path)){dir.create(local_path)}
 system(  paste('aws s3 cp',"mgp_dictionary.xlsx" , file.path(integrated_path, "mgp_dictionary.xlsx"), "--sse ", sep = " "))
 
 ### if appropriate, run curation scripts
-source("curate_inventory.R")
-source("curate_DFCI.R")
+# source("curate_DFCI.R")
 source("curate_MMRF.R")
-source("curate_UAMS.R")
+# source("curate_UAMS.R")
 
 
 # copy files locally
 # dictionary, inventory
-system(  paste('aws s3 cp', integrated_path, local_path, '--recursive --exclude "*" --include "file_inventory*" --include "*dictionary*" ', sep = " "))
+system(  paste('aws s3 cp', integrated_path, local_path, '--recursive --exclude "*" --include "*dictionary*" ', sep = " "))
 # get curated files
 system(  paste('aws s3 cp', processed_path, local_path, '--recursive --exclude "*" --include "DFCI*" --include "UAMS*" --include "MMRF*"', sep = " "))
 
@@ -45,8 +44,7 @@ system(  paste('aws s3 cp', processed_path, local_path, '--recursive --exclude "
 dict <- as.data.frame(readxl::read_excel(file.path(local_path, "mgp_dictionary.xlsx")))
 dict <- dict[dict$active == 1,]
 
-files <- list.files(local_path, pattern = "curated*|file_inventory*", full.names = T, recursive = T)
-
+files <- list.files(local_path, pattern = "curated*", full.names = T, recursive = T)
 
 ###
 ### FILE_LEVEL AGGREGATION
@@ -59,7 +57,7 @@ names(df) <- file_level_columns
 
 for(f in files){
   print(f)
-  new <-   read.delim(f, stringsAsFactors = F)
+  new <-   read.delim(f, stringsAsFactors = F, check.names = F)
   df <- append_df(df, new, id = "File_Name")
 }
 
@@ -79,7 +77,7 @@ names(df) <- sample_level_columns
 
   for(f in files){
     print(f)
-    new <-   read.delim(f, stringsAsFactors = F)
+    new <-   read.delim(f, stringsAsFactors = F, check.names = F)
     df <- append_df(df, new, id = "Sample_Name")
     # print(head(df[1:5,1:10]))
   }
@@ -100,7 +98,7 @@ names(df) <- patient_level_columns
   
   for(f in files){
     print(f)
-    new <-   read.delim(f, stringsAsFactors = F)
+    new <-   read.delim(f, stringsAsFactors = F, check.names = F)
     df <- append_df(df, new, id = "Patient")
   }
   
@@ -117,4 +115,4 @@ system(  paste('aws s3 cp', local, processed, '--recursive --exclude "*" --inclu
 return_code <- system('echo $?', intern = T)
   
 # clean up source files
-if(return_code == "0") system(paste0("rm -r ", local))
+# if(return_code == "0") system(paste0("rm -r ", local))
