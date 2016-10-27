@@ -50,7 +50,7 @@ BEGIN     { FS="/"; OFS="	";
 /FMed/ {  print $2, $4, "", substr($5,1,9), substr($5,1,9), $5, path }
 
 /UAMS/ {  file=$5; sub("_E[A-Z0-9]+_","",$5); sub("E[A-Z0-9]+_","",$5); sub("\.bam","",$5);
-          print $2,$4,"","",$5,file,path  }
+          print $2,$4,"","","",$5,path  }
 
 '  >file_inventory.txt
 
