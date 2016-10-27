@@ -21,22 +21,42 @@ d <- format(Sys.Date(), "%Y-%m-%d")
 
 # locations
 s3clinical <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData"
+raw_inventory <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/Integrated/file_inventory.txt"
 local      <- "/tmp/curation"
   if(!dir.exists(local)){dir.create(local)}
 
 # get current original files
 original <- file.path(s3clinical,study)
 system(  paste('aws s3 cp', original, local, '--recursive', sep = " "))
+system(  paste('aws s3 cp', raw_inventory, local, sep = " "))
+
+################################################
+# clean up the inventory entries and lookup values with df
+name <- "file_inventory.txt"
+inv <- read.delim(file.path(local,name), stringsAsFactors = F)
+inv <- inv[inv$Study == "DFCI",]
+
+  # nothing to add to the inventory sheet, but keep it in memory
+  #  so we can add the filename to other tables and populate file-level better
+lookup_by_samplename <- lookup.values("Sample_Name")
+
+name <- paste("curated", study, d, name, sep = "_")
+path <- file.path(local,name)
+write.table(inv, path, row.names = F, col.names = T, sep = "\t", quote = F)
+
 
 ################################################
 name <- "DFCI_WES_clinical_info_new.xlsx"
 df <- readxl::read_excel(file.path(local,name), sheet = 1)
 df<-df[complete.cases(df$Sample),]
 df[["Study"]] <- study
+# some of the values in Sample column are missing their suffix 
+#  but they appear to all be early tumor samples ("a")
+df[["Sample_Name"]] <- paste0(df$Patient, "a")
 
 # move data that doesn't need to be cleaned to proper column names
-df[,c("Sample_Name","Patient", "D_Age", "D_OS_FLAG", "D_OS",          "D_PFS_FLAG", "D_PFS")] <-
-df[,c("Sample",   "Patient", "Age",   "Death",     "Days_survived", "Relapse.1",  "Days_until_relapse")]
+df[,c("D_Age", "D_OS_FLAG", "D_OS",          "D_PFS_FLAG", "D_PFS")] <-
+df[,c("Age",   "Death",     "Days_survived", "Relapse.1",  "Days_until_relapse")]
 
 # encode and rename columns from yes/no to 1/0
 df[,c( "CYTO_t(11;14)_FISH", "CYTO_t(4;14)_FISH", "CYTO_t(14;16)_FISH",
@@ -52,6 +72,7 @@ df[,c("CYTO_Hyperdiploid_FISH","CYTO_del(17)_FISH")] <- df[,c("HYPER", "Del(17p)
 df["D_Diagnosis_Date"] <-format(lubridate::ymd_hms(df$Diagnosis), format = "%Y-%m-%d")
 df["D_Relapse_Date"] <-format(df$Relapse, format = "%Y-%m-%d")
 df["D_Last_Visit_Date"] <-format(df$Last_visit, format = "%Y-%m-%d")
+df[['File_Name']] <- unlist(lapply(df$Sample_Name, lookup_by_samplename, dat = inv, field = "File_Name"))
 
 name <- paste("curated", d, name, sep = "_")
 name <- gsub("xlsx", "txt", name)
@@ -68,6 +89,7 @@ df[["Study"]] <- study
 df[['CYTO_Karyotype_FISH']] <- df$Karyotype
 df[['D_Age']] <- df$Age
 df[,"D_OS_FLAG"] <- dplyr::recode(tolower(df$Death), yes="1", no="0" , .default = NA_character_)
+df[['File_Name']] <- unlist(lapply(df$Sample_Name, lookup_by_samplename, dat = inv, field = "File_Name"))
 
 name <- paste("curated_sheet2", d, name, sep = "_")
 name <- gsub("xlsx", "txt", name)
@@ -91,6 +113,10 @@ df[['CYTO_Karyotype_FISH']] <- df$`Karyotype at diagnosis`
 df[['D_ISS']] <- dplyr::recode(df$ISS, III="3", II="2", I="1" , .default = NA_character_)
 df["D_Death_Date"] <-format(lubridate::ymd_hms(df$`Date of death`), format = "%Y-%m-%d")
 
+
+# lots of wonky characters in these fields, remove \n and \t before incorporating again
+df <- df[,c("Patient", "Study", "D_Gender", "D_Age", "D_Diagnosis_Date", "D_ISS", "D_Death_Date")]
+
 name <- paste("curated_sheet3", d, name, sep = "_")
 name <- gsub("xlsx", "txt", name)
 path <- file.path(local,name)
@@ -112,12 +138,14 @@ df2 <- readxl::read_excel(file.path(local,name), sheet = 2)
   # remove excluded patients
   df2 <- df2[is.na(df2$Exclude),]
   df2$Type <- gsub("Thuird", "Third", df2$Type)
-  df2[["Disease_Status"]] <- ifelse(df2$Type == "Normal" | df2$Type == "Early", "NewDiagnosis", "Relapse")
+  df2[["Disease_Status"]] <- ifelse(df2$Type == "Normal" | df2$Type == "Early", "ND", "R")
   df2[["Sample_Type_Flag"]] <- ifelse(df2$Type == "Normal", 0,1)
   df2[["Sample_Type"]] <- ifelse(df2$Type == "Normal", "Normal", "NotNormal")
 
 df <- merge(df,df2, by = "Sample", all = T)
-df[['Sample_Name']] <- df$Sample
+  df[['Sample_Name']] <- df$Sample
+  df[['File_Name']] <- unlist(lapply(df$Sample_Name, lookup_by_samplename, dat = inv, field = "File_Name"))
+
 name <- paste("curated", d, name, sep = "_")
 name <- gsub("xlsx", "txt", name)
 path <- file.path(local,name)
@@ -128,8 +156,14 @@ rm(df, df2)
 ## import and curate raw data tables individually into patient-level tables
 name <- "WES-Metadata.xlsx"
 df <- readxl::read_excel(file.path(local,name), sheet = 1, na = "n/a")
-df <- df[,c("display_name","cell_type", "tissue")]
-names(df) <- c("Sample_Name","Cell_Type", "Tissue_Type")
+  df[['Sample_Name']]     <- df$display_name
+  df[['Sample_Type']]     <-  ifelse(grepl("CD138",df$cell_type), "NotNormal", "Normal")
+  df[['Sample_Type_Flag']]<-  ifelse(grepl("CD138",df$cell_type), "1", "0")
+  df[['Tissue_Type']]     <-  ifelse(grepl("bone",df$tissue), "BM", "PB")
+  df[['Cell_Type']]       <-   ifelse(grepl("CD138",df$cell_type), "CD138pos", "PBMC")
+  df[['File_Name']]       <- unlist(lapply(df$Sample_Name, lookup_by_samplename, dat = inv, field = "File_Name"))
+  
+
 name <- paste("curated", d, name, sep = "_")
 name <- gsub("xlsx", "txt", name)
 path <- file.path(local,name)
@@ -143,29 +177,30 @@ name <- "Cytogenetic_DFCI_All-1.xlsx"
 df <- readxl::read_excel(file.path(local,name), na = "n/a")
 # remove blank and duplicated column names
 df <- df[,unique( names(df)[!is.na(names(df))] )]
-df[['Patient']] <- df$Group
-df[["Study"]] <- study
-df[['Sample_Name']] <- df$Sample
+  df[['Patient']] <- df$Group
+  df[["Study"]] <- study
+  df[['Sample_Name']] <- df$Sample
 
-df[['CYTO_Hyperdiploid_FISH']] <- ifelse(grepl("YES", df$HYPER),1,0)
-df[['CYTO_del(17p)_FISH']] <- ifelse(grepl("YES", df$`Del(17p)`),1,0)
-df[['CYTO_del(13q)_FISH']] <- ifelse(grepl("YES", df$`Del(13)`),1,0)
-df[['CYTO_t(11;14)_FISH']] <- ifelse(grepl("YES", df$`t(11;14)`),1,0)
-df[['CYTO_t(4;14)_FISH']] <- ifelse(grepl("YES", df$`t(4;14)`),1,0)
-df[['CYTO_t(14;16)_FISH']] <- ifelse(grepl("YES", df$`t(14;16)`),1,0)
-df[['CYTO_del(12p)_FISH']] <- ifelse(grepl("YES", df$`del(12p)`),1,0)
-df[['CYTO_1q_plus_FISH']] <- ifelse(grepl("YES", df$`+(1q)`),1,0)
-df[['CYTO_del(1p)_FISH']] <- ifelse(grepl("YES", df$`-(1p)`),1,0)
-df[['CYTO_del(14q)_FISH']] <- ifelse(grepl("YES", df$`-(14q)`),1,0)
-df[['CYTO_del(16q)_FISH']] <- ifelse(grepl("YES", df$`-(16q)`),1,0)
-df[['Risk_group']] <- ifelse(grepl("High", df$`Risk group`),"High","Low")
-df[is.na(df$`Risk group`) | df$`Risk group` == "Uncertain risk", "Risk_group"] <- NA
+  df[['CYTO_Hyperdiploid_FISH']] <- ifelse(grepl("YES", df$HYPER),1,0)
+  df[['CYTO_del(17p)_FISH']] <- ifelse(grepl("YES", df$`Del(17p)`),1,0)
+  df[['CYTO_del(13q)_FISH']] <- ifelse(grepl("YES", df$`Del(13)`),1,0)
+  df[['CYTO_t(11;14)_FISH']] <- ifelse(grepl("YES", df$`t(11;14)`),1,0)
+  df[['CYTO_t(4;14)_FISH']] <- ifelse(grepl("YES", df$`t(4;14)`),1,0)
+  df[['CYTO_t(14;16)_FISH']] <- ifelse(grepl("YES", df$`t(14;16)`),1,0)
+  df[['CYTO_del(12p)_FISH']] <- ifelse(grepl("YES", df$`del(12p)`),1,0)
+  df[['CYTO_1q_plus_FISH']] <- ifelse(grepl("YES", df$`+(1q)`),1,0)
+  df[['CYTO_del(1p)_FISH']] <- ifelse(grepl("YES", df$`-(1p)`),1,0)
+  df[['CYTO_del(14q)_FISH']] <- ifelse(grepl("YES", df$`-(14q)`),1,0)
+  df[['CYTO_del(16q)_FISH']] <- ifelse(grepl("YES", df$`-(16q)`),1,0)
+  df[['Risk_group']] <- ifelse(grepl("High", df$`Risk group`),"High","Low")
+  df[is.na(df$`Risk group`) | df$`Risk group` == "Uncertain risk", "Risk_group"] <- NA
+  df[['File_Name']]       <- unlist(lapply(df$Sample_Name, lookup_by_samplename, dat = inv, field = "File_Name"))
 
 name <- paste("curated", d, name, sep = "_")
 name <- gsub("xlsx", "txt", name)
 path <- file.path(local,name)
 write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
-rm(df)
+rm(df, inv)
 
 # put curated files back as ProcessedData on S3
 processed <- file.path(s3clinical,"ProcessedData",study)
