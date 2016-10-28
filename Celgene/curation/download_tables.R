@@ -14,6 +14,7 @@ file_includes <- '--exclude "*"'
 file_includes <- paste(file_includes, "--include", tail(grep("PER-FILE", files, value = T), n=1), sep = " ")
 file_includes <- paste(file_includes, "--include", tail(grep("PER-PATIENT", files, value = T), n=1), sep = " ")
 file_includes <- paste(file_includes, "--include", tail(grep("PER-SAMPLE", files, value = T), n=1), sep = " ")
+file_includes <- paste(file_includes, "--include", tail(grep("dictionary", files, value = T), n=1), sep = " ")
 file_includes
 
 #download the most recent integrated files
