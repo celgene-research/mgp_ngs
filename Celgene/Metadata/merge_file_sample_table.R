@@ -5,7 +5,7 @@ getFile <- function(path.on.s3) {
 }
 
 putFile <- function(file,path.on.s3) {
-  system(paste('aws s3 cp',file,paste(path.on.s3,basename(file),sep='/')))
+  system(paste('aws s3 cp --sse AES256',file,paste(path.on.s3,basename(file),sep='/')))
 }
 
 tmp.path.per.file <- getFile('s3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/Integrated/INTEGRATED-PER-FILE_2016-10-27.txt')
