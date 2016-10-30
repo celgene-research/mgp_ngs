@@ -112,4 +112,4 @@ system(  paste('aws s3 cp', local, processed, '--recursive --exclude "*" --inclu
 return_code <- system('echo $?', intern = T)
   
 # clean up source files
-# if(return_code == "0") system(paste0("rm -r ", local))
+if(return_code == "0") system(paste0("rm -r ", local))
