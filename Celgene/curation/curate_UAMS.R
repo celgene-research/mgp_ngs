@@ -12,7 +12,7 @@ local         <- "/tmp/curation"
   if(!dir.exists(local)){dir.create(local)}
 
 # get current original files
-original <- file.path(s3clinical,study)
+original <- file.path(s3clinical,"OriginalData",study)
 system(  paste('aws s3 cp', original, local, '--recursive', sep = " "))
 system(  paste('aws s3 cp', raw_inventory, local, sep = " "))
 
