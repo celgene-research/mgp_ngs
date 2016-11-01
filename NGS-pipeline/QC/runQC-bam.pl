@@ -136,11 +136,11 @@ $logger->info("Arguments $arguments");
 $logger->info("Processing qc  files $outputFile");
 
 
-my $sample_id;
+my ($sample_id, $is_stranded, $is_paired_end);
 if(!defined($usersample_id)){
-	$sample_id=getsampleid( $outputFile,$sampleFlag );
+	($sample_id, $is_stranded, $is_paired_end)=getsampleid( $outputFile,$sampleFlag );
 	if( (!defined($sample_id) or $sample_id eq 'NA') and defined($inputBAM)){
-		$sample_id=getsampleid( $inputBAM,$sampleFlag );	
+		($sample_id, $is_stranded, $is_paired_end)=getsampleid( $inputBAM,$sampleFlag );	
 	}
 	if($sample_id eq 'NA'){ $logger->logdie("Neither a sample id was provided nor was it possible to get from the name of the qc file ($outputFile)");}
 }else{
@@ -152,6 +152,8 @@ if(!defined($usersample_id)){
 
 my $bamfile='null'; 
 $picardQC->outputFile($outputFile );
+$picardQC->mateReads( $is_paired_end );
+$picardQC->strandness( $is_stranded);
 $picardQC->reuse();
 $picardQC->runPicardQC($bamfile,$qcStep);
 $picardQC->parseFile( $bamfile, $qcStep);
@@ -289,7 +291,7 @@ sub getsampleid{
 	if(!defined($is_paired_end)){$is_paired_end='undef';}
 	$logger->info("Is paired end: $is_paired_end");
 	$logger->info("Is stranded: $is_stranded");
-	return $sample_id;
+	return ($sample_id, $is_stranded, $is_paired_end);
 }
 
 sub processBAMCalculateHsMetrics{
