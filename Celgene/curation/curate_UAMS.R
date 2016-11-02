@@ -39,7 +39,7 @@ names(df) <- gsub("^\\s+|\\s+$","",names(df))
   df[['CYTO_t(6;14)_FISH']]            <-  ifelse( grepl("6", df$Translocation_consensus),1,0) 
   df[['CYTO_t(14;16)_FISH']]           <-  ifelse( grepl("16", df$Translocation_consensus),1,0) 
   df[['CYTO_t(14;20)_FISH']]           <-  ifelse( grepl("20", df$Translocation_consensus),1,0) 
-  df[['CYTO_MYC_translocation_FISH']]  <-  ifelse( df$`MYC translocation` != "0" ,1,0) 
+  df[['CYTO_MYC_FISH']]  <-  ifelse( df$`MYC translocation` != "0" ,1,0) 
 
   name <- paste("curated_sheet1", name, sep = "_")
   name <- gsub("xlsx", "txt", name)
@@ -72,6 +72,7 @@ name <- "file_inventory.txt"
 inv <- read.delim(file.path(local,name), stringsAsFactors = F)
 inv <- inv[inv$Study == "UAMS",]
 
+  inv[['File_Name_Actual']] <- gsub("^.*\\/_(.*?)$", "_\\1", inv$File_Path)
   inv[['Patient']] <- unlist(lapply(inv$File_Name, function(x){
     df[df$filename == x,"Patient"]
   }))
