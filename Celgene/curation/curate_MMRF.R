@@ -23,7 +23,9 @@ name <- "file_inventory.txt"
   inv <- read.delim(file.path(local,name), stringsAsFactors = F)
   inv <- inv[inv$Study == "MMRF",]
   # we can also parse a few more fields from the MMRF names
-  
+  inv[['File_Name_Actual']] <- inv$File_Name
+  # remove filename extension
+  inv$File_Name <- gsub("^(.*?)\\..*$", "\\1", inv$File_Name)
   inv[['Sample_Type']]    <-  ifelse(grepl("CD138pos",inv$File_Name), "NotNormal", "Normal")
   inv[['Sample_Type_Flag']]<- ifelse(grepl("CD138pos",inv$File_Name), "1", "0")
   inv[['Tissue_Type']]    <-  ifelse(grepl("BM",inv$File_Name), "BM", "PB")
@@ -33,7 +35,6 @@ name <- "file_inventory.txt"
   name <- paste("curated", study, name, sep = "_")
   path <- file.path(local,name)
   write.table(inv, path, row.names = F, col.names = T, sep = "\t", quote = F)
-  rm(inv)
 
 ################################################
 # curate per_visit entries with samples taken for the sample-level table
@@ -41,7 +42,7 @@ name <- "PER_PATIENT_VISIT.csv"
   pervisit <- read.csv(file.path(local,name), stringsAsFactors = F, 
                        na.strings = c("Not Done", ""))
   # only keep visits with affiliated samples
-  pervisit<- pervisit[pervisit$SPECTRUM_SEQ != "",]
+  pervisit<- pervisit[ !is.na(pervisit$SPECTRUM_SEQ),]
   
   df <- data.frame(Patient = pervisit$PUBLIC_ID)
   
@@ -69,13 +70,17 @@ name <- "PER_PATIENT_VISIT.csv"
   df[['CYTO_del(13q)_FISH']]   <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR == "Yes" ,1,0)    
   
   df[['CYTO_Hyperdiploid_FISH']]  <- ifelse( pervisit$Hyperdiploid == "Yes" ,1,0)    
-  df[['CYTO_MYC_translocation_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR5 == "Yes" ,1,0)   
+  df[['CYTO_MYC_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR5 == "Yes" ,1,0)   
   
+  # TODO: verify that we can assume these FISH results are from tumor samples
+  # also note, since single samples correspond to multiple filename there is sample info redundancy
+  tumor_lookup <- inv[inv$Tissue_Type == "BM" ,c("Sample_Name", "File_Name")]
+  df <- merge(df, tumor_lookup, by = "Sample_Name", all.x = T)
   
   name <- paste("curated", name, sep = "_")
   path <- file.path(local,name)
   write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
-  rm(df)
+  rm(df, pervisit, tumor_lookup)
 
 ################################################
 # curate PER_PATIENT entries, requires some standalone tables for calculations
@@ -175,8 +180,11 @@ name <- "PER_PATIENT.csv"
   df[["D_Reason_for_Discontinuation"]] <-  unlist(lapply(df$Patient, lookup_by_publicid, dat = perpatient, field = "D_PT_PRIMARYREASON"))
   df[["D_Discontinued"]] <-  unlist(lapply(df$Patient, lookup_by_publicid, dat = perpatient, field = "D_PT_discont"))
   df[["D_Complete"]] <-  unlist(lapply(df$Patient, lookup_by_publicid, dat = perpatient, field = "D_PT_complete"))
-  df[["D_Best_Response_Code"]] <-  unlist(lapply(df$Patient, lookup_by_publicid, dat = respo, field = "bestrespcd"))
-  df[["D_Best_Response"]] <-  unlist(lapply(df$Patient, lookup_by_publicid, dat = respo, field = "bestresp"))
+  
+  # filter response table using line =1 (first line treatment only), trtbresp=1 (Treatment best response) then find that response
+  best_response_table <- respo[respo$trtbresp == 1 & respo$line == 1 ,]
+  df[["D_Best_Response_Code"]] <-  unlist(lapply(df$Patient, lookup_by_publicid, dat = best_response_table, field = "bestrespcd"))
+  df[["D_Best_Response"]] <-  unlist(lapply(df$Patient, lookup_by_publicid, dat = best_response_table, field = "bestresp"))
 
   name <- paste("curated", name, sep = "_")
   path <- file.path(local,name)
@@ -185,7 +193,7 @@ name <- "PER_PATIENT.csv"
 
 #######
 
-
+rm(inv)
 
 # put curated files back as ProcessedData on S3
 processed <- file.path(s3clinical,"ProcessedData",study)
