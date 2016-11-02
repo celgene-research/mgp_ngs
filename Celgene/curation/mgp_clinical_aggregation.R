@@ -18,6 +18,7 @@
 # vars
 d <- format(Sys.Date(), "%Y-%m-%d")
 source("curation_scripts.R")
+source("qc_and_summary.R")
 
 # locations
 s3clinical      <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData"
@@ -31,18 +32,17 @@ system(  paste('aws s3 cp',"mgp_dictionary.xlsx" , file.path(integrated_path, "m
 
 ### if appropriate, run curation scripts
 source("curate_DFCI.R")
-source("curate_MMRF.R")
-source("curate_UAMS.R")
+# source("curate_MMRF.R")
+# source("curate_UAMS.R")
+# source("../aggregate_stats/uams_calls_to_binary_table.R")
 
 # copy files locally
-# dictionary, inventory
-system(  paste('aws s3 cp', integrated_path, local_path, '--recursive --exclude "*" --include "*dictionary*" ', sep = " "))
-# get curated files
-system(  paste('aws s3 cp', processed_path, local_path, '--recursive --exclude "*" --include "DFCI*" --include "UAMS*" --include "MMRF*"', sep = " "))
+# dictionary, curated files
+system(  paste('aws s3 cp', processed_path, local_path, '--recursive --exclude "*" --include "*dictionary*" --include "*curated*"', sep = " "))
 
 ##############
 # The dictionary is used as a starting framework for each level table
-dict <- as.data.frame(readxl::read_excel(file.path(local_path, "mgp_dictionary.xlsx")))
+dict <- as.data.frame(readxl::read_excel(file.path(local_path, "Integrated", "mgp_dictionary.xlsx")))
 dict <- dict[dict$active == 1,]
 
 files <- list.files(local_path, pattern = "curated*", full.names = T, recursive = T)
@@ -51,60 +51,43 @@ files <- list.files(local_path, pattern = "curated*", full.names = T, recursive 
 ### FILE_LEVEL AGGREGATION
 ### 
 file_level_columns <- dict[grepl("file", dict$level), "names"] 
-df <- data.frame(matrix(ncol = length(file_level_columns), nrow = 0))
-names(df) <- file_level_columns
+per.file <- data.frame(matrix(ncol = length(file_level_columns), nrow = 0))
+names(per.file) <- file_level_columns
 
 for(f in files){
   print(f)
   new <-   read.delim(f, stringsAsFactors = F, check.names = F)
-  df <- append_df(df, new, id = "File_Name", mode = "append")
+  per.file <- append_df(per.file, new, id = "File_Name", mode = "append")
 }
 
 # write the aggregated table to local
   name <- paste("INTEGRATED-PER-FILE_", d, ".txt", sep = "")
   path <- file.path(local,name)
-  write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
-  rm(df)
+  per.file <- remove_invalid_samples(per.file)
+  write.table(per.file, path, row.names = F, col.names = T, sep = "\t", quote = F)
 
-###
-### SAMPLE_LEVEL AGGREGATION
-### 
-  options(warn=1)
-sample_level_columns <- dict[grepl("sample", dict$level), "names"] 
-df <- data.frame(matrix(ncol = length(sample_level_columns), nrow = 0))
-names(df) <- sample_level_columns
-
-  for(f in files){
-    print(f)
-    new <-   read.delim(f, stringsAsFactors = F, check.names = F)
-    df <- append_df(df, new, id = "Sample_Name", mode = "append")
-  }
-  
-  # write the aggregated table to local
-  name <- paste("INTEGRATED-PER-SAMPLE_", d, ".txt", sep = "")
-  path <- file.path(local,name)
-  write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
-  rm(df)
-  
 ###
 ### PATIENT_LEVEL AGGREGATION
 ### 
 patient_level_columns <- dict[grepl("patient", dict$level)  ,"names"] 
-df <- data.frame(matrix(ncol = length(patient_level_columns), nrow = 0))
-names(df) <- patient_level_columns
+per.patient <- data.frame(matrix(ncol = length(patient_level_columns), nrow = 0))
+names(per.patient) <- patient_level_columns
   
   for(f in files){
     print(f)
     new <-   read.delim(f, stringsAsFactors = F, check.names = F)
-    df <- append_df(df, new, id = "Patient", mode = "append")
+    per.patient <- append_df(per.patient, new, id = "Patient", mode = "append")
   }
-  
+
+  # qc and summary    
+per.patient <-  remove_unsequenced_patients(per.patient, per.file)
+
+
   # write the aggregated table to local
   name <- paste("INTEGRATED-PER-PATIENT_", d, ".txt", sep = "")
   path <- file.path(local,name)
-  write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
-  rm(df)
-  
+  write.table(per.patient, path, row.names = F, col.names = T, sep = "\t", quote = F)
+
 ###
 # put final integrated files back as ProcessedData/Integrated on S3
 processed <- file.path(s3clinical,"ProcessedData","Integrated")
@@ -112,4 +95,11 @@ system(  paste('aws s3 cp', local, processed, '--recursive --exclude "*" --inclu
 return_code <- system('echo $?', intern = T)
   
 # clean up source files
+rm(per.file, per.patient)
 if(return_code == "0") system(paste0("rm -r ", local))
+
+# run Fadi's script to merge sample-level table onto file-level table
+# source("../Metadata/merge_file_sample_table.R")
+
+# save a copy to my local drive for inspection
+source("download_tables.R")
