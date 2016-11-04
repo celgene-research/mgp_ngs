@@ -220,7 +220,7 @@ df2 <- df[,4:14]
   names(df2) <- c("CYTO_Hyperdiploid_FISH","CYTO_t(11;14)_FISH","CYTO_t(4;14)_FISH",
                   "CYTO_t(14;16)_FISH", "CYTO_del(1p)_FISH", "CYTO_1q_plus_FISH",
                   "CYTO_del(12p)_FISH", "CYTO_del(13q)_FISH", "CYTO_del(14q)_FISH",
-                  "CYTO_del(16q)_FISH", "CYTO_del(17p)_FISH") 
+                  "CYTO_del(16q)_FISH", "CYTO_del(17;17p)_FISH") 
   df <- cbind(df,df2)
   lookup_by_samplename <- lookup.values("Sample_Name")
   df[['File_Name_Actual']]<- 

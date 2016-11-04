@@ -65,9 +65,11 @@ name <- "PER_PATIENT_VISIT.csv"
   df[['CYTO_t(14;16)_FISH']]   <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR8 == "Yes" ,1,0)    
   df[['CYTO_t(14;20)_FISH']]   <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR9 == "Yes" ,1,0)    
   df[['CYTO_amp(1q)_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR13 == "Yes" ,1,0)
-  df[['CYTO_del(17)_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR2 == "Yes" ,1,0)   
-  df[['CYTO_del(17p)_FISH']]   <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR11 == "Yes" ,1,0)    
   df[['CYTO_del(13q)_FISH']]   <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR == "Yes" ,1,0)    
+  
+  d17  <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR2 == "Yes" ,TRUE,FALSE)
+  d17p <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR11 == "Yes" ,TRUE,FALSE)
+  df[['CYTO_del(17;17p)_FISH']]    <-   ifelse(d17 | d17p, 1,0)
   
   df[['CYTO_Hyperdiploid_FISH']]  <- ifelse( pervisit$Hyperdiploid == "Yes" ,1,0)    
   df[['CYTO_MYC_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR5 == "Yes" ,1,0)   
@@ -196,7 +198,7 @@ name <- "PER_PATIENT.csv"
 rm(inv)
 
 # put curated files back as ProcessedData on S3
-processed <- file.path(s3clinical,"ProcessedData",study)
+processed <- file.path(s3clinical,"ProcessedData",paste0(study,"_IA9"))
 system(  paste('aws s3 cp', local, processed, '--recursive --exclude "*" --include "curated*" --sse', sep = " "))
 return_code <- system('echo $?', intern = T)
 
