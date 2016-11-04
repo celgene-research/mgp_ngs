@@ -195,7 +195,7 @@ name <- "PER_PATIENT.csv"
 
 #######
 
-rm(inv)
+rm(inv, famhx, medhx, respo, survival, treat, perpatient)
 
 # put curated files back as ProcessedData on S3
 processed <- file.path(s3clinical,"ProcessedData",paste0(study,"_IA9"))
