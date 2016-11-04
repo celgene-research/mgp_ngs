@@ -6,9 +6,19 @@ dfci_discontinued_patients <- c("PD4282a", "PD4282b", "PD4282c", "PD4287a", "PD4
 
 df <- df[!(df$File_Name %in% dfci_discontinued_patients),]
 df <- df[!is.na(df$File_Name),]
-df <- df[!is.na(df$File_Path),]
+
+if( "File_Path" %in% names(df) ) {df <- df[!is.na(df$File_Path),]}
 df
 }
+
+
+
+remove_sensitive_columns <- function(df, dict){
+  sensitive_columns <- dict[dict$sensitive == "1","names"]
+  df[,!(names(df) %in% sensitive_columns)]
+}
+
+
 
 
 remove_unsequenced_patients <- function(p,f){
