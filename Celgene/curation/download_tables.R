@@ -13,9 +13,8 @@ files <- gsub("^.* (.*)","\\1",files)
 file_includes <- '--exclude "*"'
 file_includes <- paste(file_includes, "--include", tail(grep("PER-FILE", files, value = T), n=1), sep = " ")
 file_includes <- paste(file_includes, "--include", tail(grep("PER-PATIENT", files, value = T), n=1), sep = " ")
-file_includes <- paste(file_includes, "--include", tail(grep("PER-SAMPLE", files, value = T), n=1), sep = " ")
 file_includes <- paste(file_includes, "--include", tail(grep("dictionary", files, value = T), n=1), sep = " ")
 file_includes
 
-# get all the curated dataset files
-system(  paste('aws s3 cp',file.path(s3clinical,'ProcessedData/'), local_path, '--recursive', sep = " "))
+# get the most recent integrated tables
+system(  paste('aws s3 cp',file.path(s3clinical,'ProcessedData', "Integrated"), file.path(local_path, "Integrated"), '--recursive', file_includes, sep = " "))
