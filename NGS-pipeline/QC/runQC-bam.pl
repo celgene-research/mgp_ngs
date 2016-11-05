@@ -38,6 +38,8 @@ GetOptions(
 	"nofilecheck"=>\$nofilecheck,
 	"version"=>\$programVersion,
 	"sample_id=i"=>\$usersample_id,
+	"baitsFile=s"=>$baitsFile,
+	"captureKit=s"=>\$captureKit,
 	"help"=>\$help
 );
 
@@ -172,7 +174,7 @@ if(lc($qcStep) eq 'homer'){
 }
 
 if($qcStep eq 'CaptureHsMetrics'){	
-	if((!defined($reuse) and !defined($baitsFile)) or !defined($captureKit)){ $logger->logdie("In order to run CaptureHsMetrics you need to provide captureKit and baitsFile")};
+#	if((!defined($reuse) and !defined($baitsFile)) or !defined($captureKit)){ $logger->logdie("In order to run CaptureHsMetrics you need to provide captureKit and baitsFile")};
 	my $bq=processBAMCalculateHsMetrics( $picardQC );
 #	print Dumper( $bq );
 	getFromXMLserver('sampleQC.updateAlignmentQC',$bq, $sample_id, $sampleFlag);
