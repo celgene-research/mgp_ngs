@@ -1,6 +1,11 @@
 ## drozelle@ranchobiosciences.com
 ## MMRF file curation
 
+# this was specifically edited to use IA8b clinical sources
+#  import IA8 raw data tables
+#  filter file_inventory to remove new IA9 samples
+
+
 # vars
 study <- "MMRF"
 d <- format(Sys.Date(), "%Y-%m-%d")
@@ -8,12 +13,12 @@ d <- format(Sys.Date(), "%Y-%m-%d")
 # locations
 s3clinical    <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData"
 raw_inventory <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/Integrated/file_inventory.txt"
-ia9_data      <- "s3://celgene.rnd.combio.mmgp.external/MMRF_CoMMpass_IA9/clinical_data_tables/CoMMpass_IA9_FlatFiles/"
+ia8_data      <- "s3://celgene.rnd.combio.mmgp.external/MMRF_CoMMpass_IA8b/clinical_data_tables/CoMMpass_IA8_FlatFiles_v3/"
 local         <- "/tmp/curation"
   if(!dir.exists(local)){dir.create(local)}
 
 # get current original files
-original <- file.path(ia9_data)
+original <- file.path(ia8_data)
 system(  paste('aws s3 cp', original, local, '--recursive', sep = " "))
 system(  paste('aws s3 cp', raw_inventory, local, sep = " "))
 
@@ -22,6 +27,7 @@ system(  paste('aws s3 cp', raw_inventory, local, sep = " "))
 name <- "file_inventory.txt"
   inv <- read.delim(file.path(local,name), stringsAsFactors = F)
   inv <- inv[inv$Study == "MMRF",]
+  inv <- inv[inv$Study_Phase != "IA9",]
   # we can also parse a few more fields from the MMRF names
   inv[['File_Name_Actual']] <- inv$File_Name
   # remove filename extension
@@ -71,7 +77,7 @@ name <- "PER_PATIENT_VISIT.csv"
   d17p <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR11 == "Yes" ,TRUE,FALSE)
   df[['CYTO_del(17;17p)_FISH']]    <-   ifelse(d17 | d17p, 1,0)
   
-  df[['CYTO_Hyperdiploid_FISH']]  <- ifelse( pervisit$Hyperdiploid == "Yes" ,1,0)    
+  df[['CYTO_Hyperdiploid_FISH']]  <- ifelse( grepl("Hyperdiploid", pervisit$D_CM_ANEUPLOIDYCAT) ,1,0)    
   df[['CYTO_MYC_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR5 == "Yes" ,1,0)   
   
   # TODO: verify that we can assume these FISH results are from tumor samples
@@ -195,10 +201,10 @@ name <- "PER_PATIENT.csv"
 
 #######
 
-rm(inv, famhx, medhx, respo, survival, treat, perpatient)
+rm(inv)
 
 # put curated files back as ProcessedData on S3
-processed <- file.path(s3clinical,"ProcessedData",paste0(study,"_IA9"))
+processed <- file.path(s3clinical, "ProcessedData", paste0(study,"_IA8"))
 system(  paste('aws s3 cp', local, processed, '--recursive --exclude "*" --include "curated*" --sse', sep = " "))
 return_code <- system('echo $?', intern = T)
 

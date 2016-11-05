@@ -1,7 +1,11 @@
 ## drozelle@ranchobiosciences.com
-## 2016-10-17
+## 2016-11-04
 
-# Approach to MGP curation follows the following process:
+# SAGE challenge curation
+# this curation script has been adjusted to use only
+# MMRF IA8b data sources and filter for ND samples
+
+# Approach to curation follows the following process:
 #  1.) <data.txt> is curated to <curated_data.txt> and moved to /ProcessedData/Study/
 #       In these curated files new columns are added using the format specified in 
 #       <mgp_dictionary.xlsx> and values are coerced into ontologically accurate values. 
@@ -30,20 +34,24 @@ if(!dir.exists(local_path)){dir.create(local_path)}
 # We are editing the dictionary spreadsheet locally, so push latest to s3
 system(  paste('aws s3 cp',"mgp_dictionary.xlsx" , file.path(integrated_path, "mgp_dictionary.xlsx"), "--sse ", sep = " "))
 
-### if appropriate, run curation scripts
-source("curate_DFCI.R")
-# source("curate_MMRF.R")
-# source("curate_UAMS.R")
-# source("../aggregate_stats/uams_calls_to_binary_table.R")
-
 # copy files locally
 # dictionary, curated files
-system(  paste('aws s3 cp', processed_path, local_path, '--recursive --exclude "*" --include "*dictionary*" --include "*curated*"', sep = " "))
+system(  paste('aws s3 cp', processed_path, local_path, '--recursive --exclude "*" --include "MMRF_IA8*" --include "*mgp_dictionary*"', sep = " "))
 
 ##############
 # The dictionary is used as a starting framework for each level table
 dict <- as.data.frame(readxl::read_excel(file.path(local_path, "Integrated", "mgp_dictionary.xlsx")))
 dict <- dict[dict$active == 1,]
+
+  ################################################
+  ########## SAGE SPECIFIC FILTERING  ############
+  dict <- dict[!is.na(dict$names),]
+  dict <- dict[dict$sage_active  == 1,]
+  
+  sage_dict <- dict[,c("names","level","type","factor_levels","key_val","units","description","MMRF Source" )]
+  sage_dict[is.na(sage_dict)] <- ""
+  write.table(sage_dict, file.path(local, "MMRF_curated_dictionary.txt"), row.names = F, col.names = T, sep = "\t", quote = F)
+  rm(sage_dict)
 
 files <- list.files(local_path, pattern = "curated*", full.names = T, recursive = T)
 
@@ -61,11 +69,23 @@ for(f in files){
 }
 
 # write the aggregated table to local
-  name <- paste("INTEGRATED-PER-FILE_", d, ".txt", sep = "")
-  path <- file.path(local,name)
+
   per.file <- remove_invalid_samples(per.file)
+  per.file$Sample_Name_Tissue_Type <- paste(per.file$Sample_Name, per.file$Tissue_Type, sep="_")
+  
+  #######################################################
+  ##########    SAGE SPECIFIC FILTERING      ############                             
+  per.file <- per.file[per.file$Disease_Status == "ND",]
+  per.file$Visit_Name <- "Baseline"
+
+  name <- paste("MMRF_IA8b_PER-FILE_", ".txt", sep = "")
+  path <- file.path(local,name)
   write.table(per.file, path, row.names = F, col.names = T, sep = "\t", quote = F)
 
+  ##########                                   ########## 
+  #######################################################
+  
+  
 ###
 ### PATIENT_LEVEL AGGREGATION
 ### 
@@ -80,26 +100,41 @@ names(per.patient) <- patient_level_columns
   }
 
   # qc and summary    
-per.patient <-  remove_unsequenced_patients(per.patient, per.file)
+  per.patient <-  remove_unsequenced_patients(per.patient, per.file)
 
-
-  # write the aggregated table to local
-  name <- paste("INTEGRATED-PER-PATIENT_", d, ".txt", sep = "")
+  #######################################################
+  ##########    SAGE SPECIFIC FILTERING      ############                             
+    
+  per.patient <- remove_sensitive_columns(per.patient, dict)
+  
+  # remove empty columns
+  columns_with_data <- unlist(lapply(names(per.patient), function(x){
+    !all(is.na(per.patient[[x]]))
+  }))
+  per.patient <- per.patient[,columns_with_data]
+  
+  name <- paste("MMRF_IA8b_PER-PATIENT", ".txt", sep = "")
   path <- file.path(local,name)
   write.table(per.patient, path, row.names = F, col.names = T, sep = "\t", quote = F)
-
-###
-# put final integrated files back as ProcessedData/Integrated on S3
-processed <- file.path(s3clinical,"ProcessedData","Integrated")
-system(  paste('aws s3 cp', local, processed, '--recursive --exclude "*" --include "INTEGRATED*" --sse', sep = " "))
-return_code <- system('echo $?', intern = T)
   
+  ##########                                   ########## 
+  #######################################################
+  
+  
+# download sage curated files to local disk for upload to synapse
+file.copy(from = list.files(path = local, pattern = "MMRF*", full.names = T, include.dirs = F, no.. = T), 
+          to   = "~/thindrives/drozelle/Downloads/",
+          overwrite = T)
+  
+  
+# put final integrated files back as ProcessedData/Integrated on S3
+# processed <- file.path(s3clinical,"ProcessedData","Integrated")
+# system(  paste('aws s3 cp', local, processed, '--recursive --exclude "*" --include "INTEGRATED*" --sse', sep = " "))
+# return_code <- system('echo $?', intern = T)
+
 # clean up source files
-rm(per.file, per.patient)
-if(return_code == "0") system(paste0("rm -r ", local))
+rm(per.file, per.patient, new)
+# if(return_code == "0") 
+system(paste0("rm -r ", local))
 
-# run Fadi's script to merge sample-level table onto file-level table
-# source("../Metadata/merge_file_sample_table.R")
 
-# save a copy to my local drive for inspection
-source("download_tables.R")
