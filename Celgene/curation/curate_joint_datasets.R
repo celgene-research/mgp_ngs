@@ -65,6 +65,7 @@ if(!dir.exists(local)){dir.create(local)}
   system(  paste('aws s3 cp', file.path(local, name), file.path(s3clinical, "ProcessedData", "Integrated", name), '--sse', sep = " "))
   return_code <- system('echo $?', intern = T)
   if(return_code == "0") system(paste0("rm -r ", local))
+  rm(cnv, cnv_locations)
 
 #############################################################
 ## Translocations using MANTA from Brian (BWalker2@uams.edu)
@@ -159,6 +160,6 @@ if(!dir.exists(local)){dir.create(local)}
   # as a failsafe to prevent reading older versions of source files remove the
   #  cached version file if transfer was successful.
   if(return_code == "0") system(paste0("rm -r ", local))
-  
+  rm(dfci, mmrf, uams)
   
   
