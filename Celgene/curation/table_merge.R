@@ -6,32 +6,41 @@ local_path      <- "/tmp/curation"
 if(!dir.exists(local_path)){dir.create(local_path)}
 
 source("curation_scripts.R")
-#######################
-# CNV
-
-
 
 # copy curated files locally
 system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "Integrated"), local_path, '--recursive --exclude "*" --include "PER*"', sep = " "))
-system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "Joint_datasets", "curated_CNV_ControlFreec.txt"), local_path, sep = " "))
+system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "JointData"), local_path, '--recursive --exclude "*" --include "curated*"', sep = " "))
 
 
-df <-  merge_table_files(file1 = file.path(local_path,"PER-FILE_clinical_cyto.txt"),
+#######################
+# CNV
+  df <-  merge_table_files(file1 = file.path(local_path,"PER-FILE_clinical_cyto.txt"),
                          file2 = file.path(local_path,"curated_CNV_ControlFreec.txt"),
                                            id = "File_Name")
+  write.table(df, file.path(local_path,"tmp.txt"), row.names = F, col.names = T, sep = "\t", quote = F)
 
+#######################
+# SNV
+df <-  merge_table_files(file1 = file.path(local_path,"tmp.txt"),
+                         file2 = file.path(local_path,"curated_SNV_mutect2.txt"),
+                         id = "File_Name")
+write.table(df, file.path(local_path,"tmp.txt"), row.names = F, col.names = T, sep = "\t", quote = F)
 
-write.table(df, file.path(local_path,"PER-FILE_cyto_cnv.txt"), row.names = F, col.names = T, sep = "\t", quote = F)
-
-##
+  
+#######################
 # add patient level information, this will be redundant
-df <-  merge_table_files(file1 = file.path(local_path,"PER-FILE_cyto_cnv.txt"),
+df <-  merge_table_files(file1 = file.path(local_path,"tmp.txt"),
                          file2 = file.path(local_path,"PER-PATIENT_clinical.txt"),
-                         id = "Patient")
+                         id = c("Patient", "Study"))
+write.table(df, file.path(local_path,"tmp.txt"), row.names = F, col.names = T, sep = "\t", quote = F)
 
-
-write.table(df, file.path(local_path,"PER-FILE_ALL.txt"), row.names = F, col.names = T, sep = "\t", quote = F)
 
 # put back the all table
 name <- "PER-FILE_ALL.txt"
-system(  paste('aws s3 cp', file.path(local_path,name), file.path(s3clinical, "ProcessedData", "Integrated", name), '--sse', sep = " "))
+system(  paste('aws s3 cp', file.path(local_path,"tmp.txt"), file.path(s3clinical, "ProcessedData", "Integrated", name), '--sse', sep = " "))
+return_code <- system('echo $?', intern = T)
+
+# as a failsafe to prevent reading older versions of source files remove the
+#  cached version file if transfer was successful.
+if(return_code == "0") system(paste0("rm -r ", local))
+
