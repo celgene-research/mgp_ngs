@@ -60,10 +60,13 @@ for(f in files){
   per.file <- append_df(per.file, new, id = "File_Name", mode = "append")
 }
 
-# write the aggregated table to local
-  name <- paste("INTEGRATED-PER-FILE_", d, ".txt", sep = "")
-  path <- file.path(local,name)
+  # qc and summary    
   per.file <- remove_invalid_samples(per.file)
+  per.file <- translocation_consensus_building(tmp)
+
+  # write the aggregated table to local
+  name <- paste("PER-FILE_clinical_cyto", ".txt", sep = "")
+  path <- file.path(local,name)
   write.table(per.file, path, row.names = F, col.names = T, sep = "\t", quote = F)
 
 ###
@@ -80,26 +83,34 @@ names(per.patient) <- patient_level_columns
   }
 
   # qc and summary    
-per.patient <-  remove_unsequenced_patients(per.patient, per.file)
-
+  per.patient <-  remove_unsequenced_patients(per.patient, per.file)
 
   # write the aggregated table to local
-  name <- paste("INTEGRATED-PER-PATIENT_", d, ".txt", sep = "")
+  name <- paste("PER-PATIENT_clinical", ".txt", sep = "")
   path <- file.path(local,name)
   write.table(per.patient, path, row.names = F, col.names = T, sep = "\t", quote = F)
 
-###
+  
+#######################
+# merge final clinical tables with desired summary analysis tables
+# CNV
+  
+ tmp <-  merge_table_files(file.path(local,"PER-FILE_clinical_cyto.txt"),
+                    file.path(local,"Integrated","curated_CNV_ControlFreec.txt")
+                    )
+  path <- file.path(local,"PER-FILE_clinical_cyto_cnv.txt")
+  write.table(tmp, path, row.names = F, col.names = T, sep = "\t", quote = F)
+  
+  
+#######################
 # put final integrated files back as ProcessedData/Integrated on S3
 processed <- file.path(s3clinical,"ProcessedData","Integrated")
-system(  paste('aws s3 cp', local, processed, '--recursive --exclude "*" --include "INTEGRATED*" --sse', sep = " "))
+system(  paste('aws s3 cp', local, processed, '--recursive --exclude "*" --include "PER*" --sse', sep = " "))
 return_code <- system('echo $?', intern = T)
   
 # clean up source files
-rm(per.file, per.patient)
+rm(per.file, per.patient, tmp)
 if(return_code == "0") system(paste0("rm -r ", local))
-
-# run Fadi's script to merge sample-level table onto file-level table
-# source("../Metadata/merge_file_sample_table.R")
 
 # save a copy to my local drive for inspection
 source("download_tables.R")
