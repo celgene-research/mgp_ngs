@@ -17,7 +17,7 @@ system(  paste('aws s3 cp', original, local, '--recursive', sep = " "))
 system(  paste('aws s3 cp', raw_inventory, local, sep = " "))
 
 ################################################
-name <- "UAMS_UK_sample info.xlsx"
+name <- "UAMS_UK_sample_info.xlsx"
 df <- readxl::read_excel(file.path(local,name), sheet = 1)
 df[ df == "N/A" ] = NA
 # chomp column names
@@ -47,7 +47,7 @@ names(df) <- gsub("^\\s+|\\s+$","",names(df))
   write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
 
 ## Sheet 2
-name <- "UAMS_UK_sample info.xlsx"
+name <- "UAMS_UK_sample_info.xlsx"
 df2 <- readxl::read_excel(file.path(local,name), sheet = 2)
 
 df2[['Patient']] <- sprintf("UAMS_%04d", as.numeric(df2$`Trial number`))
