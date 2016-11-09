@@ -163,3 +163,71 @@ if(!dir.exists(local)){dir.create(local)}
   rm(dfci, mmrf, uams)
   
   
+  #############################################################
+  ## SNV from Chris (CPWardell@uams.edu)
+  
+  # copy original tables to local
+  local      <- "/tmp/curation"
+  if(!dir.exists(local)){dir.create(local)}
+  
+  name <- "simplified.mutations.20161103.txt"
+  s3_path <- file.path(s3,"SeqData/WES/ProcessedData/DFCI_MMRF_UAMS/mutect2", name)
+  system(paste('aws s3 cp', s3_path, local, sep = " "))
+  
+  snv <- read.delim(file.path(local,name))
+  snv <- as.data.frame(t(snv))
+  
+  # edit filenames to match integrated table and check 
+  snv[['File_Name']] <- gsub("^X", "", row.names(snv))
+  snv[['File_Name']] <- gsub("^_E.*_([bcdBCD])", "\\1", snv$File_Name)
+  
+  # only problem now is MMRF is listed by sampleid instead of filename
+  # we'll need to lookup the filename assuming they are somatic tumor samples
+    system(paste('aws s3 cp', file.path(s3clinical,"ProcessedData","Integrated","PER-FILE_clinical_cyto.txt"), 
+                 file.path(local_path,"PER-FILE_clinical_cyto.txt"), sep = " "))
+    per.file <- read.delim(file.path(local_path,"PER-FILE_clinical_cyto.txt"), 
+               sep = "\t", as.is = T, check.names = F, stringsAsFactors = F)
+    
+    mmrf_filename_lookup <- per.file[per.file$Study == "MMRF" & 
+                                       per.file$Sample_Type_Flag == 1 &
+                                       per.file$Sequencing_Type == "WES" &
+                                       per.file$Tissue_Type == "BM"
+                                     , c("Sample_Name", "File_Name")]
+    # verify that we have no duplicate filenames for each samplename
+    # length(mmrf_filename_lookup$Sample_Name) == length(unique(mmrf_filename_lookup$Sample_Name))
+    # length(snv$File_Name) == length(unique(snv$File_Name))
+    names(mmrf_filename_lookup) <- c("File_Name", "MMRF_File_Name")
+    df <- merge(snv, mmrf_filename_lookup, all.x = T)
+    
+    unified_names <- unlist(apply(df, MARGIN = 1, function(x){
+      if( grepl("^MMRF", x[['File_Name']]) ){return(x[["MMRF_File_Name"]])
+        }else{return(x[["File_Name"]])}
+    }))
+    
+    snv[['File_Name']] <- unified_names
+    # TODO: this only inserts SNV info for a single filename, 
+    #        but it might be appropriate to add for all tumor samples at
+    #        the same timepoint?
+  
+  # rename columns to match dictionary format
+  n <- names(snv)
+  n <- paste("SNV",n,"mutect2", sep = "_")
+  n <- gsub("SNV_File_Name_mutect2","File_Name", n)
+  
+  names(snv) <- n
+    
+    
+  name <- "curated_SNV_mutect2.txt"
+  local.path <- file.path(local,name)
+  write.table(snv, local.path, row.names = F, col.names = T, sep = "\t", quote = F)
+  rm(snv)
+  
+  # put curated file back as ProcessedData
+  system(  paste('aws s3 cp', local.path, file.path(s3clinical,"ProcessedData", "JointData", name), "--sse", sep = " "))
+  return_code <- system('echo $?', intern = T)
+  
+  # as a failsafe to prevent reading older versions of source files remove the
+  #  cached version file if transfer was successful.
+  if(return_code == "0") system(paste0("rm -r ", local))
+
+  
