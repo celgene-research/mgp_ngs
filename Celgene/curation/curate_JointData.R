@@ -59,7 +59,7 @@ if(!dir.exists(local)){dir.create(local)}
   write.table(cnv_locations, path, row.names = F, col.names = T, sep = "\t", quote = F)
   
   name <- "curated_CNV_ControlFreec.txt"
-  system(  paste('aws s3 cp', file.path(local, name), file.path(s3clinical, "ProcessedData", "Joint_datasets", name), '--sse', sep = " "))
+  system(  paste('aws s3 cp', file.path(local, name), file.path(s3clinical, "ProcessedData", "JointData", name), '--sse', sep = " "))
   
   name <- "cnv_dictionary.txt"
   system(  paste('aws s3 cp', file.path(local, name), file.path(s3clinical, "ProcessedData", "Integrated", name), '--sse', sep = " "))
@@ -154,7 +154,7 @@ if(!dir.exists(local)){dir.create(local)}
   rm(df)
   
   # put curated file back as ProcessedData
-  system(  paste('aws s3 cp', local.path, file.path(s3clinical,"ProcessedData", "Joint_Datasets", name), "--sse", sep = " "))
+  system(  paste('aws s3 cp', local.path, file.path(s3clinical,"ProcessedData", "JointData", name), "--sse", sep = " "))
   return_code <- system('echo $?', intern = T)
   
   # as a failsafe to prevent reading older versions of source files remove the
