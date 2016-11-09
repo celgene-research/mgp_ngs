@@ -202,49 +202,14 @@ translocation_consensus_building <- function(df, log_file_path = "/tmp/cyto_cons
           }
         })
         names(by_technique) <- techniques
-        # per.file[per.file$Patient == "MMRF_1016" & per.file$Sample_Type_Flag == 1, c("CYTO_t(4;14)_FISH")]
-        
-         
-         
-        # # all
-        # by_technique <- list(FISH=c("1"), MANTA="1")
-        # # MANTA
-        # by_technique <- list(FISH=c("0"), MANTA="1")
-        # # none
-        # by_technique <- list()
-        # # conflict one technique
-        # by_technique <- list(FISH=c("1", "0"))
-        # # conflict two categories
-        # by_technique <- list(FISH=c("1", "0"), MANTA="1")
-        # # double conflict
-        # by_technique <- list(FISH=c("1", "0"), MANTA=c("1","0"))
-        # 
-        # 
-        # 
-        
-        
-        
-        
-        
-        
-        
-        
-        
 
-        
         # remove NA techniques
         by_technique <- by_technique[!is.na(by_technique)]
-        
-        print("-------------------------------")
-        print(paste(p,t,type_flag, sep = " "))
-        print(str(by_technique))
-        
         
         # check for consistency groups
         # all techniques and timepoints have the same result
         if( length(unique(unlist(by_technique))) == 1 ){
           # set this values as consensus for this patient and sample type
-          print("all")
           decision <- "all"
           result   <- unique(by_technique)
           df[patient_rows & df$Sample_Type_Flag == type_flag, paste("CYTO",t,"CONSENSUS",sep="_")] <- result
@@ -252,7 +217,6 @@ translocation_consensus_building <- function(df, log_file_path = "/tmp/cyto_cons
         }else if(length(unique(unlist(by_technique["MANTA"]))) == 1 & 
                  "MANTA" %in% names(by_technique)){
           # if we have a good MANTA results, use this
-          print("manta")
           decision <- "manta"
           result   <- unique(by_technique["MANTA"])
           df[patient_rows & df$Sample_Type_Flag == type_flag, paste("CYTO",t,"CONSENSUS",sep="_")] <- result
@@ -260,14 +224,12 @@ translocation_consensus_building <- function(df, log_file_path = "/tmp/cyto_cons
         }else if(length(unique(unlist(by_technique["ControlFreec"]))) == 1 & 
                  "ControlFreec" %in% names(by_technique)){
           # if we have a good ControlFreec results, use this
-          print("cf")
           decision <- "controlfreec"
           result   <- by_technique["ControlFreec"]
           df[patient_rows & df$Sample_Type_Flag == type_flag, paste("CYTO",t,"CONSENSUS",sep="_")] <- result
           
         }else if(length( by_technique ) == 0 ){
           # if we have a good ControlFreec results, use this
-          print("no techniques")
           decision <- "no techniques"
           result   <- NA
           df[patient_rows & df$Sample_Type_Flag == type_flag, paste("CYTO",t,"CONSENSUS",sep="_")] <- result
@@ -277,8 +239,8 @@ translocation_consensus_building <- function(df, log_file_path = "/tmp/cyto_cons
           result   <- NA
           df[patient_rows & df$Sample_Type_Flag == type_flag, paste("CYTO",t,"CONSENSUS",sep="_")] <- result
         }
-        # provide unique values for each technique
         
+        # provide unique values for each technique
         raw_results <- paste(mapply(function(x,y){
           paste(x,y,sep = "=")
         }, names(by_technique), as.character(by_technique)),
