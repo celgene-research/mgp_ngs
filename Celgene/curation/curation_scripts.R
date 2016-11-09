@@ -1,3 +1,15 @@
+merge_table_files <- function(file1, file2, id = "File_Name"){
+  
+  df1 <- read.delim(file1, sep = "\t", check.names = F, as.is = T, stringsAsFactors = F)
+  df2 <- read.delim(file2, sep = "\t", check.names = F, as.is = T, stringsAsFactors = F)
+  
+  df <- merge(x = df1, y = df2, by = id, all = T)
+  
+  if(dim(df)[1] != dim(df1)[1]){warning(paste("merge of",file1,"and",file2 ,"did not retain proper dimensionality", sep = " "))
+                                        return(df)
+    }else{df}
+}
+
 
 clean_values <- function(x, delim = "; "){
   # first we need to split any collapsed strings using the delimited
@@ -154,4 +166,132 @@ lookup.values <- function(id) {
       paste(unique(na.exclude(foo)), collapse = separator)
     },error=function(e){NA})
   }
+}
+
+translocation_consensus_building <- function(df, log_file_path = "/tmp/cyto_consensus.log"){
+  
+  # print a qc debugging log
+  lf <- log_file_path
+  if(file.exists(lf)) file.remove(lf)
+  log_con <- file(lf, open = "a")
+  cat(paste("Patient","Translocation","type_flag","conflicting_technique_results", "decision","raw_results","result", sep = "\t"), file = log_con, sep = "\n")
+  
+  # get a list of translocation consensus calls to make from dictionary
+  consensus_fields <- grep("^CYTO_(.*)_CONSENSUS", names(df), value = T)
+  consensus_fields <- gsub("^CYTO_(.*)_CONSENSUS", "\\1", consensus_fields)
+  id_columns <- names(df) %in% c("Patient", "Sample_Name", "Sample_Type_Flag", "Disease_Status")
+  
+  for(p in unique(df$Patient)){
+    patient_rows <- df$Patient == p
+    
+    for(t in consensus_fields){
+      # get a list of techniques to compare
+      techniques <-grep(t, names(df), value = T, fixed = T)
+      techniques <- gsub(paste0("CYTO_",t,"_"),"",techniques, fixed = T)
+      techniques <- techniques[!(techniques %in% "CONSENSUS")]
+      # c("FISH", "MANTA")
+      
+      for(type_flag in c(0,1)){
+        df_sub <- df[patient_rows & df$Sample_Type_Flag == type_flag, id_columns | grepl(t, names(df), fixed = T)]
+        
+        # get a list of all unique values for each technique
+        by_technique <- lapply(techniques, function(technique){
+          if(all(is.na(df_sub[,grepl(technique, names(df_sub))]))){return(NA)
+          }else{
+            unique(df_sub[,grepl(technique, names(df_sub))][!is.na(df_sub[,grepl(technique, names(df_sub))])])
+          }
+        })
+        names(by_technique) <- techniques
+        # per.file[per.file$Patient == "MMRF_1016" & per.file$Sample_Type_Flag == 1, c("CYTO_t(4;14)_FISH")]
+        
+         
+         
+        # # all
+        # by_technique <- list(FISH=c("1"), MANTA="1")
+        # # MANTA
+        # by_technique <- list(FISH=c("0"), MANTA="1")
+        # # none
+        # by_technique <- list()
+        # # conflict one technique
+        # by_technique <- list(FISH=c("1", "0"))
+        # # conflict two categories
+        # by_technique <- list(FISH=c("1", "0"), MANTA="1")
+        # # double conflict
+        # by_technique <- list(FISH=c("1", "0"), MANTA=c("1","0"))
+        # 
+        # 
+        # 
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
+        
+        # remove NA techniques
+        by_technique <- by_technique[!is.na(by_technique)]
+        
+        print("-------------------------------")
+        print(paste(p,t,type_flag, sep = " "))
+        print(str(by_technique))
+        
+        
+        # check for consistency groups
+        # all techniques and timepoints have the same result
+        if( length(unique(unlist(by_technique))) == 1 ){
+          # set this values as consensus for this patient and sample type
+          print("all")
+          decision <- "all"
+          result   <- unique(by_technique)
+          df[patient_rows & df$Sample_Type_Flag == type_flag, paste("CYTO",t,"CONSENSUS",sep="_")] <- result
+          
+        }else if(length(unique(unlist(by_technique["MANTA"]))) == 1 & 
+                 "MANTA" %in% names(by_technique)){
+          # if we have a good MANTA results, use this
+          print("manta")
+          decision <- "manta"
+          result   <- unique(by_technique["MANTA"])
+          df[patient_rows & df$Sample_Type_Flag == type_flag, paste("CYTO",t,"CONSENSUS",sep="_")] <- result
+          
+        }else if(length(unique(unlist(by_technique["ControlFreec"]))) == 1 & 
+                 "ControlFreec" %in% names(by_technique)){
+          # if we have a good ControlFreec results, use this
+          print("cf")
+          decision <- "controlfreec"
+          result   <- by_technique["ControlFreec"]
+          df[patient_rows & df$Sample_Type_Flag == type_flag, paste("CYTO",t,"CONSENSUS",sep="_")] <- result
+          
+        }else if(length( by_technique ) == 0 ){
+          # if we have a good ControlFreec results, use this
+          print("no techniques")
+          decision <- "no techniques"
+          result   <- NA
+          df[patient_rows & df$Sample_Type_Flag == type_flag, paste("CYTO",t,"CONSENSUS",sep="_")] <- result
+          
+        }else{
+          decision <- "ERROR"
+          result   <- NA
+          df[patient_rows & df$Sample_Type_Flag == type_flag, paste("CYTO",t,"CONSENSUS",sep="_")] <- result
+        }
+        # provide unique values for each technique
+        
+        raw_results <- paste(mapply(function(x,y){
+          paste(x,y,sep = "=")
+        }, names(by_technique), as.character(by_technique)),
+        collapse = "; ")
+        
+        conflicting_technique_results <- length(unique(by_technique)) >1
+        
+        cat(paste(p,t,type_flag,conflicting_technique_results,decision,raw_results,result, sep = "\t"), file = log_con, sep = "\n")
+      }
+    }
+  }
+  
+  # write.table(df, "../data/curated/Integrated/consensized.txt", sep = "\t", row.names = F)
+  close.connection(log_con)
+  df
 }
