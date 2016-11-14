@@ -38,7 +38,7 @@ GetOptions(
 	"nofilecheck"=>\$nofilecheck,
 	"version"=>\$programVersion,
 	"sample_id=i"=>\$usersample_id,
-	"baitsFile=s"=>$baitsFile,
+	"baitsFile=s"=>\$baitsFile,
 	"captureKit=s"=>\$captureKit,
 	"help"=>\$help
 );
