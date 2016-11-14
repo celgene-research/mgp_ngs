@@ -54,5 +54,8 @@ BEGIN     { FS="/"; OFS="	";
 
 '  >file_inventory.txt
 
-rm file_inventory
+aws s3 cp file_inventory.txt s3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/Integrated/file_inventory.txt --sse
+
+rm ./file_inventory
+rm ./file_inventory.txt
 
