@@ -11,15 +11,10 @@ if( "File_Path" %in% names(df) ) {df <- df[!is.na(df$File_Path),]}
 df
 }
 
-
-
 remove_sensitive_columns <- function(df, dict){
   sensitive_columns <- dict[dict$sensitive == "1","names"]
   df[,!(names(df) %in% sensitive_columns)]
 }
-
-
-
 
 remove_unsequenced_patients <- function(p,f){
   excluded_patients <- unique(p$Patient)[!unique(p$Patient) %in% unique(f$Patient)]
@@ -28,8 +23,27 @@ remove_unsequenced_patients <- function(p,f){
 }
 
 
-
-
+report_unique_patient_counts <- function(df, sink_file = "/tmp/unique_patient_counts.txt"){
+  sink(file = sink_file) 
+  df <- aggregate.data.frame(per.file[,"Patient"], by = list(per.file$Study, per.file$Sequencing_Type, per.file$Disease_Status), 
+                             function(x){  length(unique(x))  })
+  names(df) <- c("Study", "Sequencing_Type", "Disease_Status", "Unique_Patient_Count")
+  print(df)
+  cat("\n")
+  df <- aggregate.data.frame(per.file[,"Patient"], by = list(per.file$Study, per.file$Disease_Status), 
+                             function(x){  length(unique(x))  })
+  names(df) <- c("Study", "Disease_Status", "Unique_Patient_Count")
+  print(df)
+  cat("\n")
+  
+  df <- aggregate.data.frame(per.file[,"Patient"], by = list(per.file$Study, per.file$Sequencing_Type), 
+                             function(x){  length(unique(x))  })
+  names(df) <- c("Study", "Sequencing_Type", "Unique_Patient_Count")
+  print(df)
+  cat("\n")
+  
+  sink()
+}
 # countable_fields <- grep("Has", names(inventory), value = T)
 # for(i in countable_fields){
 #   inventory[[i]] <- as.numeric(inventory[[i]])
