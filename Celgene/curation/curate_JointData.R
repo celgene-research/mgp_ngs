@@ -13,7 +13,7 @@ if(!dir.exists(local)){dir.create(local)}
 
 #############################################################
 ## CNV from Cody (TCAshby@uams.edu)
-
+print("CNV Curation........................................")
   # copy original tables to local
   system(paste('aws s3 cp', 's3://celgene.rnd.combio.mmgp.external/SeqData/WES/ProcessedData/DFCI_MMRF_UAMS/copy_number/copy_number_table.xlsx', local, sep = " "))
   name <- "copy_number_table.xlsx"
@@ -69,6 +69,7 @@ if(!dir.exists(local)){dir.create(local)}
 
 #############################################################
 ## Translocations using MANTA from Brian (BWalker2@uams.edu)
+print("Translocation Curation........................................")
   
   # locations
   s3clinical <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData"
@@ -112,10 +113,7 @@ if(!dir.exists(local)){dir.create(local)}
                                  }
                                  gsub("^.*(MMRF.*)$","\\1",s)
                                }, mmrf$SampleSet1, mmrf$SampleSet2))
-                               
-                               
-                               
-                               
+                              
                    ),
                    CYTO_Hyperdiploid_ControlFreec=c(uams$UK_HRD_CALL == 'HRD',
                                                     dfci$HRD_summary == 'HRD',
@@ -123,6 +121,17 @@ if(!dir.exists(local)){dir.create(local)}
                    CYTO_Translocation_CONSENSUS=c(as.character(uams$UK_Tx_CALL),
                                                   as.character(dfci$TC_summary),
                                                   as.character(mmrf$TC_Summary)),
+                   
+                   "CYTO_1q_plus_ControlFreec" = c(rep(NA, times = nrow(uams)),
+                                                   dfci$`ControlFreec_1Q+` == "1Q+",
+                                                   mmrf$`ControlFreec_1Q+` == "1Q+"),
+                   "CYTO_amp(1q)_ControlFreec" = c(rep(NA, times = nrow(uams)),
+                                                   rep(NA, times = nrow(dfci)),
+                                                   mmrf$`ControlFreec_1Q+` == "GAIN"),
+                   "CYTO_del(1q)_ControlFreec" = c(rep(NA, times = nrow(uams)),
+                                                   rep(NA, times = nrow(dfci)),
+                                                   mmrf$`ControlFreec_1Q+` == "DEL1Q"),
+                   
                    "CYTO_t(4;14)_MANTA"= c(uams$`MANTA_(4;14)`  != "0",
                                            dfci$`MANTA_(4;14)`  != "0",
                                            mmrf$`MANTA_(4;14)`  != "0"),
@@ -141,6 +150,8 @@ if(!dir.exists(local)){dir.create(local)}
                    "CYTO_MYC_MANTA"=     c(uams$`MANTA_MYC`     != "0",
                                            dfci$`MANTA_MYC`     != "0",
                                            mmrf$`MANTA_MYC`     != "0"),
+                   
+                   
                    check.names = F, stringsAsFactors = F
   )
   
@@ -165,6 +176,7 @@ if(!dir.exists(local)){dir.create(local)}
   
   #############################################################
   ## SNV from Chris (CPWardell@uams.edu)
+  print("SNV Curation........................................")
   
   # copy original tables to local
   local      <- "/tmp/curation"
@@ -233,14 +245,15 @@ if(!dir.exists(local)){dir.create(local)}
   
 #############################################################
 ## Biallelic Inactivation calls from Cody (TCAshby@uams.edu)
-
+  print("Biallelic Inactivation Curation........................................")
+  
   prefix    <- "BI"
   technique <- "BiallelicInactivation"
   software  <- "Flag"
   
 # copy original tables to local
 name    <- 'biallelic_table_cody_2016-11-09.xlsx'  
-system(paste('aws s3 cp', file.path(s3clinical, "OriginalData", 'Joint', name), local, sep = " "))
+system(paste('aws s3 cp', file.path(s3clinical, "OriginalData", 'Joint', name), file.path(local, name), sep = " "))
 
 bi <- readxl::read_excel(file.path(local,name),
                           sheet = 1)
@@ -292,8 +305,9 @@ bi <- readxl::read_excel(file.path(local,name),
   path     <- file.path(local,name)
   write.table(dict, path, row.names = F, col.names = T, sep = "\t", quote = F)
   system(  paste('aws s3 cp', file.path(local, name), file.path(s3clinical, "ProcessedData", "Integrated", name), '--sse', sep = " "))
-  
-  
+  return_code <- system('echo $?', intern = T)
+  if(return_code == "0") system(paste0("rm -r ", local))
+  rm(list = ls())
   
   
   
