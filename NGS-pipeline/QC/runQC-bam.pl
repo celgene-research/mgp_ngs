@@ -139,15 +139,15 @@ $logger->info("Processing qc  files $outputFile");
 
 
 my ($sample_id, $is_stranded, $is_paired_end);
-if(!defined($usersample_id)){
+#if(!defined($usersample_id)){
 	($sample_id, $is_stranded, $is_paired_end)=getsampleid( $outputFile,$sampleFlag );
 	if( (!defined($sample_id) or $sample_id eq 'NA') and defined($inputBAM)){
 		($sample_id, $is_stranded, $is_paired_end)=getsampleid( $inputBAM,$sampleFlag );	
 	}
 	if($sample_id eq 'NA'){ $logger->logdie("Neither a sample id was provided nor was it possible to get from the name of the qc file ($outputFile)");}
-}else{
-	$sample_id=$usersample_id;
-}
+#}else{
+#	$sample_id=$usersample_id;
+#}
 
 #############################################
 # run the steps
@@ -159,74 +159,76 @@ $picardQC->strandness( $is_stranded);
 $picardQC->reuse();
 $picardQC->runPicardQC($bamfile,$qcStep);
 $picardQC->parseFile( $bamfile, $qcStep);
-
+#print "--------------------------------------------------------------------------\n";
 
 $homerQC->outputDirectory($outputFile );
 $homerQC->reuse();
 $homerQC->runHomerQC($bamfile,$qcStep);
 $homerQC->parseFile( $bamfile, $qcStep);
 
-
-if(lc($qcStep) eq 'homer'){	
+$logger->info("Dispatching using ",lc($qcStep));
+$qcStep=lc($qcStep);
+if($qcStep eq 'homer'){	
 	my $bq=processBAMhomer( $homerQC );
 #	print Dumper( $bq );
 	getFromXMLserver('sampleQC.updateAlignmentQC',$bq, $sample_id,$sampleFlag);
 }
 
-if($qcStep eq 'CaptureHsMetrics'){	
+if($qcStep eq 'capturehsmetrics'){	
 #	if((!defined($reuse) and !defined($baitsFile)) or !defined($captureKit)){ $logger->logdie("In order to run CaptureHsMetrics you need to provide captureKit and baitsFile")};
 	my $bq=processBAMCalculateHsMetrics( $picardQC );
 #	print Dumper( $bq );
 	getFromXMLserver('sampleQC.updateAlignmentQC',$bq, $sample_id, $sampleFlag);
 }
-if($qcStep eq 'MarkDuplicates'){	
+if($qcStep eq 'markduplicates'){	
 	my $bq=processBAMMarkDuplicates( $picardQC );
 #	print Dumper( $bq );
 	getFromXMLserver('sampleQC.updateAlignmentQC',$bq, $sample_id, $sampleFlag);
 }
-if($qcStep eq 'CollectAlnSummary'){
+if($qcStep eq 'collectalnsummary'){
 	my $bq=processBAMCollectAlnSummaryMetrics( $picardQC );
 #	print Dumper( $bq );
 #	exit;
 	getFromXMLserver('sampleQC.updateAlignmentQC',$bq, $sample_id, $sampleFlag);
 }
-if($qcStep eq 'CollectInsertSize'){
+if($qcStep eq 'collectinsertsize'){
+	$logger->info("Preparing to enter data in the database");
 	my $bq=processBAMCollectInsertSizeMetrics( $picardQC );
-#	print Dumper( $bq );
-#	exit;
+	#print Dumper( $bq );
+	#exit;
 	getFromXMLserver('sampleQC.updateAlignmentQC',$bq, $sample_id, $sampleFlag );
 }
-if($qcStep eq 'CollectRNASeqMetrics'){
+if($qcStep eq 'collectrnaseqmetrics'){
 	my $bq=processBAMCollectRNASeqMetrics( $picardQC );
 #print Dumper( $bq );
 	getFromXMLserver('sampleQC.updateAlignmentQC',$bq, $sample_id, $sampleFlag );
 }
-if($qcStep eq 'CollectWgsMetrics'){
+if($qcStep eq 'collectwgsmetrics'){
 	my $bq=processBAMCollectWgsMetrics( $picardQC );
 #print Dumper( $bq );
 	getFromXMLserver('sampleQC.updateAlignmentQC',$bq, $sample_id, $sampleFlag );
 }
-if($qcStep eq 'BamIndex'){
+if($qcStep eq 'bamindex'){
 	my $bq=processBAMBamIndex( $picardQC );
 #	print Dumper( $bq );
 #	exit;
 
 	getFromXMLserver('sampleQC.updateAlignmentQC',$bq, $sample_id, $sampleFlag);
 }
-if($qcStep eq 'LibraryComplexity'){
+if($qcStep eq 'librarycomplexity'){
 	my $bq=processBAMLibraryComplexity( $picardQC );
 #	print Dumper( $bq );
 #	exit;
 	getFromXMLserver('sampleQC.updateAlignmentQC',$bq, $sample_id, $sampleFlag);
 }
-if($qcStep eq 'Xenograft'){
+if($qcStep eq 'xenograft'){
 	my $bq=processXenograft( $picardQC );
 #	print Dumper( $bq );
 #	exit;
 
 	getFromXMLserver('sampleQC.updateAlignmentQC',$bq, $sample_id, $sampleFlag);
 }
-if($qcStep eq 'Sequenza'){
+if($qcStep eq 'sequenza'){
 	my $bq=processSequenza( $picardQC );
 	$logger->debug( Dumper( $bq ) );
 #	exit;
@@ -241,32 +243,38 @@ $logger->info("Processing finished successfully");
 
 sub getsampleid{
 	my ($bamfile,$flag)=@_;
-	if(defined($usersample_id)){return ($usersample_id,undef,undef);}
+	#if(defined($usersample_id)){return ($usersample_id,undef,undef);}
 	my($is_paired_end,$is_stranded)=(undef,undef);
 	my ($sql,$cur,$sample_id);
-	# get the sample id from the  metadata
-	# for this to work we need to make sure that each file has only one sample_id
-	my @irodsSampleID;my @t1;my @t2;
-
-	my @bam=split(",",$bamfile);
-	foreach my $bam(@bam){
-		
-		$bam=File::Spec->rel2abs( $bam ) if ($bam !~/^s3/);
-		my $t=getFromXMLserver('metadataInfo.getSampleIDByFilename',$bam);
-		@t2=(@t2, @$t);
-	}
-	@irodsSampleID=(@t1,@t2);
-	@irodsSampleID=Celgene::Utils::ArrayFunc::unique( \@irodsSampleID );
-	if(scalar(@irodsSampleID) >1){
-		$logger->logdie("Cannot assign file $bamfile to multiple samples (got ",join(",",@irodsSampleID),")");
-	}elsif (scalar(@irodsSampleID)==0){
-		return undef;
+	if(defined($usersample_id)){
+		$logger->debug("Using sample id provided by user [ $usersample_id ]");
+		$sample_id=$usersample_id;
 	}else{
-		$sample_id= $irodsSampleID[0];
-		$logger->debug("From file metadata the sample was found to be $sample_id");
 		
+		# get the sample id from the  metadata
+		# for this to work we need to make sure that each file has only one sample_id
+		my @irodsSampleID;my @t1;my @t2;
+
+		my @bam=split(",",$bamfile);
+		foreach my $bam(@bam){
+		
+			$bam=File::Spec->rel2abs( $bam ) if ($bam !~/^s3/);
+			my $t=getFromXMLserver('metadataInfo.getSampleIDByFilename',$bam);
+			@t2=(@t2, @$t);
+		}
+		@irodsSampleID=(@t1,@t2);
+		@irodsSampleID=Celgene::Utils::ArrayFunc::unique( \@irodsSampleID );
+		if(scalar(@irodsSampleID) >1){
+			$logger->logdie("Cannot assign file $bamfile to multiple samples (got ",join(",",@irodsSampleID),")");
+		}elsif (scalar(@irodsSampleID)==0){
+			return undef;
+		}else{
+			$sample_id= $irodsSampleID[0];
+			$logger->debug("From file metadata the sample was found to be $sample_id");
+		
+		}
 	}
-	
+		
 	$logger->info("Retrieving information for sample $sample_id");
 	# check if the sample exists in sample_sequencing
 
@@ -363,7 +371,7 @@ sub processBAMCollectInsertSizeMetrics{
 		'median_dev_insert_size' => $picardQC->{median_dev_insert_size},
 		'insertsizecount' => $picardQC->{insertsizecount}
 	};
-	
+	$logger->trace( Dumper($picardQC));
 }
 sub processBAMCollectRNASeqMetrics{
 	my($picardQC)=@_;
