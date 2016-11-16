@@ -229,5 +229,71 @@ if(!dir.exists(local)){dir.create(local)}
   # as a failsafe to prevent reading older versions of source files remove the
   #  cached version file if transfer was successful.
   if(return_code == "0") system(paste0("rm -r ", local))
+  
+  
+#############################################################
+## Biallelic Inactivation calls from Cody (TCAshby@uams.edu)
 
+  prefix    <- "BI"
+  technique <- "BiallelicInactivation"
+  software  <- "Flag"
+  
+# copy original tables to local
+name    <- 'biallelic_table_cody_2016-11-09.xlsx'  
+system(paste('aws s3 cp', file.path(s3clinical, "OriginalData", 'Joint', name), local, sep = " "))
+
+bi <- readxl::read_excel(file.path(local,name),
+                          sheet = 1)
+
+# I'm attaching a matrix that contains regions of 'biallelic inactivation'. It's a similar format to the copy number table with genes across the top and patients as the rows. 
+# 
+# 0 = no inactivation
+# 1 = mutation + deletion or homozygous deletion
+# 
+# Keep in mind the following known caveats:
+# 1)       We're not checking the variant allele frequencies so there are potentially some false positives. We're only reporting mutation + deletion or homozygous deletion.
+# 2)       We're not checking for regions where there are 2 or more mutations in the same gene which could potentially be another route of biallelic inactivation.
+# 3)       We're only reporting samples that passed the copy number filter.
+# 4)       We're only checking the genes that were listed in the copy number table.
+
+  # remove summary columns/rows
+  bi <- bi[bi[[1]] != "TOTALS",]
+  bi$gene <- NULL
+  
+  #rename columns as BI_Gene_Software
+  n <- names(bi)
+  n <- paste(prefix,n,software, sep = "_")
+  n[1] <- "File_Name"
+  names(bi) <- n
+
+    # edit filenames to match integrated table and check 
+  bi$File_Name <- gsub("^_E.*_([bcdBCD])", "\\1", bi$File_Name)
+  # bi$File_Name[!(bi$File_Name %in% per.file$File_Name)]
+  # all(bi$File_Name %in% per.file$File_Name)
+  # TRUE
+  
+  # write to local and S3
+  name <- paste0("curated_",technique,"_",software,".txt")
+  path     <- file.path(local,name)
+  write.table(bi, path, row.names = F, col.names = T, sep = "\t", quote = F)
+  
+  system(  paste('aws s3 cp', file.path(local, name), file.path(s3clinical, "ProcessedData", "JointData", name), '--sse', sep = " "))
+
+  ## now make a sparse dictionary
+  dict <- data.frame(
+    names       = names(bi)[2:length(bi)],
+    key_val     = '0="no inactivation"; 1="mutation + deletion or homozygous deletion"',
+    description = paste("Was biallelic inactivation observed for", 
+                         gsub("^.*_(.*)_.*$","\\1", names(bi)[2:length(bi)]), sep = " "),
+    stringsAsFactors = F )
+  
+  # write to local
+  name <- paste0(technique,"_", "dictionary",".txt")
+  path     <- file.path(local,name)
+  write.table(dict, path, row.names = F, col.names = T, sep = "\t", quote = F)
+  system(  paste('aws s3 cp', file.path(local, name), file.path(s3clinical, "ProcessedData", "Integrated", name), '--sse', sep = " "))
+  
+  
+  
+  
   

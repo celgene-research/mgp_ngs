@@ -65,6 +65,8 @@ for(f in files){
   # qc and summary    
   per.file <- remove_invalid_samples(per.file)
   per.file <- translocation_consensus_building(per.file)
+  
+  report_unique_patient_counts(per.file, sink_file = file.path(local,"report_unique_patient_counts.txt"))
 
   # write the aggregated table to local
   name <- paste("PER-FILE_clinical_cyto", ".txt", sep = "")
@@ -96,9 +98,11 @@ names(per.patient) <- patient_level_columns
   
 #######################
 # put final integrated files back as ProcessedData/Integrated on S3
-system(  paste('aws s3 cp', local, file.path(s3clinical, "ProcessedData", "Integrated"), '--recursive --exclude "*" --include "PER*" --sse', sep = " "))
+system(  paste('aws s3 cp', local, file.path(s3clinical, "ProcessedData", "Integrated"), '--recursive --exclude "*" --include "PER*"  --include "report*" --sse', sep = " "))
 return_code <- system('echo $?', intern = T)
   
 # clean up source files
-rm(per.file, per.patient)
-if(return_code == "0") system(paste0("rm -r ", local))
+if(return_code == "0"){
+  system(paste0("rm -r ", local))
+  rm(list = ls())
+  }
