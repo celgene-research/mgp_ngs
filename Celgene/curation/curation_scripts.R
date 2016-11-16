@@ -168,7 +168,31 @@ lookup.values <- function(id) {
   }
 }
 
-translocation_consensus_building <- function(df, log_file_path = "/tmp/cyto_consensus.log"){
+cytogenetic_consensus_calling <- function(df, log_file_path = "/tmp/cyto_consensus.log"){
+  
+  # this script performs 3 sequential functions
+  # 1. call consensus translocations using multiple techniques (FISH or MANTA). 
+  #    If longitudinal samples (ND, R, R2...) are not consistent for an individual translocation 
+  #    (t(4;14) ND=1, R=0) then a consensus is only called if the preferred technique is consistent
+  # 
+  #   t(4;14) | ND=1, R=1 by FISH | ND=NA, R=NA by MANTA | called as ND=1, R=1
+  #   t(4;14) | ND=1, R=0 by FISH | ND=NA, R=NA by MANTA | called as ND=NA, R=NA
+  #   t(4;14) | ND=1, R=0 by FISH | ND=0, R=0   by MANTA | called as ND=0, R=0
+  #   
+  # 2. calls the CYTO_Translocation_Consensus field by determining if a single 
+  #    t14 consensus translocation has been called for all samples (split by tumor or normal)
+  # 
+  #   t(4;14)=0;t(6;14)=0;t(11;14)=1;t(14;16)=0 | called as "11" 
+  #   t(4;14)=0;t(6;14)=0;t(11;14)=1;t(14;16)=1 | called as "NA" 
+  #   t(4;14)=0;t(6;14)=0;t(11;14)=0;t(14;16)=0 | called as ""
+  #   
+  # 3. similar to step 1, but for non-exclusive deletions and amplifications.
+  #
+  #   amp(1q) | ND=0, R=1 by FISH | ND=NA, R=NA by MANTA | called as ND=0, R=1
+  #   amp(1q) | ND=0, R=1 by FISH | ND=1,  R=NA by MANTA | called as ND=1, R=1
+  #
+  
+  # df <- per.file
   
   # print a qc debugging log
   lf <- log_file_path
@@ -177,14 +201,18 @@ translocation_consensus_building <- function(df, log_file_path = "/tmp/cyto_cons
   cat(paste("Patient","Translocation","type_flag","conflicting_technique_results", "decision","raw_results","result", sep = "\t"), file = log_con, sep = "\n")
   
   # get a list of translocation consensus calls to make from dictionary
-  consensus_fields <- grep("^CYTO_(.*)_CONSENSUS", names(df), value = T)
-  consensus_fields <- gsub("^CYTO_(.*)_CONSENSUS", "\\1", consensus_fields)
+  # Since the translocations should be mutually exclusive we'll call them separately
+  translocations <- grep("^CYTO_(t.*)_CONSENSUS", names(df), value = T)
+  translocations <- gsub("^CYTO_(t.*)_CONSENSUS", "\\1", translocations)
+  
   id_columns <- names(df) %in% c("Patient", "Sample_Name", "Sample_Type_Flag", "Disease_Status")
   
+  ### STEP 1
+  ### Translocation consensus calls
   for(p in unique(df$Patient)){
     patient_rows <- df$Patient == p
     
-    for(t in consensus_fields){
+    for(t in translocations){
       # get a list of techniques to compare
       techniques <-grep(t, names(df), value = T, fixed = T)
       techniques <- gsub(paste0("CYTO_",t,"_"),"",techniques, fixed = T)
@@ -253,7 +281,82 @@ translocation_consensus_building <- function(df, log_file_path = "/tmp/cyto_cons
     }
   }
   
-  # write.table(df, "../data/curated/Integrated/consensized.txt", sep = "\t", row.names = F)
+  ### STEP 2
+  ### Mutually exclusive translocation calls
+  tcalls <- c()
+  patient_type_table <- unique(df[,c("Patient", "Sample_Type_Flag")])
+  
+  CYTO_Translocation_Consensus <- apply(patient_type_table, MARGIN = 1, function(x){
+    
+    patient_rows <- (df$Patient == x[['Patient']]) & (df$Sample_Type_Flag == x[['Sample_Type_Flag']])
+    tmp <- df[patient_rows,  grepl("^CYTO_(t.*)_CONSENSUS", names(df))]
+    
+    # determine if each translocation had been called by any individual sample
+    type <- apply(tmp, MARGIN = 2, function(x){
+      any(!is.na(x) & x == 1)
+    })
+    
+    if(sum(type) == 1){ 
+      colname <- names(type)[type]
+      trsl <- gsub("CYTO_t\\((.*)\\)_CONSENSUS","\\1",colname)
+      trsl <- gsub(";14|14;","",trsl)
+    }else if(sum(type) == 0){
+      trsl <- ""
+    }else if(sum(type) > 1){
+      trsl <- "ERROR2"
+    }else{
+      trsl <- "ERROR1"
+    }
+    trsl
+    
+  })
+  
+  # merge the translocation call column back onto teach pateient/sampletype
+  df$CYTO_Translocation_Consensus <- NULL
+  call_lookup <-   cbind(patient_type_table, CYTO_Translocation_Consensus)
+  tmp <- merge(df, call_lookup, by = c("Patient", "Sample_Type_Flag"), all = T)
+  
+  if(dim(tmp)[1] == dim(df)[1]) {
+    df <- tmp
+    rm(tmp)
+  }else{warning('dimensions do not match between the merged table and file table')}
+
+  ### STEP 3
+  ### Other cytogenetic consensus calls
+    
+  # other deletions and amplifications are called on a sample bases and do not need longitudinal harmony
+  other_cyto <- grep("^CYTO_([da1HM].*)_CONSENSUS", names(df), value = T)
+  other_cyto <- gsub("^CYTO_([da1HM].*)_CONSENSUS", "\\1", other_cyto)
+  
+  # t<-"amp(1q)"
+  for(t in other_cyto){
+    # get a list of techniques to compare
+    columns <- grep(t, names(df), value = T, fixed = T)
+    columns <- grep("CONSENSUS", columns, invert = T, value = T)
+    techniques <- gsub(paste0("CYTO_",t,"_"),"",columns, fixed = T)
+    # c("FISH", "MANTA")
+    
+    # reconstruct column names to order by technique priority
+    
+    
+    consensus <- apply(df[, columns], MARGIN = 1, function(x){
+      
+      # table is organized with "better" techniques to the right
+      # FISH < MANTA < ControlFreec
+      
+      # remove NA value
+      x <- x[!is.na(x)]
+      
+      # if any are remaining return the last element
+      if( length(x) > 0 ){return(x[length(x)])
+        }else({return(NA)})
+      
+    })    
+    
+    df[[paste("CYTO",t,"CONSENSUS" , sep="_")]] <- consensus
+
+  }  
+  
   close.connection(log_con)
   df
 }
