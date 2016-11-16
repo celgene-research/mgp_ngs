@@ -33,14 +33,14 @@ system(  paste('aws s3 cp',"mgp_dictionary.xlsx" , file.path(s3clinical, "Proces
 # source("curate_DFCI.R")
 # source("curate_MMRF_IA9.R")
 # source("curate_UAMS.R")
-# source("curate_joint_datasets.R")
+# source("curate_JointData.R")
 
 # copy curated files locally
 system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "Integrated", "mgp_dictionary.xlsx"), local_path, sep = " "))
 system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "DFCI"), local_path, '--recursive --exclude "*" --include "curated*"', sep = " "))
 system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "MMRF_IA9"), local_path, '--recursive --exclude "*" --include "curated*"', sep = " "))
 system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "UAMS"), local_path, '--recursive --exclude "*" --include "curated*"', sep = " "))
-system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "Joint_Datasets/curated_All_translocation_Summaries_from_BWalker_2016-10-04_zeroed_dkr.txt"), local_path, sep = " "))
+system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "JointData/curated_All_translocation_Summaries_from_BWalker_2016-10-04_zeroed_dkr.txt"), local_path, sep = " "))
 
 ##############
 # The dictionary is used as a starting framework for each level table
@@ -64,7 +64,7 @@ for(f in files){
 
   # qc and summary    
   per.file <- remove_invalid_samples(per.file)
-  per.file <- translocation_consensus_building(per.file)
+  per.file <- cytogenetic_consensus_calling(per.file)
   
   report_unique_patient_counts(per.file, sink_file = file.path(local,"report_unique_patient_counts.txt"))
 
