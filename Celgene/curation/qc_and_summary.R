@@ -22,7 +22,6 @@ remove_unsequenced_patients <- function(p,f){
   p[!p$Patient %in% excluded_patients,]
 }
 
-
 report_unique_patient_counts <- function(df, sink_file = "/tmp/unique_patient_counts.txt"){
   sink(file = sink_file) 
   df <- aggregate.data.frame(per.file[,"Patient"], by = list(per.file$Study, per.file$Sequencing_Type, per.file$Disease_Status), 
@@ -44,62 +43,61 @@ report_unique_patient_counts <- function(df, sink_file = "/tmp/unique_patient_co
   
   sink()
 }
-# countable_fields <- grep("Has", names(inventory), value = T)
-# for(i in countable_fields){
-#   inventory[[i]] <- as.numeric(inventory[[i]])
-# }
-# 
-# summary <- aggregate.data.frame(inventory[,countable_fields], by = list(inventory$Study), sum)
-# write.table(summary, paste0("../data/curated/counts/","SUMMARY_patient_inventory_", d,".txt"), row.names = F, col.names = T, sep = "\t", quote = F)
-# 
-# ## Troubleshooting
-# # Does "extra" MMRF patient numbers exist because they are not Relevant
-# # tmp <- inventory[inventory$Patient %in% relevant, ]
-# # aggregate.data.frame(tmp[,countable_fields], by = list(tmp$Study), sum)
-# 
-# # Count patients from each source
-# # IA8 README Seq QC table
-# length(unique(mmrf.seqqc$Patients..KBase_Patient_ID))
-# # 706
-# 
-# # IA8 README Seq QC table with excluded sample rows removed
-# included_mmrf.seqqc <- mmrf.seqqc[!grepl("Exclude", mmrf.seqqc$MMRF_Release_Status),]
-# length(unique(included_mmrf.seqqc$Patients..KBase_Patient_ID))
-# # 706
-# 
-# # IA8 PER_PATIENT tables look like they have extra samples.
-# length(unique(mmrf.PER_PATIENT$PUBLIC_ID))
-# # 912
-# 
-# in_inventory <- inventory[inventory$Study == "MMRF","Patient"]
-# in_inventory[!(in_inventory %in% mmrf.PER_PATIENT$PUBLIC_ID)]
-# # "MMRF_2426" is in our inventory 
-# 
-# # how many more in IA9
-# ia9_seqqc <- read.delim("../data/mmrf/IA9_README/MMRF_CoMMpass_IA9_Seq_QC_Summary.txt", stringsAsFactors = F)
-# included_ia9 <- mmrf.seqqc[!grepl("Exclude", ia9_seqqc$MMRF_Release_Status),]
-# 
-# # count how many of each field are used per study
-# logic_clinical <- ifelse(!(is.na(integrated.clinical)),1,0)
-# summary_of_clin <- t(aggregate.data.frame(logic_clinical, by = list(integrated.clinical$Study), sum))
-# write.table(summary_of_clin, "../data/curated/Count_of_clinical_fields.txt", sep = "\t", col.names = T)
-# 
-# logic_cyto <- ifelse(!(is.na(integrated.cytogenetic)),1,0)
-# summary_of_cyto_fields <- t(aggregate.data.frame(logic_cyto, by = list(integrated.cytogenetic$Study), sum))
-# write.table(summary_of_cyto_fields, "../data/curated/Count_of_cytogenetic_fields.txt", sep = "\t", col.names = T)
-# 
-# countable_columns <- integrated.cytogenetic[,c("t(4;14)", "t(6;14)", "t(8;14)", "t(11;14)", "t(12;14)", "t(14;16)", "t(14;20)", "del(13)", "del(17)", "del(1p)", "del(1q)", "Hyperdiploid")]
-# cyto_phenotype_counts <- t(aggregate.data.frame(countable_columns, by = list(integrated.cytogenetic$Study), function(x){sum(x, na.rm = T)}))
-# write.table(cyto_phenotype_counts, "../data/curated/Count_of_cytogenetic_phenotypes.txt", sep = "\t", col.names = T)
-# 
-# positive <- as.numeric(cyto_phenotype_counts)
-# total    <- as.numeric(summary_of_cyto_fields[rownames(cyto_phenotype_counts),])
-# proportions <- round(positive / total, 2)
-# proportions <- matrix(proportions, ncol = 4, byrow = F)
-# 
-# write.table(proportions, "../data/curated/counts/proportion_of_cytogenetic_phenotypes.txt", sep = "\t", col.names = T)
-# rm(positive, total, proportions)
-# 
+
+add_inventory_flags <- function(df_perpatient, df_perfile){
+  # df_perpatient <- per.patient
+  # df_perfile <- per.file
+  
+  check_by_patient <- check.value("Patient")
+
+  dat <- df_perfile
+  df_perpatient[["INV_Has.ND.sample"]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "Disease_Status", value = "ND", unique_match = F)),1,0)
+  df_perpatient[["INV_Has.R.sample"]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "Disease_Status", value = "R", unique_match = F)),1,0)
+  df_perpatient[["INV_Has.Normal.sample"]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "Sample_Type", value = "Normal", unique_match = F)),1,0)
+  df_perpatient[["INV_Has.NotNormal.sample"]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "Sample_Type", value = "NotNormal", unique_match = F)),1,0)
+
+  dat <- df_perfile[df_perfile$Disease_Status == "ND",]
+  df_perpatient[["INV_Has.ND.Normal.sample"]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "Sample_Type", value = "Normal", unique_match = F)),1,0)
+  df_perpatient[["INV_Has.ND.NotNormal.sample"]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "Sample_Type", value = "NotNormal", unique_match = F)),1,0)
+  df_perpatient[["INV_Has.ND.Normal.NotNormal.sample"]] <- ifelse(df_perpatient[["INV_Has.ND.Normal.sample"]] + df_perpatient[["INV_Has.ND.NotNormal.sample"]] == 2,1,0)
+  
+  dat <- df_perfile[df_perfile$Disease_Status == "ND",]
+  df_perpatient[["INV_Has.ND.WES"]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "Sequencing_Type", value = "WES", unique_match = F)),1,0)
+  df_perpatient[["INV_Has.ND.RNASeq"]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "Sequencing_Type", value = "RNA-Seq", unique_match = F)),1,0)
+  df_perpatient[["INV_Has.ND.WGS"]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "Sequencing_Type", value = "WGS", unique_match = F)),1,0)
+ 
+  dat <- df_perfile[df_perfile$Disease_Status == "R",]
+  df_perpatient[["INV_Has.R.WES"]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "Sequencing_Type", value = "WES", unique_match = F)),1,0)
+  df_perpatient[["INV_Has.R.RNASeq"]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "Sequencing_Type", value = "RNA-Seq", unique_match = F)),1,0)
+  df_perpatient[["INV_Has.R.WGS"]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "Sequencing_Type", value = "WGS", unique_match = F)),1,0)
+  
+  # consensus cytogenetic call counts for ND-tumor samples
+  cyto_consensus_columns <- grep("CONSENSUS", names(df_perfile), value = T, ignore.case = T)
+  dat <- df_perfile[df_perfile$Disease_Status == "ND" & df_perfile$Sample_Type_Flag == "1",]
+  for(c in cyto_consensus_columns){
+    c_name <- paste0("INV_Has.ND.NotNormal.", gsub("^.*_(.*_.*)$","\\1",c))
+    df_perpatient[[c_name]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = c, value = "0|1", unique_match = F)),1,0)
+  }
+  
+  # consensus cytogenetic call counts for R+tumor samples
+  cyto_consensus_columns <- grep("CONSENSUS", names(df_perfile), value = T, ignore.case = T)
+  dat <- df_perfile[df_perfile$Disease_Status == "R" & df_perfile$Sample_Type_Flag == "1",]
+  for(c in cyto_consensus_columns){
+    c_name <- paste0("INV_Has.R.NotNormal.", gsub("^.*_(.*_.*)$","\\1",c))
+    df_perpatient[[c_name]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = c, value = "0|1", unique_match = F)),1,0)
+  }
+
+  dat <- df_perpatient
+  df_perpatient[["INV_Has.ISS"]]     <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "D_ISS",     value = "\\d", unique_match = F)),1,0)
+  df_perpatient[["INV_Has.OS"]]      <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "D_OS",      value = "\\d", unique_match = F)),1,0)
+  df_perpatient[["INV_Has.OS_Flag"]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "D_OS_FLAG", value = "\\d", unique_match = F)),1,0)
+  df_perpatient[["INV_Has.PFS"]]     <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "D_PFS",     value = "\\d", unique_match = F)),1,0)
+  df_perpatient[["INV_Has.PFS_Flag"]]<- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "D_PFS_FLAG",value = "\\d", unique_match = F)),1,0)
+  
+  df_perpatient
+}
+
+
 # # aggregate for Andrew's Sage summary
 # # 
 # # gender <- table(mmrf.clinical$D_Gender)
