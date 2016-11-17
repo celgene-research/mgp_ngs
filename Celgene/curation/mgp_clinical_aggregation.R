@@ -22,8 +22,8 @@ source("qc_and_summary.R")
 
 # locations
 s3clinical      <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData"
-local_path      <- "/tmp/curation"
-if(!dir.exists(local_path)){dir.create(local_path)}
+local      <- "/tmp/curation"
+if(!dir.exists(local)){dir.create(local)}
 
 # We are editing the dictionary spreadsheet locally, so push latest to s3
 system(  paste('aws s3 cp',"mgp_dictionary.xlsx" , file.path(s3clinical, "ProcessedData", "Integrated", "mgp_dictionary.xlsx"), "--sse ", sep = " "))
@@ -36,18 +36,18 @@ system(  paste('aws s3 cp',"mgp_dictionary.xlsx" , file.path(s3clinical, "Proces
 # source("curate_JointData.R")
 
 # copy curated files locally
-system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "Integrated", "mgp_dictionary.xlsx"), local_path, sep = " "))
-system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "DFCI"), local_path, '--recursive --exclude "*" --include "curated*"', sep = " "))
-system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "MMRF_IA9"), local_path, '--recursive --exclude "*" --include "curated*"', sep = " "))
-system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "UAMS"), local_path, '--recursive --exclude "*" --include "curated*"', sep = " "))
-system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "JointData/curated_All_translocation_Summaries_from_BWalker_2016-10-04_zeroed_dkr.txt"), local_path, sep = " "))
+system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "Integrated", "mgp_dictionary.xlsx"), local, sep = " "))
+system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "DFCI"), local, '--recursive --exclude "*" --include "curated*"', sep = " "))
+system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "MMRF_IA9"), local, '--recursive --exclude "*" --include "curated*"', sep = " "))
+system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "UAMS"), local, '--recursive --exclude "*" --include "curated*"', sep = " "))
+system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "JointData/curated_All_translocation_Summaries_from_BWalker_2016-10-04_zeroed_dkr.txt"), local, sep = " "))
 
 ##############
 # The dictionary is used as a starting framework for each level table
-dict <- as.data.frame(readxl::read_excel(file.path(local_path, "mgp_dictionary.xlsx")))
+dict <- as.data.frame(readxl::read_excel(file.path(local, "mgp_dictionary.xlsx")))
 dict <- dict[dict$active == 1,]
 
-files <- list.files(local_path, pattern = "curated*", full.names = T, recursive = T)
+files <- list.files(local, pattern = "curated*", full.names = T, recursive = T)
 
 ###
 ### FILE_LEVEL AGGREGATION
@@ -68,11 +68,7 @@ for(f in files){
   
   report_unique_patient_counts(per.file, sink_file = file.path(local,"report_unique_patient_counts.txt"))
 
-  # write the aggregated table to local
-  name <- paste("PER-FILE_clinical_cyto", ".txt", sep = "")
-  path <- file.path(local,name)
-  write.table(per.file, path, row.names = F, col.names = T, sep = "\t", quote = F)
-
+ 
 ###
 ### PATIENT_LEVEL AGGREGATION
 ### 
@@ -88,14 +84,18 @@ names(per.patient) <- patient_level_columns
 
   # qc and summary    
   per.patient <-  remove_unsequenced_patients(per.patient, per.file)
+  per.patient <-  add_inventory_flags(per.patient, per.file)
 
-  # write the aggregated table to local
+  # write PER-FILE to local
+  name <- paste("PER-FILE_clinical_cyto", ".txt", sep = "")
+  path <- file.path(local,name)
+  write.table(per.file, path, row.names = F, col.names = T, sep = "\t", quote = F)
+  
+  # write PER-PATIENT to local
   name <- paste("PER-PATIENT_clinical", ".txt", sep = "")
   path <- file.path(local,name)
   write.table(per.patient, path, row.names = F, col.names = T, sep = "\t", quote = F)
 
-
-  
 #######################
 # put final integrated files back as ProcessedData/Integrated on S3
 system(  paste('aws s3 cp', local, file.path(s3clinical, "ProcessedData", "Integrated"), '--recursive --exclude "*" --include "PER*"  --include "report*" --sse', sep = " "))
@@ -106,3 +106,7 @@ if(return_code == "0"){
   system(paste0("rm -r ", local))
   rm(list = ls())
   }
+
+# Merge clinical data tables with genomic results
+# this function takes a long time!
+source("table_merge.R")
