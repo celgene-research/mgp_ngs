@@ -145,7 +145,7 @@ df2 <- readxl::read_excel(file.path(local,name), sheet = 2)
   # remove excluded patients
   df2 <- df2[is.na(df2$Exclude),]
   df2$Type <- gsub("Thuird", "Third", df2$Type)
-  df2[["Disease_Status"]] <- ifelse(df2$Type == "Normal" | df2$Type == "Early", "ND", "R")
+  df2[["Disease_Status"]] <- ifelse(df2$Type == "Normal" | df2$Type == "Early"| df2$Type == "Tumour", "ND", "R")
   df2[["Sample_Type_Flag"]] <- ifelse(df2$Type == "Normal", 0,1)
   df2[["Sample_Type"]] <- ifelse(df2$Type == "Normal", "Normal", "NotNormal")
 
