@@ -25,4 +25,12 @@ system(  paste('aws s3 cp',"mgp_dictionary.xlsx" , file.path(s3clinical, "Proces
 # system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "Integrated"),
 #                file.path(local_path),
 #                '--recursive --exclude "Archive*" --exclude "mgp-shiny*" --exclude "sas*"',
+#                '--include "PER*"',
 #                sep = " "))
+
+#  report and summary tables
+system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "Integrated"),
+               file.path(local_path),
+               '--recursive --exclude "*"',
+               '--include "report*"',
+               sep = " "))
