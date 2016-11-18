@@ -1,24 +1,13 @@
 ## drozelle@ranchobiosciences.com
 ## 2016-10-17
 
-# Approach to MGP curation follows the following process:
-#  1.) <data.txt> is curated to <curated_data.txt> and moved to /ProcessedData/Study/
-#       In these curated files new columns are added using the format specified in 
-#       <mgp_dictionary.xlsx> and values are coerced into ontologically accurate values. 
-#       These files are not filtered or organized per-se, but provides a nice reference 
-#       for where curated value columns are derived.
-#  2.) mgp_clinical_aggregated.R is used to leverage our append_df() function, which 
-#       loads curated columns (those matching a dictionary column) from each table 
-#       into the main integrated table. 
-#  3.) TODO: QC to enforces ontology rules to ensure all columns adhere to 
-#       type and factor rules detailed in the <mgp_dictionary.xlsx>.
-#  3.) TODO: Summary scripts to generate specific counts and aggregated summary 
-#       values.
-
 # vars
 d <- format(Sys.Date(), "%Y-%m-%d")
 source("curation_scripts.R")
 source("qc_and_summary.R")
+source("table_merge.R")
+
+write_to_s3integrated <- s3_writer(s3_path = "/ClinicalData/ProcessedData/Integrated/")
 
 # locations
 s3clinical      <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData"
@@ -27,7 +16,6 @@ if(!dir.exists(local)){dir.create(local)}
 
 # We are editing the dictionary spreadsheet locally, so push latest to s3
 system(  paste('aws s3 cp',"mgp_dictionary.xlsx" , file.path(s3clinical, "ProcessedData", "Integrated", "mgp_dictionary.xlsx"), "--sse ", sep = " "))
-
 
 ### if appropriate, run curation scripts
 # source("curate_DFCI.R")
@@ -66,7 +54,7 @@ for(f in files){
   per.file <- remove_invalid_samples(per.file)
   per.file <- cytogenetic_consensus_calling(per.file)
   
-  report_unique_patient_counts(per.file, sink_file = file.path(local,"report_unique_patient_counts.txt"))
+  # report_unique_patient_counts(per.file, sink_file = file.path(local,"report_unique_patient_counts.txt"))
 
  
 ###
@@ -82,31 +70,24 @@ names(per.patient) <- patient_level_columns
     per.patient <- append_df(per.patient, new, id = "Patient", mode = "append")
   }
 
+#######################
   # qc and summary    
   per.patient <-  remove_unsequenced_patients(per.patient, per.file)
   per.patient <-  add_inventory_flags(per.patient, per.file)
-
-  # write PER-FILE to local
-  name <- paste("PER-FILE_clinical_cyto", ".txt", sep = "")
-  path <- file.path(local,name)
-  write.table(per.file, path, row.names = F, col.names = T, sep = "\t", quote = F)
+  inventory_counts <- get_inventory_counts(per.patient)
   
-  # write PER-PATIENT to local
-  name <- paste("PER-PATIENT_clinical", ".txt", sep = "")
-  path <- file.path(local,name)
-  write.table(per.patient, path, row.names = F, col.names = T, sep = "\t", quote = F)
-
-#######################
-# put final integrated files back as ProcessedData/Integrated on S3
-system(  paste('aws s3 cp', local, file.path(s3clinical, "ProcessedData", "Integrated"), '--recursive --exclude "*" --include "PER*"  --include "report*" --sse', sep = " "))
-return_code <- system('echo $?', intern = T)
+  # write PER-FILE and PER-PATIENT
+  write_to_s3integrated(per.file, name = "PER-FILE_clinical_cyto.txt")
+  response <- write_to_s3integrated(per.patient, name = "PER-PATIENT_clinical.txt")
   
-# clean up source files
-if(return_code == "0"){
-  system(paste0("rm -r ", local))
-  rm(list = ls())
-  }
-
-# Merge clinical data tables with genomic results
-# this function takes a long time!
-source("table_merge.R")
+  # Merge clinical data tables with genomic results, but warning: these functions takes a long time!
+  per.file.all    <- table_merge()
+  per.patient.nd.tumor.all <- collapse_to_patient(per.file.all)
+  per.patient.nd.tumor.clinical <- subset_clinical_columns(per.patient.nd.tumor.all)
+  
+  # NOTE: summary statistics are only from patients that have nd+tumor samples.
+  clinical_summary <- summarize_clinical_parameters(per.patient.nd.tumor.clinical)
+  
+  
+  
+  
