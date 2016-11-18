@@ -1,8 +1,26 @@
-merge_table_files <- function(file1, file2, id = "File_Name"){
-  
-  df1 <- read.delim(file1, sep = "\t", check.names = F, as.is = T, stringsAsFactors = F)
-  df2 <- read.delim(file2, sep = "\t", check.names = F, as.is = T, stringsAsFactors = F)
-  
+
+
+# write_to_s3integrated <- s3_writer(s3_path = "/ClinicalData/ProcessedData/Integrated/")
+# write_to_s3integrated(foo = new, name = "test.txt")
+s3_writer <- function(s3_prefix = "s3://celgene.rnd.combio.mmgp.external/", s3_path){
+  function(foo, name){
+    local_file <- file.path("/tmp",name)
+    s3_file <- file.path(gsub("\\/+$","",s3_prefix), gsub("^\\/+|\\/+$","",s3_path), name)
+    
+    write.table(foo, local_file, row.names = F, col.names = T, sep = "\t", quote = F)
+    system(  paste('aws s3 cp', local_file, s3_file , '--sse', sep = " "))
+    response <- system('echo $?', intern = T)
+    if( response == 0 ){
+      unlink(local_file)
+    }else{
+      warning(paste("Error writing",name, "to S3", sep = " "))
+    }
+    response
+  }
+}
+
+merge_table_files <- function(df1, df2, id = "File_Name"){
+
   df <- merge(x = df1, y = df2, by = id, all = T)
   
   if(dim(df)[1] != dim(df1)[1]){warning(paste("merge of",file1,"and",file2 ,"did not retain proper dimensionality", sep = " "))
