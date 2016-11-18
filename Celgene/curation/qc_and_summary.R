@@ -50,6 +50,8 @@ add_inventory_flags <- function(df_perpatient, df_perfile){
   
   check_by_patient <- check.value("Patient")
 
+  df_perpatient[["INV_Has.sample"]] <- "1"
+  
   dat <- df_perfile
   df_perpatient[["INV_Has.ND.sample"]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "Disease_Status", value = "ND", unique_match = F)),1,0)
   df_perpatient[["INV_Has.R.sample"]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "Disease_Status", value = "R", unique_match = F)),1,0)
@@ -97,18 +99,46 @@ add_inventory_flags <- function(df_perpatient, df_perfile){
   df_perpatient
 }
 
+get_inventory_counts <- function(df_perpatient){
+  df <- aggregate.data.frame(df_perpatient[,grepl("Has",names(df_perpatient))], by = list(df_perpatient$Study), function(x){
+    sum(x == "1")
+  })
+  df <- as.data.frame(t(df), stringsAsFactors = F)
+  names(df) <- df[1,]
+  df <- df[2:nrow(df),]
+  
+  df["Total"] <- apply(df[,2:ncol(df)], MARGIN = 1, function(x){sum(as.integer(x))})
+  
+  df[['Category']] <- row.names(df)
+  
+  
+  write_to_s3integrated(df, "report_inventory_counts.txt")
+  df
+}
+
+summarize_clinical_parameters <- function(df_perpatient){
+  df <- df_perpatient
+  df[df==""] <- NA
+  df[['coded_gender']] <- ifelse(df$D_Gender == "Male",1,0) #0=Female; 1=Male
+  summary_fields <- c("coded_gender","D_Age", "D_OS", "D_PFS", "D_OS_FLAG", "D_PFS_FLAG")
+  
+  df <- aggregate.data.frame(df[, names(df) %in% summary_fields ], by = list(df$Study), function(x){
+    round(mean(as.numeric(x), na.rm = T),2)
+  })
+ 
+  #rename and reorder
+  names(df) <- c("Study", "Mean_Age", "Mean_OS_days", "Proportion_Deceased", "Mean_PFS_days", "Proportion_Progressed", "Proportion_Gender_male")
+  df<- df[, c("Study", "Mean_Age", "Proportion_Gender_male", "Mean_OS_days", "Proportion_Deceased", "Mean_PFS_days", "Proportion_Progressed")]  
+  
+  write_to_s3integrated(df, "report_summary_statistics.txt")
+  
+  df
+  
+}
 
 # # aggregate for Andrew's Sage summary
 # # 
-# # gender <- table(mmrf.clinical$D_Gender)
-# # summary_stats <- data.frame(N        = nrow(mmrf.clinical),
-# #            F.M      = paste(c(gender["Female"], gender["Male"]), collapse = ","),
-# #            Mean.Age = round(mean(as.numeric(mmrf.clinical$D_Age), na.rm = T),2),
-# #            Mean.OS  = round(mean(mmrf.clinical$D_OS, na.rm = T), 2),
-# #            Mean.PFS  = round(mean(mmrf.clinical$D_PFS, na.rm = T), 2),
-# #            Proportion.Deceased     = round(mean(mmrf.clinical$D_OS_FLAG, na.rm = T), 2),
-# #            Proportion.Progressing  = round(mean(mmrf.clinical$D_PD_FLAG, na.rm = T), 2)
-# #            )
+
 # # write.table(summary_stats, "../data/curated/summary_stats_for_Andrew_20160922.txt", sep = "\t", col.names = T, row.names = F)
 # 
 # # join integrated tables into a single one for easy filtering
