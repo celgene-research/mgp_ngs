@@ -142,11 +142,8 @@ export_sas <- function(df, dict, name){
   # 32 char limit only symbol allowed is "_"
   # export to sas automatically replaces each symbol with "_", truncates to 32 but has
   # strange truncation rules (first lower case letters and then trailing upper case letters?)
-  
-  
-  df <- per.patient.nd.tumor.clinical
+
   names(df) <- CleanColumnNamesForSAS(names(df))
-  
   dict[['clean.names']] <- CleanColumnNamesForSAS(dict$names)
   
   factor_columns <- dict[dict$type == "Factor","clean.names"]
