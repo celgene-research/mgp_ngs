@@ -136,57 +136,64 @@ summarize_clinical_parameters <- function(df_perpatient){
   
 }
 
-# # aggregate for Andrew's Sage summary
-# # 
+export_sas <- function(df, dict, name){
+  
+  # sas column names are very restrictive, and automatically edited if nonconformant
+  # 32 char limit only symbol allowed is "_"
+  # export to sas automatically replaces each symbol with "_", truncates to 32 but has
+  # strange truncation rules (first lower case letters and then trailing upper case letters?)
+  
+  
+  df <- per.patient.nd.tumor.clinical
+  names(df) <- CleanColumnNamesForSAS(names(df))
+  
+  dict[['clean.names']] <- CleanColumnNamesForSAS(dict$names)
+  
+  factor_columns <- dict[dict$type == "Factor","clean.names"]
+  for(foo in factor_columns){
+    df[df[[foo]] == "" & !is.na(df[[foo]]),foo] <- NA
+    df[[foo]] <- as.factor(df[[foo]])
+    }
 
-# # write.table(summary_stats, "../data/curated/summary_stats_for_Andrew_20160922.txt", sep = "\t", col.names = T, row.names = F)
-# 
-# # join integrated tables into a single one for easy filtering
-# 
-# names(integrated.clinical) %in% names(integrated.cytogenetic)
-# names(integrated.clinical) %in% names(inventory)
-# names(integrated.cytogenetic) %in% names(integrated.clinical)
-# 
-# integrated <- merge(integrated, inventory, by = c("Patient", "Study"), all = T)
-# 
-# # sort to keep MMRF on the top (just my preference)
-# integrated[['Study']] <- as.factor(integrated$Study)
-# proper_order <- c("MMRF", levels(integrated$Study)[!(levels(integrated$Study) %in% "MMRF")])
-# integrated[['Study']] <- factor(integrated$Study, levels = proper_order)
-# integrated <- integrated[order(integrated$Study),]
-# 
-# write.table(integrated, paste0("../data/curated/INTEGRATED/","INTEGRATED" ,"_patient_clinical_cyto_inventory_", d,".txt"), row.names = F, col.names = T, sep = "\t", quote = F)
-# 
-# # save the MMRF portion to a SAGE-specific upload file
-# sage <- integrated[integrated$Study == "MMRF",]
-# write.table(sage, paste0("../../sage/data/","MMRF_patient_clinical_cyto_inventory_for_SAGE-", d,".txt"), row.names = F, col.names = T, sep = "\t", quote = F)
-# 
-# # verify proper data typing
-# bak <- integrated
-# foo <- "D_Gender"
-# 
-# meta <- XLConnect::readWorksheetFromFile(file = "../data/integrated_columns.xlsx", sheet = 1, startRow = 2)
-# factor_columns <- meta[meta$type == "Factor","names"]
-# 
-# for(foo in factor_columns){
-#   integrated[integrated[[foo]] == "" & !is.na(integrated[[foo]]),foo] <- NA
-#   integrated[[foo]] <- as.factor(integrated[[foo]])
-#   print(levels(integrated[[foo]]))
-# }
-# 
-# numeric_columns <- meta[meta$type == "Numeric","names"]
-# 
-# for(foo in numeric_columns){
-#   integrated[integrated[[foo]] == "" & !is.na(integrated[[foo]]),foo] <- NA
-#   integrated[[foo]] <- as.numeric(integrated[[foo]])
-#   print(summary(integrated[[foo]]))
-# }
-# 
-# 
-# # write out text datafile for SAS
-# library(foreign)
-# foreign::write.foreign(integrated, 
-#                        datafile = paste0("../data/curated/sas/","INTEGRATED" ,"_patient_clinical_cyto_inventory_", d,".txt"), 
-#                        codefile = paste0("../data/curated/sas/","INTEGRATED" ,"_patient_clinical_cyto_inventory_", d,".sas"),
-#                        package="SAS")
-# 
+  numeric_columns <- dict[dict$type == "Numeric","clean.names"]
+  for(foo in numeric_columns){
+    df[df[[foo]] == "" & !is.na(df[[foo]]),foo] <- NA
+    df[[foo]] <- as.numeric(df[[foo]])
+  }
+
+  numeric_molecular_columns <- names(df)[grepl("^SNV_", names(df)) | 
+                                         grepl("^CNV_", names(df)) | 
+                                         grepl("^BI_", names(df)) ]
+  for(foo in numeric_molecular_columns){
+    df[df[[foo]] == "" & !is.na(df[[foo]]),foo] <- NA
+    df[[foo]] <- as.numeric(df[[foo]])
+  }
+  
+  # write out text datafile for SAS
+  local.path <- file.path(local, "sas")
+  if(!dir.exists(local.path)){dir.create(local.path)}
+  
+  root <- paste0(name, "_", d)
+  local.data.path <- file.path(local.path, paste0(root,".txt"))
+  local.code.path <- file.path(local.path, paste0(root,".sas"))
+  
+  foreign::write.foreign(df,
+                         datafile = local.data.path,
+                         codefile = local.code.path,
+                         package="SAS")
+  
+  system(paste("aws s3 cp", 
+               local.data.path, 
+               file.path(s3clinical, "ProcessedData", "Integrated", "sas", paste0(root,".txt")),
+               "--sse", sep = " "))
+  system(paste("aws s3 cp", 
+               local.code.path, 
+               file.path(s3clinical, "ProcessedData", "Integrated", "sas", paste0(root,".sas")),
+               "--sse", sep = " "))
+  
+}
+
+
+
+
+
