@@ -7,12 +7,16 @@ source("curation_scripts.R")
 source("qc_and_summary.R")
 source("table_merge.R")
 
-write_to_s3integrated <- s3_writer(s3_path = "/ClinicalData/ProcessedData/Integrated/")
 
 # locations
 s3clinical      <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData"
 local      <- "/tmp/curation"
-if(!dir.exists(local)){dir.create(local)}
+if(!dir.exists(local)){
+  dir.create(local)
+} else {
+  system(paste0("rm -r ", local))
+  dir.create(local)
+}
 
 # We are editing the dictionary spreadsheet locally, so push latest to s3
 system(  paste('aws s3 cp',"mgp_dictionary.xlsx" , file.path(s3clinical, "ProcessedData", "Integrated", "mgp_dictionary.xlsx"), "--sse ", sep = " "))
@@ -29,6 +33,7 @@ system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "DFCI"), loca
 system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "MMRF_IA9"), local, '--recursive --exclude "*" --include "curated*"', sep = " "))
 system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "UAMS"), local, '--recursive --exclude "*" --include "curated*"', sep = " "))
 system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "JointData/curated_All_translocation_Summaries_from_BWalker_2016-10-04_zeroed_dkr.txt"), local, sep = " "))
+
 
 ##############
 # The dictionary is used as a starting framework for each level table
@@ -77,13 +82,16 @@ names(per.patient) <- patient_level_columns
   inventory_counts <- get_inventory_counts(per.patient)
   
   # write PER-FILE and PER-PATIENT
-  write_to_s3integrated(per.file, name = "PER-FILE_clinical_cyto.txt")
+  response <- write_to_s3integrated(per.file,    name = "PER-FILE_clinical_cyto.txt")
   response <- write_to_s3integrated(per.patient, name = "PER-PATIENT_clinical.txt")
   
   # Merge clinical data tables with genomic results, but warning: these functions takes a long time!
   per.file.all    <- table_merge()
   per.patient.nd.tumor.all <- collapse_to_patient(per.file.all)
   per.patient.nd.tumor.clinical <- subset_clinical_columns(per.patient.nd.tumor.all)
+  
+  export_sas(per.patient.nd.tumor.all, dict, name = "per.patient.nd.tumor.all")
+  export_sas(per.patient.nd.tumor.clinical, dict, name = "per.patient.nd.tumor.clinical")
   
   # NOTE: summary statistics are only from patients that have nd+tumor samples.
   clinical_summary <- summarize_clinical_parameters(per.patient.nd.tumor.clinical)
