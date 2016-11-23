@@ -18,14 +18,16 @@ s3_writer <- function(s3_prefix = "s3://celgene.rnd.combio.mmgp.external/", s3_p
     response
   }
 }
+write_to_s3integrated <- s3_writer(s3_path = "/ClinicalData/ProcessedData/Integrated/")
 
 merge_table_files <- function(df1, df2, id = "File_Name"){
-
+  
   df <- merge(x = df1, y = df2, by = id, all = T)
   
-  if(dim(df)[1] != dim(df1)[1]){warning(paste("merge of",file1,"and",file2 ,"did not retain proper dimensionality", sep = " "))
-                                        return(df)
-    }else{df}
+  if(dim(df)[1] != dim(df1)[1]){
+    warning(paste("merge of did not retain proper dimensionality", sep = " "))
+    return(df)
+  }else{df}
 }
 
 
@@ -510,4 +512,17 @@ lookup.values <- function(id) {
 }
 
 
-
+CleanColumnNamesForSAS <- function(n){
+  
+  # substitute non-alphanumeric characters
+  n <- gsub("[^[:alnum:]]", "_", n)
+  
+  
+  n <- sapply(n, function(x){
+    substr(x,1,32)
+  })
+  
+  if( any(duplicated(n)) ){
+    warning(paste("Abbreviated column titles are non-unique:", paste(unique(n[duplicated(n)]), collapse = "; "), sep = " "))
+  } else{n}
+}
