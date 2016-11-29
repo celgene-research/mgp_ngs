@@ -28,7 +28,7 @@ system(  paste('aws s3 cp',"mgp_dictionary.xlsx" , file.path(s3clinical, "Proces
 # source("curate_JointData.R")
 
 # copy curated files locally
-system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "Integrated", "mgp_dictionary.xlsx"), local, sep = " "))
+system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "Integrated", "mgp_dictionary.xlsx"), file.path(local, "mgp_dictionary.xlsx"), sep = " "))
 system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "DFCI"), local, '--recursive --exclude "*" --include "curated*"', sep = " "))
 system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "MMRF_IA9"), local, '--recursive --exclude "*" --include "curated*"', sep = " "))
 system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "UAMS"), local, '--recursive --exclude "*" --include "curated*"', sep = " "))
