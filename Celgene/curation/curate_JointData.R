@@ -67,7 +67,7 @@ print("CNV Curation........................................")
   if(return_code == "0") system(paste0("rm -r ", local))
   rm(cnv, cnv_locations)
 
-# translocation --------------------------------------------------------------------
+# Trsl --------------------------------------------------------------------
 ## Translocations using MANTA from Brian (BWalker2@uams.edu)
 print("Translocation Curation........................................")
   
@@ -192,6 +192,10 @@ print("Translocation Curation........................................")
   # edit filenames to match integrated table and check 
   snv[['File_Name']] <- gsub("^X", "", row.names(snv))
   snv[['File_Name']] <- gsub("^_E.*_([bcdBCD])", "\\1", snv$File_Name)
+  
+  # move File_Name to first column position
+  snv <- snv[,c("File_Name", names(snv)[-1] )]
+  row.names(snv) <- 1:nrow(snv)
   
   # Previous versions used MMRF Sample_Name identifiers, this is no longer needed with 20161115 version 
   # only problem now is MMRF is listed by sampleid instead of filename
