@@ -165,8 +165,7 @@ read.counts=data.frame();
 	
 cat(sprintf("Processing file %s\n" ,bam.file))
 # load the bam file from the disk
-aln.bam=readGAlignments( file=bam.file, 
-		format="BAM")
+aln.bam=readGAlignments( file=bam.file)
 rpkms=rep(0, nrow(spike.merged));
 for(j in 1:nrow(spike.merged)){
 	spike.name=as.character(spike.merged$ERCC.ID[j])		
