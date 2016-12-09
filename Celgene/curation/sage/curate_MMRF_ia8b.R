@@ -5,7 +5,7 @@
 #  import IA8 raw data tables
 #  filter file_inventory to remove new IA9 samples
 
-
+source("curation_scripts.R")
 # vars
 study <- "MMRF"
 d <- format(Sys.Date(), "%Y-%m-%d")
