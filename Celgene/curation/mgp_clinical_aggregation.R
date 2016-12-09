@@ -57,6 +57,7 @@ for(f in files){
 
   # qc and summary    
   per.file <- remove_invalid_samples(per.file)
+  per.file$Sample_Name_Tissue_Type <- paste(per.file$Sample_Name, per.file$Tissue_Type, sep="_")
   per.file <- cytogenetic_consensus_calling(per.file)
   
   # report_unique_patient_counts(per.file, sink_file = file.path(local,"report_unique_patient_counts.txt"))
