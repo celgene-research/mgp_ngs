@@ -146,26 +146,30 @@ export_sas <- function(df, dict, name){
   names(df) <- CleanColumnNamesForSAS(names(df))
   dict[['clean.names']] <- CleanColumnNamesForSAS(dict$names)
   
-  factor_columns <- dict[dict$type == "Factor","clean.names"]
-  for(foo in factor_columns){
-    df[df[[foo]] == "" & !is.na(df[[foo]]),foo] <- NA
-    df[[foo]] <- as.factor(df[[foo]])
-    }
-
-  numeric_columns <- dict[dict$type == "Numeric","clean.names"]
-  for(foo in numeric_columns){
-    df[df[[foo]] == "" & !is.na(df[[foo]]),foo] <- NA
-    df[[foo]] <- as.numeric(df[[foo]])
-  }
-
-  numeric_molecular_columns <- names(df)[grepl("^SNV_", names(df)) | 
-                                         grepl("^CNV_", names(df)) | 
-                                         grepl("^BI_", names(df)) ]
-  for(foo in numeric_molecular_columns){
-    df[df[[foo]] == "" & !is.na(df[[foo]]),foo] <- NA
-    df[[foo]] <- as.numeric(df[[foo]])
-  }
-  
+  ## specific column type encoding was removed because it causes
+  ##  column order to be changed when imported. 
+  ##  (factor columns first, then character, then numeric)
+  #
+  # factor_columns <- dict[dict$type == "Factor","clean.names"]
+  # for(foo in factor_columns){
+  #   df[df[[foo]] == "" & !is.na(df[[foo]]),foo] <- NA
+  #   df[[foo]] <- as.factor(df[[foo]])
+  #   }
+  # 
+  # numeric_columns <- dict[dict$type == "Numeric","clean.names"]
+  # for(foo in numeric_columns){
+  #   df[df[[foo]] == "" & !is.na(df[[foo]]),foo] <- NA
+  #   df[[foo]] <- as.numeric(df[[foo]])
+  # }
+  # 
+  # numeric_molecular_columns <- names(df)[grepl("^SNV_", names(df)) | 
+  #                                        grepl("^CNV_", names(df)) | 
+  #                                        grepl("^BI_", names(df)) ]
+  # for(foo in numeric_molecular_columns){
+  #   df[df[[foo]] == "" & !is.na(df[[foo]]),foo] <- NA
+  #   df[[foo]] <- as.numeric(df[[foo]])
+  # }
+  # 
   # write out text datafile for SAS
   local.path <- file.path(local, "sas")
   if(!dir.exists(local.path)){dir.create(local.path)}
@@ -179,6 +183,9 @@ export_sas <- function(df, dict, name){
                          codefile = local.code.path,
                          package="SAS")
   
+  # edit sas import table such that empty columns have character length = 1
+  system( paste('sed -i "s/\\$ 0$/\\$ 1/" ', local.code.path, sep = " "))
+         
   system(paste("aws s3 cp", 
                local.data.path, 
                file.path(s3clinical, "ProcessedData", "Integrated", "sas", paste0(root,".txt")),
