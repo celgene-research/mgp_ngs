@@ -8,7 +8,8 @@ d <- format(Sys.Date(), "%Y-%m-%d")
 # locations
 s3clinical    <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData"
 raw_inventory <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/Integrated/file_inventory.txt"
-ia9_data      <- "s3://celgene.rnd.combio.mmgp.external/MMRF_CoMMpass_IA9/clinical_data_tables/CoMMpass_IA9_FlatFiles/"
+# ia9_data      <- "s3://celgene.rnd.combio.mmgp.external/MMRF_CoMMpass_IA9/clinical_data_tables/CoMMpass_IA9_FlatFiles/"
+ia9_data      <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData/OriginalData/MMRF_IA9/"
 local         <- "/tmp/curation"
   if(!dir.exists(local)){dir.create(local)}
 
