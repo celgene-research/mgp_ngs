@@ -196,11 +196,11 @@ sub alive{
 }
 
 # testing connection to database
-my $d=Celgene::Utils::DatabaseFunc::connectDB();
+my $d=sampleInfo::connectDB();
 if(!defined($d)){
 $logger->logdie("Cannot establish connection to the sql database server");
 }
-Celgene::Utils::DatabaseFunc::disconnectDB();
+sampleInfo::disconnectDB();
 # testing connection to solr
 my $s=metadataInfo::getDatabaseConnection();
 if(!defined($s)){
