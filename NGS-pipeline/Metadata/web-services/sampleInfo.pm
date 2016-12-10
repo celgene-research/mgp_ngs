@@ -1,6 +1,7 @@
 package sampleInfo;
 use strict;
 use warnings;
+use DBI;
 use Data::Dumper;
 my $logger=Log::Log4perl->get_logger("sampleInfo");
 # contain functions for the NGS API that have to do with the sampleInfo database
