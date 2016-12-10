@@ -11,9 +11,9 @@ local         <- "/tmp/curation"
 if(!dir.exists(local)){dir.create(local)}
 
 
-#############################################################
+# CNV --------------------------------------------------------------------
 ## CNV from Cody (TCAshby@uams.edu)
-
+print("CNV Curation........................................")
   # copy original tables to local
   system(paste('aws s3 cp', 's3://celgene.rnd.combio.mmgp.external/SeqData/WES/ProcessedData/DFCI_MMRF_UAMS/copy_number/copy_number_table.xlsx', local, sep = " "))
   name <- "copy_number_table.xlsx"
@@ -67,8 +67,9 @@ if(!dir.exists(local)){dir.create(local)}
   if(return_code == "0") system(paste0("rm -r ", local))
   rm(cnv, cnv_locations)
 
-#############################################################
+# Trsl --------------------------------------------------------------------
 ## Translocations using MANTA from Brian (BWalker2@uams.edu)
+print("Translocation Curation........................................")
   
   # locations
   s3clinical <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData"
@@ -112,10 +113,7 @@ if(!dir.exists(local)){dir.create(local)}
                                  }
                                  gsub("^.*(MMRF.*)$","\\1",s)
                                }, mmrf$SampleSet1, mmrf$SampleSet2))
-                               
-                               
-                               
-                               
+                              
                    ),
                    CYTO_Hyperdiploid_ControlFreec=c(uams$UK_HRD_CALL == 'HRD',
                                                     dfci$HRD_summary == 'HRD',
@@ -123,6 +121,17 @@ if(!dir.exists(local)){dir.create(local)}
                    CYTO_Translocation_CONSENSUS=c(as.character(uams$UK_Tx_CALL),
                                                   as.character(dfci$TC_summary),
                                                   as.character(mmrf$TC_Summary)),
+                   
+                   "CYTO_1q_plus_ControlFreec" = c(rep(NA, times = nrow(uams)),
+                                                   dfci$`ControlFreec_1Q+` == "1Q+",
+                                                   mmrf$`ControlFreec_1Q+` == "1Q+"),
+                   "CYTO_amp(1q)_ControlFreec" = c(rep(NA, times = nrow(uams)),
+                                                   rep(NA, times = nrow(dfci)),
+                                                   mmrf$`ControlFreec_1Q+` == "GAIN"),
+                   "CYTO_del(1q)_ControlFreec" = c(rep(NA, times = nrow(uams)),
+                                                   rep(NA, times = nrow(dfci)),
+                                                   mmrf$`ControlFreec_1Q+` == "DEL1Q"),
+                   
                    "CYTO_t(4;14)_MANTA"= c(uams$`MANTA_(4;14)`  != "0",
                                            dfci$`MANTA_(4;14)`  != "0",
                                            mmrf$`MANTA_(4;14)`  != "0"),
@@ -141,6 +150,8 @@ if(!dir.exists(local)){dir.create(local)}
                    "CYTO_MYC_MANTA"=     c(uams$`MANTA_MYC`     != "0",
                                            dfci$`MANTA_MYC`     != "0",
                                            mmrf$`MANTA_MYC`     != "0"),
+                   
+                   
                    check.names = F, stringsAsFactors = F
   )
   
@@ -163,14 +174,15 @@ if(!dir.exists(local)){dir.create(local)}
   rm(dfci, mmrf, uams)
   
   
-  #############################################################
+  # SNV --------------------------------------------------------------------
   ## SNV from Chris (CPWardell@uams.edu)
+  print("SNV Curation........................................")
   
   # copy original tables to local
   local      <- "/tmp/curation"
   if(!dir.exists(local)){dir.create(local)}
   
-  name <- "simplified.mutations.20161103.txt"
+  name <- "simplified.mutations.20161115.txt"
   s3_path <- file.path(s3,"SeqData/WES/ProcessedData/DFCI_MMRF_UAMS/mutect2", name)
   system(paste('aws s3 cp', s3_path, local, sep = " "))
   
@@ -181,41 +193,45 @@ if(!dir.exists(local)){dir.create(local)}
   snv[['File_Name']] <- gsub("^X", "", row.names(snv))
   snv[['File_Name']] <- gsub("^_E.*_([bcdBCD])", "\\1", snv$File_Name)
   
+  # move File_Name to first column position
+  snv <- snv[,c("File_Name", names(snv)[-1] )]
+  row.names(snv) <- 1:nrow(snv)
+  
+  # Previous versions used MMRF Sample_Name identifiers, this is no longer needed with 20161115 version 
   # only problem now is MMRF is listed by sampleid instead of filename
   # we'll need to lookup the filename assuming they are somatic tumor samples
-    system(paste('aws s3 cp', file.path(s3clinical,"ProcessedData","Integrated","PER-FILE_clinical_cyto.txt"), 
-                 file.path(local_path,"PER-FILE_clinical_cyto.txt"), sep = " "))
-    per.file <- read.delim(file.path(local_path,"PER-FILE_clinical_cyto.txt"), 
-               sep = "\t", as.is = T, check.names = F, stringsAsFactors = F)
-    
-    mmrf_filename_lookup <- per.file[per.file$Study == "MMRF" & 
-                                       per.file$Sample_Type_Flag == 1 &
-                                       per.file$Sequencing_Type == "WES" &
-                                       per.file$Tissue_Type == "BM"
-                                     , c("Sample_Name", "File_Name")]
-    # verify that we have no duplicate filenames for each samplename
-    # length(mmrf_filename_lookup$Sample_Name) == length(unique(mmrf_filename_lookup$Sample_Name))
-    # length(snv$File_Name) == length(unique(snv$File_Name))
-    names(mmrf_filename_lookup) <- c("File_Name", "MMRF_File_Name")
-    df <- merge(snv, mmrf_filename_lookup, all.x = T)
-    
-    unified_names <- unlist(apply(df, MARGIN = 1, function(x){
-      if( grepl("^MMRF", x[['File_Name']]) ){return(x[["MMRF_File_Name"]])
-        }else{return(x[["File_Name"]])}
-    }))
-    
-    snv[['File_Name']] <- unified_names
-    # TODO: this only inserts SNV info for a single filename, 
-    #        but it might be appropriate to add for all tumor samples at
-    #        the same timepoint?
-  
+    # system(paste('aws s3 cp', file.path(s3clinical,"ProcessedData","Integrated","PER-FILE_clinical_cyto.txt"), 
+    #              file.path(local.path,"PER-FILE_clinical_cyto.txt"), sep = " "))
+    # per.file <- read.delim(file.path(local.path,"PER-FILE_clinical_cyto.txt"), 
+    #            sep = "\t", as.is = T, check.names = F, stringsAsFactors = F)
+    # 
+    # mmrf_filename_lookup <- per.file[per.file$Study == "MMRF" & 
+    #                                    per.file$Sample_Type_Flag == 1 &
+    #                                    per.file$Sequencing_Type == "WES" &
+    #                                    per.file$Tissue_Type == "BM"
+    #                                  , c("Sample_Name", "File_Name")]
+    # # verify that we have no duplicate filenames for each samplename
+    # # length(mmrf_filename_lookup$Sample_Name) == length(unique(mmrf_filename_lookup$Sample_Name))
+    # # length(snv$File_Name) == length(unique(snv$File_Name))
+    # names(mmrf_filename_lookup) <- c("File_Name", "MMRF_File_Name")
+    # df <- merge(snv, mmrf_filename_lookup, by = "File_Name", all.x = T)
+    # 
+    # unified_names <- unlist(apply(df, MARGIN = 1, function(x){
+    #   if( grepl("^MMRF", x[['File_Name']]) ){return(x[["MMRF_File_Name"]])
+    #     }else{return(x[["File_Name"]])}
+    # }))
+    # 
+    # snv[['File_Name']] <- unified_names
+    # # TODO: this only inserts SNV info for a single filename, 
+    # #        but it might be appropriate to add for all tumor samples at
+    # #        the same timepoint?
+    # 
   # rename columns to match dictionary format
   n <- names(snv)
   n <- paste("SNV",n,"mutect2", sep = "_")
   n <- gsub("SNV_File_Name_mutect2","File_Name", n)
   
   names(snv) <- n
-    
     
   name <- "curated_SNV_mutect2.txt"
   local.path <- file.path(local,name)
@@ -224,10 +240,73 @@ if(!dir.exists(local)){dir.create(local)}
   
   # put curated file back as ProcessedData
   system(  paste('aws s3 cp', local.path, file.path(s3clinical,"ProcessedData", "JointData", name), "--sse", sep = " "))
-  return_code <- system('echo $?', intern = T)
+ 
   
-  # as a failsafe to prevent reading older versions of source files remove the
-  #  cached version file if transfer was successful.
-  if(return_code == "0") system(paste0("rm -r ", local))
+  # BI --------------------------------------------------------------------
+## Biallelic Inactivation calls from Cody (TCAshby@uams.edu)
+  print("Biallelic Inactivation Curation........................................")
+  
+  prefix    <- "BI"
+  technique <- "BiallelicInactivation"
+  software  <- "Flag"
+  
+# copy original tables to local
+name    <- 'biallelic_table_cody_2016-11-09.xlsx'  
+system(paste('aws s3 cp', file.path(s3clinical, "OriginalData", 'Joint', name), file.path(local, name), sep = " "))
 
+bi <- readxl::read_excel(file.path(local,name),
+                          sheet = 1)
+
+# I'm attaching a matrix that contains regions of 'biallelic inactivation'. It's a similar format to the copy number table with genes across the top and patients as the rows. 
+# 
+# 0 = no inactivation
+# 1 = mutation + deletion or homozygous deletion
+# 
+# Keep in mind the following known caveats:
+# 1)       We're not checking the variant allele frequencies so there are potentially some false positives. We're only reporting mutation + deletion or homozygous deletion.
+# 2)       We're not checking for regions where there are 2 or more mutations in the same gene which could potentially be another route of biallelic inactivation.
+# 3)       We're only reporting samples that passed the copy number filter.
+# 4)       We're only checking the genes that were listed in the copy number table.
+
+  # remove summary columns/rows
+  bi <- bi[bi[[1]] != "TOTALS",]
+  bi$gene <- NULL
+  
+  #rename columns as BI_Gene_Software
+  n <- names(bi)
+  n <- paste(prefix,n,software, sep = "_")
+  n[1] <- "File_Name"
+  names(bi) <- n
+
+    # edit filenames to match integrated table and check 
+  bi$File_Name <- gsub("^_E.*_([bcdBCD])", "\\1", bi$File_Name)
+  # bi$File_Name[!(bi$File_Name %in% per.file$File_Name)]
+  # all(bi$File_Name %in% per.file$File_Name)
+  # TRUE
+  
+  # write to local and S3
+  name <- paste0("curated_",technique,"_",software,".txt")
+  path     <- file.path(local,name)
+  write.table(bi, path, row.names = F, col.names = T, sep = "\t", quote = F)
+  
+  system(  paste('aws s3 cp', file.path(local, name), file.path(s3clinical, "ProcessedData", "JointData", name), '--sse', sep = " "))
+
+  ## now make a sparse dictionary
+  dict <- data.frame(
+    names       = names(bi)[2:length(bi)],
+    key_val     = '0="no inactivation"; 1="mutation + deletion or homozygous deletion"',
+    description = paste("Was biallelic inactivation observed for", 
+                         gsub("^.*_(.*)_.*$","\\1", names(bi)[2:length(bi)]), sep = " "),
+    stringsAsFactors = F )
+  
+  # write to local
+  name <- paste0(technique,"_", "dictionary",".txt")
+  path     <- file.path(local,name)
+  write.table(dict, path, row.names = F, col.names = T, sep = "\t", quote = F)
+  system(  paste('aws s3 cp', file.path(local, name), file.path(s3clinical, "ProcessedData", "Integrated", name), '--sse', sep = " "))
+  return_code <- system('echo $?', intern = T)
+  # if(return_code == "0") system(paste0("rm -r ", local))
+  # rm(list = ls())
+  
+  
   

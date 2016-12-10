@@ -8,7 +8,8 @@ d <- format(Sys.Date(), "%Y-%m-%d")
 # locations
 s3clinical    <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData"
 raw_inventory <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/Integrated/file_inventory.txt"
-ia9_data      <- "s3://celgene.rnd.combio.mmgp.external/MMRF_CoMMpass_IA9/clinical_data_tables/CoMMpass_IA9_FlatFiles/"
+# ia9_data      <- "s3://celgene.rnd.combio.mmgp.external/MMRF_CoMMpass_IA9/clinical_data_tables/CoMMpass_IA9_FlatFiles/"
+ia9_data      <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData/OriginalData/MMRF_IA9/"
 local         <- "/tmp/curation"
   if(!dir.exists(local)){dir.create(local)}
 
@@ -44,7 +45,8 @@ name <- "PER_PATIENT_VISIT.csv"
   # only keep visits with affiliated samples
   pervisit<- pervisit[ !is.na(pervisit$SPECTRUM_SEQ),]
   
-  df <- data.frame(Patient = pervisit$PUBLIC_ID)
+  df <- data.frame(Patient = pervisit$PUBLIC_ID,
+                   stringsAsFactors = F)
   
   df[["Study"]]       <- study
   df[["Sample_Name"]] <- pervisit$SPECTRUM_SEQ
@@ -55,7 +57,7 @@ name <- "PER_PATIENT_VISIT.csv"
   df[["CYTO_Has_Conventional_Cytogenetics"]] <- ifelse(pervisit$D_CM_cm == 1, 1,0)
   df[["CYTO_Has_FISH"]] <- ifelse(pervisit$D_TRI_cf == 1, 1,0)
 
-  # df[['CYTO_1q_plus_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR13 =="Yes" ,1,0)   
+  # df[['CYTO_1qplus_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR13 =="Yes" ,1,0)   
     
   df[['CYTO_del(1p)_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR12 =="Yes" ,1,0) 
   df[['CYTO_t(4;14)_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR3 == "Yes" ,1,0)   
@@ -73,6 +75,27 @@ name <- "PER_PATIENT_VISIT.csv"
   
   df[['CYTO_Hyperdiploid_FISH']]  <- ifelse( pervisit$Hyperdiploid == "Yes" ,1,0)    
   df[['CYTO_MYC_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR5 == "Yes" ,1,0)   
+  
+  df[['CBC_Absolute_Neutrophil']] <- pervisit$D_LAB_cbc_abs_neut
+  df[['CBC_Platelet']]            <- pervisit$D_LAB_cbc_platelet
+  df[['CBC_WBC']]                 <- pervisit$D_LAB_cbc_wbc
+  df[['DIAG_Hemoglobin']]         <- pervisit$D_LAB_cbc_hemoglobin
+  df[['DIAG_Albumin']]            <- pervisit$D_LAB_chem_albumin
+  df[['DIAG_Calcium']]            <- pervisit$D_LAB_chem_calcium
+  df[['DIAG_Creatinine']]         <- pervisit$D_LAB_chem_creatinine
+  df[['DIAG_LDH']]                <- pervisit$D_LAB_chem_ldh
+  df[['DIAG_Beta2Microglobulin']] <- pervisit$D_LAB_serum_beta2_microglobulin
+  df[['CHEM_BUN']]                <- pervisit$D_LAB_chem_bun
+  df[['CHEM_Glucose']]            <- pervisit$D_LAB_chem_glucose
+  df[['CHEM_Total_Protein']]      <- pervisit$D_LAB_chem_totprot
+  df[['CHEM_CRP']]                <- pervisit$D_LAB_serum_c_reactive_protein
+  df[['IG_IgL_Kappa']]            <- pervisit$D_LAB_serum_kappa
+  df[['IG_M_Protein']]            <- pervisit$D_LAB_serum_m_protein
+  df[['IG_IgA']]                  <- pervisit$D_LAB_serum_iga
+  df[['IG_IgG']]                  <- pervisit$D_LAB_serum_igg
+  df[['IG_IgL_Lambda']]           <- pervisit$D_LAB_serum_lambda
+  df[['IG_IgM']]                  <- pervisit$D_LAB_serum_igm
+  df[['IG_IgE']]                  <- pervisit$D_LAB_serum_ige 
   
   # TODO: verify that we can assume these FISH results are from tumor samples
   # also note, since single samples correspond to multiple filename there is sample info redundancy

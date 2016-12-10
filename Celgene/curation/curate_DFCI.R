@@ -9,14 +9,19 @@ source("curation_scripts.R")
 s3clinical <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData"
 raw_inventory <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/Integrated/file_inventory.txt"
 local      <- "/tmp/curation"
-  if(!dir.exists(local)){dir.create(local)}
+  if(!dir.exists(local)){
+    dir.create(local)
+    } else {
+system(paste0("rm -r ", local))
+}
+
 
 # get current original files
 original <- file.path(s3clinical,"OriginalData",study)
 system(  paste('aws s3 cp', original, local, '--recursive', sep = " "))
 system(  paste('aws s3 cp', raw_inventory, local, sep = " "))
 
-################################################
+# inventory ---------------------------------------
 # clean up the inventory entries and lookup values with df
 name <- "file_inventory.txt"
 inv <- read.delim(file.path(local,name), stringsAsFactors = F)
@@ -30,12 +35,13 @@ inv <- inv[inv$Study == "DFCI",]
   #  so we can add the filename to other tables and populate file-level better
   lookup_by_samplename <- lookup.values("Sample_Name")
 
-name <- paste("curated", study, name, sep = "_")
+name <- paste("curated", study, gsub("^DFCI_","", name), sep = "_")
 path <- file.path(local,name)
 write.table(inv, path, row.names = F, col.names = T, sep = "\t", quote = F)
 
 
-################################################
+# DFCI_WES_clinical_info_new.xlsx ---------------------------------------
+
 name <- "DFCI_WES_clinical_info_new.xlsx"
 df <- readxl::read_excel(file.path(local,name), sheet = 1)
   df<-df[complete.cases(df$Sample),]
@@ -50,7 +56,7 @@ df <- readxl::read_excel(file.path(local,name), sheet = 1)
   
   # encode and rename columns from yes/no to 1/0
   # df[,c( "CYTO_t(11;14)_FISH", "CYTO_t(4;14)_FISH", "CYTO_t(14;16)_FISH",
-  #       "CYTO_del(1p)_FISH", "CYTO_1q_plus_FISH", "CYTO_del(12p)_FISH", "CYTO_del(13q)_FISH",
+  #       "CYTO_del(1p)_FISH", "CYTO_1qplus_FISH", "CYTO_del(12p)_FISH", "CYTO_del(13q)_FISH",
   #       "CYTO_del(14q)_FISH", "CYTO_del(16q)_FISH")] <- unlist(apply(df[,26:34], MARGIN = 2, function(x){
   #         as.numeric(dplyr::recode(tolower(x), yes="1", no="0" , .default = NA_character_))
   #       }))
@@ -64,7 +70,7 @@ df <- readxl::read_excel(file.path(local,name), sheet = 1)
   df["D_Last_Visit_Date"] <-format(df$Last_visit, format = "%Y-%m-%d")
   df[['File_Name_Actual']] <- unlist(lapply(df$Sample_Name, lookup_by_samplename, dat = inv, field = "File_Name_Actual"))
   
-  name <- paste("curated", name, sep = "_")
+  name <- paste("curated", study, gsub("^DFCI_","", name), sep = "_")
   name <- gsub("xlsx", "txt", name)
   path <- file.path(local,name)
   write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
@@ -84,8 +90,9 @@ df <- readxl::read_excel(file.path(local,name), sheet = 2)
   df[,"D_OS_FLAG"] <- dplyr::recode(tolower(df$Death), yes="1", no="0" , .default = NA_character_)
   df[['File_Name_Actual']] <- unlist(lapply(df$Sample_Name, lookup_by_samplename, dat = inv, field = "File_Name_Actual"))
   
-  name <- paste("curated_sheet2", name, sep = "_")
-  name <- gsub("xlsx", "txt", name)
+  name <- gsub(".xlsx", "", name)
+  name <- paste("curated", study, gsub("^DFCI_","", name), "s2", "txt",sep = "_")
+  name <- gsub("_txt", "\\.txt", name)
   path <- file.path(local,name)
   write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
   rm(df)
@@ -129,13 +136,15 @@ df <- as.data.frame(  readxl::read_excel(file.path(local,name), sheet = 3, na = 
   # lots of wonky characters in these fields, remove \n and \t before incorporating again
   df <- df[,c("Patient", "Study", "D_Gender", "D_Age", "D_Diagnosis_Date", "D_ISS", "D_Death_Date")]
 
-  name <- paste("curated_sheet3", name, sep = "_")
-  name <- gsub("xlsx", "txt", name)
+  name <- gsub(".xlsx", "", name)
+  name <- paste("curated", study, gsub("^DFCI_","", name), "s3", "txt",sep = "_")
+  name <- gsub("_txt", "\\.txt", name)
   path <- file.path(local,name)
   write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
   rm(df)
 
-################################################
+  # DFCI_WES_Cyto.xlsx ---------------------------------------
+  
 ## import and curate raw data tables individually into patient-level tables
 name <- "DFCI_WES_Cyto.xlsx"
 df <- readxl::read_excel(file.path(local,name), sheet = 1, na = "n/a")
@@ -145,7 +154,7 @@ df2 <- readxl::read_excel(file.path(local,name), sheet = 2)
   # remove excluded patients
   df2 <- df2[is.na(df2$Exclude),]
   df2$Type <- gsub("Thuird", "Third", df2$Type)
-  df2[["Disease_Status"]] <- ifelse(df2$Type == "Normal" | df2$Type == "Early", "ND", "R")
+  df2[["Disease_Status"]] <- ifelse(df2$Type == "Normal" | df2$Type == "Early"| df2$Type == "Tumour", "ND", "R")
   df2[["Sample_Type_Flag"]] <- ifelse(df2$Type == "Normal", 0,1)
   df2[["Sample_Type"]] <- ifelse(df2$Type == "Normal", "Normal", "NotNormal")
 
@@ -155,13 +164,14 @@ df <- merge(df,df2, by = "Sample", all = T)
   df[['File_Name']] <- df$Sample_Name
   df[['File_Name_Actual']] <- unlist(lapply(df$Sample_Name, lookup_by_samplename, dat = inv, field = "File_Name_Actual"))
   
-  name <- paste("curated", name, sep = "_")
+  name <- paste("curated", study, gsub("^DFCI_","", name), sep = "_")
   name <- gsub("xlsx", "txt", name)
   path <- file.path(local,name)
   write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
   rm(df, df2)
 
-################################################
+  # WES-Metadata.xlsx ---------------------------------------
+  
 ## import and curate raw data tables individually into patient-level tables
 name <- "WES-Metadata.xlsx"
 df <- readxl::read_excel(file.path(local,name), sheet = 1, na = "n/a")
@@ -174,15 +184,16 @@ df <- readxl::read_excel(file.path(local,name), sheet = 1, na = "n/a")
   df[['File_Name_Actual']]<- unlist(lapply(df$Sample_Name, lookup_by_samplename, dat = inv, field = "File_Name_Actual"))
   df[['Patient']]         <- gsub("(PD\\d+).$","\\1",df$Sample_Name)
 
-name <- paste("curated", name, sep = "_")
-name <- gsub("xlsx", "txt", name)
+  name <- paste("curated", study, gsub("^DFCI_","", name), sep = "_")
+  name <- gsub("xlsx", "txt", name)
 path <- file.path(local,name)
 write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
 rm(df)
 
 
 
-################################################
+# Cytogenetic_DFCI_All-1.xlsx ---------------------------------------
+
 name <- "Cytogenetic_DFCI_All-1.xlsx"
 df <- readxl::read_excel(file.path(local,name), na = "n/a")
 # remove blank and duplicated column names
@@ -196,13 +207,14 @@ df <- df[,unique( names(df)[!is.na(names(df))] )]
   df[is.na(df$`Risk group`) | df$`Risk group` == "Uncertain risk", "Risk_group"] <- NA
   df[['File_Name_Actual']]<- unlist(lapply(df$Sample_Name, lookup_by_samplename, dat = inv, field = "File_Name_Actual"))
   
-  name <- paste("curated", name, sep = "_")
+  name <- paste("curated", study, gsub("^DFCI_","", name), sep = "_")
   name <- gsub("xlsx", "txt", name)
   path <- file.path(local,name)
   write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
   rm(df)
   
-################################################
+  # DFCI_published_cyto_calls.txt ---------------------------------------
+  
 name <- "DFCI_published_cyto_calls.txt"
 df <- read.delim(file.path(local,name), stringsAsFactors = F)
   df[["Study"]] <- study
@@ -218,7 +230,7 @@ df2 <- df[,4:14]
   df2[df2 == "N/A" ]   <- NA
   
   names(df2) <- c("CYTO_Hyperdiploid_FISH","CYTO_t(11;14)_FISH","CYTO_t(4;14)_FISH",
-                  "CYTO_t(14;16)_FISH", "CYTO_del(1p)_FISH", "CYTO_1q_plus_FISH",
+                  "CYTO_t(14;16)_FISH", "CYTO_del(1p)_FISH", "CYTO_1qplus_FISH",
                   "CYTO_del(12p)_FISH", "CYTO_del(13q)_FISH", "CYTO_del(14q)_FISH",
                   "CYTO_del(16q)_FISH", "CYTO_del(17;17p)_FISH") 
   df <- cbind(df,df2)
@@ -226,7 +238,7 @@ df2 <- df[,4:14]
   df[['File_Name_Actual']]<- 
     unlist(lapply(df$Sample_Name, lookup_by_samplename, dat = inv, field = "File_Name_Actual"))
   
-  name <- paste("curated", name, sep = "_")
+  name <- paste("curated", study, gsub("^DFCI_","", name), sep = "_")
   name <- gsub("xlsx", "txt", name)
   path <- file.path(local,name)
   write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
@@ -236,11 +248,13 @@ rm(df, df2, inv)
 
 # put curated files back as ProcessedData on S3
 processed <- file.path(s3clinical,"ProcessedData",study)
-system(  paste('aws s3 cp', local, processed, '--recursive --exclude "*" --include "curated*" --sse', sep = " "))
+system(  
+  paste('aws s3 cp', local, processed, '--recursive --exclude "*" --include ',paste0("curated_", study, "*"),' --sse', sep = " ")
+  )
 return_code <- system('echo $?', intern = T)
 
 # as a failsafe to prevent reading older versions of source files remove the 
 #  cached version file if transfer was successful.
-if(return_code == "0") system(paste0("rm -r ", local))
+# if(return_code == "0") system(paste0("rm -r ", local))
   
   

@@ -792,7 +792,10 @@ sub parseInsertSize{
 	$self->{max_insert_size}=0;
 	$self->{mean_insert_size}=0;
 	$self->{sdev_insert_size}=0;
-	if($self->{mateReads}  ne 'true'){return;}
+	if($self->{mateReads}  ne 'true'){
+		$self->{logger}->info("Not mate pair reads. Aborting Insert size parsing");
+		return;
+	}
 	my $rfh=Celgene::Utils::FileFunc::newReadFileHandle($file);
 	while(my $l=<$rfh>){
 		chomp $l;
