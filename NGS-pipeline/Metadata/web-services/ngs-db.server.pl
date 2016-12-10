@@ -12,7 +12,6 @@
 
 use strict;
 use Frontier::Daemon;
-use Celgene::Utils::DatabaseFunc;
 use Log::Log4perl;
 use Socket;
 use Sys::Hostname;

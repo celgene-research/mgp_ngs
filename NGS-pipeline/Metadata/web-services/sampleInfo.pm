@@ -1,11 +1,37 @@
 package sampleInfo;
 use strict;
 use warnings;
-use Celgene::Utils::DatabaseFunc;
 use Data::Dumper;
 my $logger=Log::Log4perl->get_logger("sampleInfo");
 # contain functions for the NGS API that have to do with the sampleInfo database
 # get the full row of the database when a db sample_id is provided
+
+
+{
+	my $dbh;
+
+sub connectDB{
+	my $hostIP=$ENV{ POSTGRES_SERVER_IP}	;
+	
+	if(!defined($dbh)){
+		$logger->info("connectDB: Connecting to database for the first time");
+		$dbh = DBI->connect("DBI:Pg:dbname=genomics;host=$hostIP", "kostas", "kostas", {'RaiseError' => 1}  );
+	}elsif($dbh->ping == 0){
+		$logger->info("connectDB: Connection was dropped. Reconnecting to the database");
+		$dbh = DBI->connect("DBI:Pg:dbname=genomics;host=$hostIP", "kostas", "kostas", {'RaiseError' => 1}  );
+	}else{
+		$logger->info("connectDB: Connection to database is already established");	
+	}
+	return $dbh;
+}
+}
+
+sub disconnectDB{
+	my ( $dbh)=@_;
+	$logger->info("disconnectDB: Explicit request to disconnect from the database");
+	$dbh->disconnect();
+}
+
 
 sub getSampleByID{
 	my ($sample_id, $dbhParam)=@_;
