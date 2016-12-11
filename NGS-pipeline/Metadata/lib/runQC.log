@@ -1,4 +1,0 @@
-[INFO : runQC-bam - 2015/07/15 14:14:59] - /home/kmavrommatis/git_repo/ngs/NGS-pipeline/QC/runQC-bam.pl ([version 1472 (2015-05-22)] ).
-[INFO : runQC-bam - 2015/07/15 14:14:59] - Host: ussdgsphpccas02
-[INFO : runQC-bam - 2015/07/15 14:14:59] - Arguments --nofilecheck --inputbam ../../STARaln.human-bamfiles_1435388372/*.qcstats.coord.bam --reuse --qcStep MarkDuplicates --outputfile *.qcstats.MarkDuplicates.qcstats
-[WARN : runQC-bam - 2015/07/15 14:14:59] - Files are not register to metadata or don't have sample information

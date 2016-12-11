@@ -1,3 +1,9 @@
 [submodule "scripts_for_LSF"]
 	path = scripts_for_LSF
 	url =  git@github.com:celgene-research/HPC_scripts.git
+[submodule "HPC_metadata"]
+	path = HPC_metadata
+	url = git@github.com:celgene-research/HPC_metadata.git
+[submodule "NGS-pipeline/HPC_metadata"]
+	path = NGS-pipeline/HPC_metadata
+	url = git@github.com:celgene-research/HPC_metadata.git
