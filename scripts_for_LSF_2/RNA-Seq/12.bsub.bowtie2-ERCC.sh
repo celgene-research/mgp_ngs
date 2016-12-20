@@ -1,1 +1,0 @@
-../bin/12.bsub.bowtie2-ERCC.sh

@@ -1,1 +1,0 @@
-../bin/41.bsub.htseqExonCount.sh

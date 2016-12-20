@@ -1,1 +1,0 @@
-../bin/35.bsub.bamQC-CollectRNASeqMetrics.sh
