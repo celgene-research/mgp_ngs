@@ -1,1 +1,0 @@
-../bin/20.bsub.realign.sh
