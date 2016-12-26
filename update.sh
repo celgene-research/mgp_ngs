@@ -21,7 +21,7 @@ rsync -avq --recursive $scriptDir/Celgene/ ${DD}/perl/lib/perl5/Celgene/
 
 
 chmod -R ug+rwx $DD/scripts_for_LSF/; chmod -R g-w $DD/scripts_for_LSF/; chmod -R o-rx $DD/scripts_for_LSF/
-
+ln -f -s $DD/NGS-pipeline/Metadata/mimetypes.xml $DD/NGS-pipeline/mimetypes.xml
 for i in `find $DD/NGS-pipeline/  | grep pl$`; do chmod 755 $i; ln -s  $i $BIN/$(basename $i); done
 for i in `find $DD/NGS-pipeline/  | grep sh$`; do chmod 755 $i; ln -s $i $BIN/$(basename $i)  ; done
 for i in `find $DD/NGS-pipeline/  | grep py$`; do chmod 755 $i; ln -s $i $BIN/$(basename $i)  ; done

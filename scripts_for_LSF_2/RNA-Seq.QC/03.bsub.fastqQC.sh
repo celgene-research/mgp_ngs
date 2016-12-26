@@ -1,1 +1,0 @@
-../bin/03.bsub.fastqQC.sh

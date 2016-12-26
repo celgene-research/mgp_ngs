@@ -1,1 +1,0 @@
-../bin/81.bsub.cuffmerge.sh

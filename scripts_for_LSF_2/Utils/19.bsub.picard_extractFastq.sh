@@ -1,1 +1,0 @@
-../bin/19.bsub.picard_extractFastq.sh
