@@ -4,6 +4,7 @@
 # vars
 study <- "MMRF"
 d <- format(Sys.Date(), "%Y-%m-%d")
+source("curation_scripts.R")
 
 # locations
 s3clinical    <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData"
@@ -37,6 +38,47 @@ name <- "file_inventory.txt"
   path <- file.path(local,name)
   write.table(inv, path, row.names = F, col.names = T, sep = "\t", quote = F)
 
+################################################
+# fetch SRR encoded WGS filenames directly from S3
+  df <- data.frame(File_Path = system(paste('aws s3 ls', 
+                           's3://celgene.rnd.combio.mmgp.external/SeqData/WGS/OriginalData/MMRF/',
+                           '--recursive |',
+                           'grep "2.fastq.gz$" | sed "s/.*SeqData/SeqData/"',
+                           sep = " "), intern = T),
+                   Study = "MMRF",
+                   Sequencing_Type = "WGS",
+                   Study_Phase = "",
+                   stringsAsFactors = F)
+  df[['File_Name_Actual']] <- gsub(".*(SRR.*)", "\\1", df$File_Path)
+  
+  # these files are named by the SRR run number and must to converted
+  # I'm using the import table from Kostas, but this can also be downloaded from SRA
+  name <- "data.import.WGS.Kostas.IA3-IA7.xls"
+  system(paste("aws s3 cp",
+               file.path(s3, "SeqData/WGS/OriginalData/MMRF", name),
+               file.path(local, name),
+               sep = " "))
+  kostas.import <- read.delim(file.path(local, name), stringsAsFactors = F)
+  mapping <- data.frame(File_Name_Actual = gsub(".*(SRR.*)", "\\1", kostas.import$filename),
+                        File_Name        = kostas.import$vendor_id,
+                        stringsAsFactors = F)
+  
+  df <- merge(df, mapping, by = "File_Name_Actual", all.x = T)
+  
+  # we can also parse directly from the MMRF names
+  df[['Sample_Name']]    <- gsub("^(MMRF_[0-9]+_[0-9]+)_.*$", "\\1", df$File_Name)
+  df[['Patient']]    <- gsub("^(MMRF_[0-9]+)_[0-9]+_.*$", "\\1", df$File_Name)
+  df[['Sample_Type']]    <-  ifelse(grepl("CD138pos",df$File_Name), "NotNormal", "Normal")
+  df[['Sample_Type_Flag']]<- ifelse(grepl("CD138pos",df$File_Name), "1", "0")
+  df[['Tissue_Type']]    <-  ifelse(grepl("BM",df$File_Name), "BM", "PB")
+  df[['Cell_Type']]      <-  gsub(".{12}[PBM]+_([A-Za-z0-9]+)_[CT]\\d.*","\\1",df$File_Name)
+  df[['Disease_Status']] <-  ifelse(grepl("1$", df$Sample_Name),"ND", "R")
+
+  name <- "mmrf.wgs.inventory.lookup.txt"
+  name <- paste("curated", study, name, sep = "_")
+  path <- file.path(local,name)
+  write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
+  
 ################################################
 # curate per_visit entries with samples taken for the sample-level table
 name <- "PER_PATIENT_VISIT.csv"
