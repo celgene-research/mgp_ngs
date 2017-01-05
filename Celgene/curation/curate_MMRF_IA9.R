@@ -7,23 +7,27 @@ d <- format(Sys.Date(), "%Y-%m-%d")
 source("curation_scripts.R")
 
 # locations
-s3clinical    <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData"
+s3            <- "s3://celgene.rnd.combio.mmgp.external"
 raw_inventory <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/Integrated/file_inventory.txt"
-# ia9_data      <- "s3://celgene.rnd.combio.mmgp.external/MMRF_CoMMpass_IA9/clinical_data_tables/CoMMpass_IA9_FlatFiles/"
-ia9_data      <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData/OriginalData/MMRF_IA9/"
+
+# as a failsafe to prevent reading older versions of source files remove the 
+#  cached version file if transfer was successful.
 local         <- "/tmp/curation"
-  if(!dir.exists(local)){dir.create(local)}
+system(paste0("rm -r ", local))
+dir.create(local)
 
 # get current original files
-original <- file.path(ia9_data)
+original <- file.path(s3,"ClinicalData/OriginalData/MMRF_IA9/")
 system(  paste('aws s3 cp', original, local, '--recursive', sep = " "))
 system(  paste('aws s3 cp', raw_inventory, local, sep = " "))
 
-################################################
-# clean up the MMRF inventory entries
+### file_inventory -------------------------
 name <- "file_inventory.txt"
   inv <- read.delim(file.path(local,name), stringsAsFactors = F)
   inv <- inv[inv$Study == "MMRF",]
+  
+  # remove Sequencing_Type and only use from SeqQC source table
+  inv$Sequencing_Type <- NULL
   # we can also parse a few more fields from the MMRF names
   inv[['File_Name_Actual']] <- inv$File_Name
   # remove filename extension
@@ -38,7 +42,7 @@ name <- "file_inventory.txt"
   path <- file.path(local,name)
   write.table(inv, path, row.names = F, col.names = T, sep = "\t", quote = F)
 
-################################################
+### file_inventory.2 -------------------------
 # fetch SRR encoded WGS filenames directly from S3
   df <- data.frame(File_Path = system(paste('aws s3 ls', 
                            's3://celgene.rnd.combio.mmgp.external/SeqData/WGS/OriginalData/MMRF/',
@@ -46,7 +50,6 @@ name <- "file_inventory.txt"
                            'grep "2.fastq.gz$" | sed "s/.*SeqData/SeqData/"',
                            sep = " "), intern = T),
                    Study = "MMRF",
-                   Sequencing_Type = "WGS",
                    Study_Phase = "",
                    stringsAsFactors = F)
   df[['File_Name_Actual']] <- gsub(".*(SRR.*)", "\\1", df$File_Path)
@@ -74,12 +77,39 @@ name <- "file_inventory.txt"
   df[['Cell_Type']]      <-  gsub(".{12}[PBM]+_([A-Za-z0-9]+)_[CT]\\d.*","\\1",df$File_Name)
   df[['Disease_Status']] <-  ifelse(grepl("1$", df$Sample_Name),"ND", "R")
 
-  name <- "mmrf.wgs.inventory.lookup.txt"
+  name <- "file.inventory.2.txt"
   name <- paste("curated", study, name, sep = "_")
   path <- file.path(local,name)
   write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
   
-################################################
+### IA9_Seq_QC_Summary -------------------------
+# apply higher level sample  variables using IA9 Seq QC table
+  name <- "MMRF_CoMMpass_IA9_Seq_QC_Summary.xlsx"
+  system(paste("aws s3 cp",
+               file.path(s3, "MMRF_CoMMpass_IA9/README_FILES", name),
+               file.path(local, name),
+               sep = " "))
+  
+  df <- readxl::read_excel(file.path(local, name))
+  df <- data.frame(File_Name       = df$`QC Link SampleName`,
+                   Sample_Name     = df$`Visits::Study Visit ID`,
+                   Sequencing_Type = gsub("(.*)-.*", "\\1", df$MMRF_Release_Status),
+                   Excluded_Flag   = ifelse(grepl("^Exclude|RNA-No|LI-Neither|Exome-Neither",df$MMRF_Release_Status),1,0),                           
+                   Excluded_Specify = df$MMRF_Release_Status,                           
+                   stringsAsFactors = F)
+  
+  # remove exclude_specify for retained samples
+  df[df$Excluded_Flag == 0,"Excluded_Specify"] <- NA
+  df[df$Sequencing_Type == "Exclude", "Sequencing_Type"] <- NA
+  df$Sequencing_Type <- plyr::revalue(df$Sequencing_Type, c(RNA="RNA-Seq", 
+                                                               LI="WGS", 
+                                                               Exome="WES"))
+  
+  name <- paste("curated", study, gsub("xlsx","txt",name), sep = "_")
+  path <- file.path(local,name)
+  write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
+  
+### PER_PATIENT_VISIT -------------------------
 # curate per_visit entries with samples taken for the sample-level table
 name <- "PER_PATIENT_VISIT.csv"
   pervisit <- read.csv(file.path(local,name), stringsAsFactors = F, 
@@ -149,7 +179,7 @@ name <- "PER_PATIENT_VISIT.csv"
   write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
   rm(df, pervisit, tumor_lookup)
 
-################################################
+### PER_PATIENT -------------------------
 # curate PER_PATIENT entries, requires some standalone tables for calculations
 name <- "PER_PATIENT.csv"
   perpatient <- read.csv(file.path(local,name), stringsAsFactors = F)
@@ -258,17 +288,10 @@ name <- "PER_PATIENT.csv"
   write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
   rm(df)
 
-#######
-
+### cleanup -------------------------
 rm(inv, famhx, medhx, respo, survival, treat, perpatient)
 
 # put curated files back as ProcessedData on S3
-processed <- file.path(s3clinical,"ProcessedData",paste0(study,"_IA9"))
+processed <- file.path(s3,"ClinicalData/ProcessedData",paste0(study,"_IA9"))
 system(  paste('aws s3 cp', local, processed, '--recursive --exclude "*" --include "curated*" --sse', sep = " "))
-return_code <- system('echo $?', intern = T)
 
-# as a failsafe to prevent reading older versions of source files remove the 
-#  cached version file if transfer was successful.
-if(return_code == "0") system(paste0("rm -r ", local))
-  
-  
