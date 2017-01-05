@@ -20,6 +20,17 @@ s3_writer <- function(s3_prefix = "s3://celgene.rnd.combio.mmgp.external/", s3_p
 }
 write_to_s3integrated <- s3_writer(s3_path = "/ClinicalData/ProcessedData/Integrated/")
 
+#currently only works for tab-delim tables
+GetS3Table <- function(s3.path, cache = F){
+  name  <- basename(s3.path)
+  local <- file.path("/tmp", name)
+  system(  paste('aws s3 cp', s3.path, local, sep = " "))
+  df <- read.delim(local, sep = "\t", stringsAsFactors = F)
+  if(cache == FALSE){unlink(local)}
+  df
+}
+
+
 merge_table_files <- function(df1, df2, id = "File_Name"){
   
   df <- merge(x = df1, y = df2, by = id, all = T)
