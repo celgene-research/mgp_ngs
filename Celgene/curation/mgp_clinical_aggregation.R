@@ -10,13 +10,9 @@ source("table_merge.R")
 
 # locations
 s3clinical      <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData"
-local      <- "/tmp/curation"
-if(!dir.exists(local)){
-  dir.create(local)
-} else {
-  system(paste0("rm -r ", local))
-  dir.create(local)
-}
+local         <- "/tmp/curation"
+system(paste0("rm -r ", local))
+dir.create(local)
 
 # We are editing the dictionary spreadsheet locally, so push latest to s3
 system(  paste('aws s3 cp',"mgp_dictionary.xlsx" , file.path(s3clinical, "ProcessedData", "Integrated", "mgp_dictionary.xlsx"), "--sse ", sep = " "))
@@ -60,7 +56,7 @@ for(f in files){
   per.file$Sample_Name_Tissue_Type <- paste(per.file$Sample_Name, per.file$Tissue_Type, sep="_")
   per.file <- cytogenetic_consensus_calling(per.file)
   
-  # report_unique_patient_counts(per.file, sink_file = file.path(local,"report_unique_patient_counts.txt"))
+  report_unique_patient_counts(per.file, sink_file = file.path(local,"report_unique_patient_counts.txt"))
 
  
 ###
