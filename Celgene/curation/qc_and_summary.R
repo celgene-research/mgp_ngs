@@ -1,14 +1,14 @@
 
 remove_invalid_samples <- function(df){
-# manually remove patients marked as excluded in the DFCI study
-dfci_discontinued_patients <- c("PD4282a", "PD4282b", "PD4282c", "PD4287a", "PD4287b", "PD4287c", 
-                                "PD4297a", "PD4297b", "PD4297c", "PD4298a", "PD4298b")
-
-df <- df[!(df$File_Name %in% dfci_discontinued_patients),]
-df <- df[!is.na(df$File_Name),]
-
-if( "File_Path" %in% names(df) ) {df <- df[!is.na(df$File_Path),]}
-df
+  # manually remove patients marked as excluded in the DFCI study
+  dfci_discontinued_patients <- c("PD4282a", "PD4282b", "PD4282c", "PD4287a", "PD4287b", "PD4287c", 
+                                  "PD4297a", "PD4297b", "PD4297c", "PD4298a", "PD4298b")
+  
+  df <- df[!(df$File_Name %in% dfci_discontinued_patients),]
+  df <- df[!is.na(df$File_Name),]
+  
+  if( "File_Path" %in% names(df) ) {df <- df[!is.na(df$File_Path),]}
+  df
 }
 
 remove_sensitive_columns <- function(df, dict){
@@ -49,25 +49,30 @@ add_inventory_flags <- function(df_perpatient, df_perfile){
   # df_perfile <- per.file
   
   check_by_patient <- check.value("Patient")
-
-  df_perpatient[["INV_Has.sample"]] <- "1"
+  
+  df_perpatient[["INV_Has.sample"]] <- ifelse(df_perpatient$Patient %in% df_perfile$Patient, 1,0)
   
   dat <- df_perfile
   df_perpatient[["INV_Has.ND.sample"]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "Disease_Status", value = "ND", unique_match = F)),1,0)
   df_perpatient[["INV_Has.R.sample"]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "Disease_Status", value = "R", unique_match = F)),1,0)
   df_perpatient[["INV_Has.Normal.sample"]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "Sample_Type", value = "Normal", unique_match = F)),1,0)
   df_perpatient[["INV_Has.NotNormal.sample"]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "Sample_Type", value = "NotNormal", unique_match = F)),1,0)
-
+  
   dat <- df_perfile[df_perfile$Disease_Status == "ND",]
   df_perpatient[["INV_Has.ND.Normal.sample"]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "Sample_Type", value = "Normal", unique_match = F)),1,0)
   df_perpatient[["INV_Has.ND.NotNormal.sample"]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "Sample_Type", value = "NotNormal", unique_match = F)),1,0)
   df_perpatient[["INV_Has.ND.Normal.NotNormal.sample"]] <- ifelse(df_perpatient[["INV_Has.ND.Normal.sample"]] + df_perpatient[["INV_Has.ND.NotNormal.sample"]] == 2,1,0)
   
+  dat <- df_perfile
+  df_perpatient[["INV_Has.WES"]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "Sequencing_Type", value = "WES", unique_match = F)),1,0)
+  df_perpatient[["INV_Has.RNASeq"]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "Sequencing_Type", value = "RNA-Seq", unique_match = F)),1,0)
+  df_perpatient[["INV_Has.WGS"]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "Sequencing_Type", value = "WGS", unique_match = F)),1,0)
+  
   dat <- df_perfile[df_perfile$Disease_Status == "ND",]
   df_perpatient[["INV_Has.ND.WES"]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "Sequencing_Type", value = "WES", unique_match = F)),1,0)
   df_perpatient[["INV_Has.ND.RNASeq"]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "Sequencing_Type", value = "RNA-Seq", unique_match = F)),1,0)
   df_perpatient[["INV_Has.ND.WGS"]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "Sequencing_Type", value = "WGS", unique_match = F)),1,0)
- 
+  
   dat <- df_perfile[df_perfile$Disease_Status == "R",]
   df_perpatient[["INV_Has.R.WES"]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "Sequencing_Type", value = "WES", unique_match = F)),1,0)
   df_perpatient[["INV_Has.R.RNASeq"]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "Sequencing_Type", value = "RNA-Seq", unique_match = F)),1,0)
@@ -88,7 +93,7 @@ add_inventory_flags <- function(df_perpatient, df_perfile){
     c_name <- paste0("INV_Has.R.NotNormal.", gsub("^.*_(.*_.*)$","\\1",c))
     df_perpatient[[c_name]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = c, value = "0|1", unique_match = F)),1,0)
   }
-
+  
   dat <- df_perpatient
   df_perpatient[["INV_Has.ISS"]]     <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "D_ISS",     value = "\\d", unique_match = F)),1,0)
   df_perpatient[["INV_Has.OS"]]      <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "D_OS",      value = "\\d", unique_match = F)),1,0)
@@ -107,12 +112,14 @@ get_inventory_counts <- function(df_perpatient){
   names(df) <- df[1,]
   df <- df[2:nrow(df),]
   
-  df["Total"] <- apply(df[,2:ncol(df)], MARGIN = 1, function(x){sum(as.integer(x))})
+  df["Total"] <- apply(df, MARGIN = 1, function(x){sum(as.integer(x))})
   
   df[['Category']] <- row.names(df)
   
   
   write_to_s3integrated(df, "report_inventory_counts.txt")
+  
+  df$Category <- NULL
   df
 }
 
@@ -125,7 +132,7 @@ summarize_clinical_parameters <- function(df_perpatient){
   df <- aggregate.data.frame(df[, names(df) %in% summary_fields ], by = list(df$Study), function(x){
     round(mean(as.numeric(x), na.rm = T),2)
   })
- 
+  
   #rename and reorder
   names(df) <- c("Study", "Mean_Age", "Mean_OS_days", "Proportion_Deceased", "Mean_PFS_days", "Proportion_Progressed", "Proportion_Gender_male")
   df<- df[, c("Study", "Mean_Age", "Proportion_Gender_male", "Mean_OS_days", "Proportion_Deceased", "Mean_PFS_days", "Proportion_Progressed")]  
@@ -142,7 +149,7 @@ export_sas <- function(df, dict, name){
   # 32 char limit only symbol allowed is "_"
   # export to sas automatically replaces each symbol with "_", truncates to 32 but has
   # strange truncation rules (first lower case letters and then trailing upper case letters?)
-
+  
   names(df) <- CleanColumnNamesForSAS(names(df))
   dict[['clean.names']] <- CleanColumnNamesForSAS(dict$names)
   
@@ -185,7 +192,7 @@ export_sas <- function(df, dict, name){
   
   # edit sas import table such that empty columns have character length = 1
   system( paste('sed -i "s/\\$ 0$/\\$ 1/" ', local.code.path, sep = " "))
-         
+  
   system(paste("aws s3 cp", 
                local.data.path, 
                file.path(s3clinical, "ProcessedData", "Integrated", "sas", paste0(root,".txt")),
