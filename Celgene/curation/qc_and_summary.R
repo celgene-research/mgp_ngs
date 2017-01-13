@@ -1,13 +1,47 @@
-
+# columns required for df: c("Sample_Name", "File_Path", "Excluded_Flag")
 remove_invalid_samples <- function(df){
-  # manually remove patients marked as excluded in the DFCI study
-  dfci_discontinued_patients <- c("PD4282a", "PD4282b", "PD4282c", "PD4287a", "PD4287b", "PD4287c", 
-                                  "PD4297a", "PD4297b", "PD4297c", "PD4298a", "PD4298b")
   
-  df <- df[!(df$File_Name %in% dfci_discontinued_patients),]
-  df <- df[!is.na(df$File_Name),]
+  # remove rows without a valid File_Name
+  if( "File_Path" %in% names(df) ){
+    df <- df[!is.na(df$File_Path),]
+  }
   
-  if( "File_Path" %in% names(df) ) {df <- df[!is.na(df$File_Path),]}
+  # warn if they don't have a Sample_Name
+  if( any(is.na(df$Sample_Name)) ){
+    warning(paste(sum(is.na(df$Sample_Name)),  
+                  "rows do not have a valid Sample_Name",
+                  sep = " "))
+  }
+  # Get the table of excluded patients
+  ex <- GetS3Table(file.path("s3://celgene.rnd.combio.mmgp.external",
+                             "ClinicalData/ProcessedData/JointData",
+                             "Excluded_Samples.txt"))
+  
+  # Identify excluded samples
+  excluded.samples <- (!is.na(df$Sample_Name)   & df$Sample_Name %in% ex$Sample_Name) | 
+                      (!is.na(df$Excluded_Flag) & df$Excluded_Flag == "1")
+  
+  # warn and log samples if any are removed
+  if( any(excluded.samples) ){
+    warning(paste(sum(excluded.samples),  
+                  "samples were removed that have been excluded",
+                  sep = " ")
+    )
+    
+    
+    out <- df[excluded.samples, c("Sample_Name", "File_Path")]
+    out <- merge(out,ex, by = "Sample_Name", all.x = T)
+    
+    spec <- df[!is.na(df$Excluded_Specify),c("Sample_Name", "Excluded_Specify")]
+    out <- merge(out,spec, by = "Sample_Name", all.x = T)
+    
+    write.table(x = out,
+                file = file.path(local, "excluded_filenames.txt"),
+                sep = "\t", row.names = F)
+  }
+  
+  df <- df[!(excluded.samples),]
+  
   df
 }
 
@@ -103,6 +137,7 @@ add_inventory_flags <- function(df_perpatient, df_perfile){
   
   df_perpatient
 }
+
 
 get_inventory_counts <- function(df_perpatient){
   df <- aggregate.data.frame(df_perpatient[,grepl("Has",names(df_perpatient))], by = list(df_perpatient$Study), function(x){
