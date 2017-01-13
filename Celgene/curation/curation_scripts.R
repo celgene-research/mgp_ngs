@@ -172,33 +172,6 @@ append_df <- function(main, new, id = "Patient",
   return(main)
 }
 
-lookup.values <- function(id) {
-  function(..., dat, field, separator = "; ") {
-    tryCatch({
-      
-      #if blank or NA search terms are supplied return NA
-      if(any( c(NA, "") %in% c(...))) {return(NA)}
-      
-      # create logical lists for each dat[[id]]==X selection set
-      opts <- mapply(id, c(...), FUN = function(i,x){ dat[[i]] == x }, SIMPLIFY = F)
-      # reduce multiple lists to a single logical selector
-      selector <-  Reduce("&", opts)
-      
-      # this function does have the potential to select multiple fields that
-      #  must be merged before return to conserve proper dimensionality
-      foo <- dat[[field]][selector]
-      # return NA if that's all there is
-      if(all(is.null(foo))){return(NA)}
-      if(all(is.na(foo))){return(NA)}
-      # remove blank elements
-      foo <- foo[foo != ""]
-      # reduce to case-insensitive unique elements, only capitalize if there are case differences
-      if(!identical(toupper(unique(foo)),unique(toupper(foo)))){ foo <- toupper(foo)}
-      paste(unique(na.exclude(foo)), collapse = separator)
-    },error=function(e){NA})
-  }
-}
-
 cytogenetic_consensus_calling <- function(df, log_file_path = "/tmp/cyto_consensus.log"){
   
   # this script performs 3 sequential functions
