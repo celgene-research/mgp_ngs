@@ -9,10 +9,8 @@ source("table_merge.R")
 
 
 # locations
-s3clinical      <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData"
-local         <- "/tmp/curation"
-system(paste0("rm -r ", local))
-dir.create(local)
+s3clinical <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData"
+local      <- CleanLocalScratch()
 
 # We are editing the dictionary spreadsheet locally, so push latest to s3
 system(  paste('aws s3 cp',"mgp_dictionary.xlsx" , file.path(s3clinical, "ProcessedData", "Integrated", "mgp_dictionary.xlsx"), "--sse ", sep = " "))
