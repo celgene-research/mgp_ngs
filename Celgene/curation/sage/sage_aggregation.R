@@ -11,7 +11,7 @@
 #       <mgp_dictionary.xlsx> and values are coerced into ontologically accurate values. 
 #       These files are not filtered or organized per-se, but provides a nice reference 
 #       for where curated value columns are derived.
-#  2.) mgp_clinical_aggregated.R is used to leverage our append_df() function, which 
+#  2.) sage_aggregation.R is used to leverage our append_df() function, which 
 #       loads curated columns (those matching a dictionary column) from each table 
 #       into the main integrated table. 
 #  3.) TODO: QC to enforces ontology rules to ensure all columns adhere to 
@@ -26,21 +26,20 @@ source("qc_and_summary.R")
 
 # locations
 s3clinical      <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData"
-integrated_path <- file.path(s3clinical,"ProcessedData", "Integrated")
 processed_path  <- file.path(s3clinical,"ProcessedData")
-local_path      <- "/tmp/curation"
-if(!dir.exists(local_path)){dir.create(local_path)}
+sage_path <- file.path(s3clinical,"ProcessedData", "Sage")
+local      <- CleanLocalScratch()
 
 # We are editing the dictionary spreadsheet locally, so push latest to s3
-system(  paste('aws s3 cp',"mgp_dictionary.xlsx" , file.path(integrated_path, "mgp_dictionary.xlsx"), "--sse ", sep = " "))
+system(  paste('aws s3 cp',"./sage/sage_dictionary.xlsx" , file.path(sage_path, "sage_dictionary.xlsx"), "--sse ", sep = " "))
 
 # copy files locally
 # dictionary, curated files
-system(  paste('aws s3 cp', processed_path, local_path, '--recursive --exclude "*" --include "MMRF_IA8*" --include "*mgp_dictionary*"', sep = " "))
+system(  paste('aws s3 cp', processed_path, local, '--recursive --exclude "*" --include "MMRF_IA8*" --include "*sage_dictionary*"', sep = " "))
 
 ##############
 # The dictionary is used as a starting framework for each level table
-dict <- as.data.frame(readxl::read_excel(file.path(local_path, "Integrated", "mgp_dictionary.xlsx")))
+dict <- as.data.frame(readxl::read_excel(file.path(local, "Integrated", "mgp_dictionary.xlsx")))
 dict <- dict[dict$active == 1,]
 
   ################################################
@@ -53,7 +52,7 @@ dict <- dict[dict$active == 1,]
   write.table(sage_dict, file.path(local, "MMRF_curated_dictionary.txt"), row.names = F, col.names = T, sep = "\t", quote = F)
   rm(sage_dict)
 
-files <- list.files(local_path, pattern = "curated*", full.names = T, recursive = T)
+files <- list.files(local, pattern = "curated*", full.names = T, recursive = T)
 
 ###
 ### FILE_LEVEL AGGREGATION
