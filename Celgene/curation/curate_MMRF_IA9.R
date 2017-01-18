@@ -254,11 +254,11 @@ name <- "PER_PATIENT.csv"
     last.visit  = as.numeric(unlist(lapply(df$Patient, lookup_by_publicid, dat = survival, field = "lvisitdy")))
   )
   
-  df[["D_PFS"]] <- apply(progression_matrix, MARGIN = 1, function(x){
-    foo <- c( x[[2]], x[[3]])
+  df[["D_PFS"]] <-apply(progression_matrix, MARGIN = 1, function(x){
+    foo <- c( x[['last.alive']], x[['last.visit']])
     # if there is an observed progression, report it
-    if( !is.na(x[[1]]) ){
-      return(x[[1]])
+    if( !is.na(x[['observed.pd']]) ){
+      return(x[['observed.pd']])
   
       #else if there is a last visit or last alive day, use the larger
     } else if( any(!is.na(foo)) ){
