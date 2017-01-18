@@ -239,8 +239,8 @@ name <- "PER_PATIENT.csv"
   # For the OS Flag, it turns out "death day" is a more consistent field than the 
   #  D_PT_DISCREAS flag, which was missing for a few patients that had a death date. 
   #  Flag the patient if they are deceased; 0=no (deathdy == NA); 1=yes (deathdy != NA)
-  df[["D_OS_FLAG"]] <- ifelse( is.na( unlist(
-    lapply(df$Patient, lookup_by_publicid, dat = survival, field = "deathdy"))),
+  df[["D_OS_FLAG"]] <- ifelse( is.na( as.numeric(unlist(
+    lapply(df$Patient, lookup_by_publicid, dat = survival, field = "deathdy")))),
     0,1)
   
   # Progression Free time: time to progression for those who progressed; (ttfpd =	Time to first PD)
