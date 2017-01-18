@@ -1,4 +1,11 @@
-
+# this function does not allow specification of directory to 
+# prevent inadvertant file deletion 
+CleanLocalScratch <- function(){
+  local.path = "/tmp/curation/"
+  if(dir.exists(local.path)){system(paste('rm -r', local.path, sep = " "))}
+  dir.create(local.path)
+  local.path
+  }
 
 # write_to_s3integrated <- s3_writer(s3_path = "/ClinicalData/ProcessedData/Integrated/")
 # write_to_s3integrated(foo = new, name = "test.txt")
