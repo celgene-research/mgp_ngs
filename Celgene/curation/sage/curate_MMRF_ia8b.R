@@ -154,12 +154,12 @@ df[['D_OS']] <- as.integer(unlist(apply(df, MARGIN = 1, function(x){
 # For the OS Flag, it turns out "death day" is a more consistent field than the 
 #  D_PT_DISCREAS flag, which was missing for a few patients that had a death date. 
 #  Flag the patient if they are deceased; 0=no (deathdy == NA); 1=yes (deathdy != NA)
-df[["D_OS_FLAG"]] <- ifelse( is.na( unlist(
-  lapply(df$Patient, lookup_by_publicid, dat = survival, field = "deathdy"))),
+df[["D_OS_FLAG"]] <- ifelse( is.na( as.numeric(unlist(
+  lapply(df$Patient, lookup_by_publicid, dat = survival, field = "deathdy")))),
   0,1)
 
 # Progression Free time: time to progression for those who progressed; (ttfpd =	Time to first PD)
-#  time to last contact or oscdy for those who still have not progressed (mmrf.PER_PATIENT$D_PT_lvisitdy)
+#  max of time to last contact or oscdy for those who still have not progressed (mmrf.PER_PATIENT$D_PT_lvisitdy)
 # or did not progress before death from another cause.
 df[["D_PFS"]] <- apply(df, MARGIN = 1, function(x){
     last.days <- as.numeric(c( x[['D_PT_lstalive']], x[['D_PT_lvisitdy']], x[['oscdy']]))
@@ -205,9 +205,5 @@ rm(inv)
 # put curated files back as ProcessedData on S3
 processed <- file.path(s3clinical, "ProcessedData", paste0(study,"_IA8"))
 system(  paste('aws s3 cp', local, processed, '--recursive --exclude "*" --include "curated*" --sse', sep = " "))
-return_code <- system('echo $?', intern = T)
 
-# as a failsafe to prevent reading older versions of source files remove the 
-#  cached version file if transfer was successful.
-if(return_code == "0") system(paste0("rm -r ", local))
 
