@@ -1,59 +1,30 @@
 
-table_merge <- function(){
-  # merge final clinical tables with desired summary analysis tables
-  s3clinical      <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData"
-  local_path      <- "/tmp/curation"
-  if(!dir.exists(local_path)){dir.create(local_path)}
+table_merge <- function(per.file, per.patient){
   
-  source("curation_scripts.R")
-  write_to_s3integrated <- s3_writer(s3_path = "/ClinicalData/ProcessedData/Integrated/")
-  
-  # copy curated files locally
-  system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "Integrated"), local_path, '--recursive --exclude "*" --include "PER*"', sep = " "))
-  system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "JointData"), local_path, '--recursive --exclude "*" --include "curated*"', sep = " "))
-  
+  s3joint    <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/JointData"
+
   #######################
-  # add patient level information, this will be redundant
-  
-  name <- "PER-FILE_clinical_cyto.txt"
-  per_file <- read.delim(file.path(local_path,name), sep = "\t", check.names = F, as.is = T, stringsAsFactors = F)
-  
-  name <- "PER-PATIENT_clinical.txt"
-  per_patient <- read.delim(file.path(local_path,name), sep = "\t", check.names = F, as.is = T, stringsAsFactors = F)
-  
-  df <-  merge_table_files(df1 = per_file, df2 = per_patient, id = c("Patient", "Study"))
+  # Merge per-patient data onto per-file table, this will be redundant
+  df <-  merge_table_files(df1 = per.file, df2 = per.patient, id = c("Patient", "Study"))
   
   #######################
   # CNV
   print("CNV Merge........................................", quote = F)
-  
-  name <- "curated_CNV_ControlFreec.txt"
-  cnv <- read.delim(file.path(local_path,name), sep = "\t", check.names = F, as.is = T, stringsAsFactors = F)
-  
+  cnv <- GetS3Table(file.path(s3joint,"curated_CNV_ControlFreec.txt"))
   df <-  merge_table_files(df1 = df, df2 = cnv, id = "File_Name")
   
   #######################
   # Biallelic Inactivation Flags
   print("BI Merge.........................................", quote = F)
-  
-  name <- "curated_BiallelicInactivation_Flag.txt"
-  bi <- read.delim(file.path(local_path,name), sep = "\t", check.names = F, as.is = T, stringsAsFactors = F)
-  
+  bi <- GetS3Table(file.path(s3joint,"curated_BiallelicInactivation_Flag.txt"))
   df <-  merge_table_files(df1 = df, df2 = bi, id = "File_Name")
   
   #######################
   # SNV
-  print("SNV Merge........................................", quote = F)
+  # print("SNV Merge........................................", quote = F)
+  # bi <- GetS3Table(file.path(s3joint,"curated_SNV_mutect2.txt"))
+  # df <-  merge_table_files(df1 = df, df2 = snv, id = "File_Name")
   
-  name <- "curated_SNV_mutect2.txt"
-  snv <- read.delim(file.path(local_path,name), sep = "\t", check.names = F, as.is = T, stringsAsFactors = F)
-  
-  df <-  merge_table_files(df1 = df, df2 = snv, id = "File_Name")
-  
-  #######################
-  # put back the all table
-  write_to_s3integrated(df, name = "PER-FILE_ALL.txt")
-
   return(df)
   }
 

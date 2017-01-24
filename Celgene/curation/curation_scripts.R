@@ -1,11 +1,11 @@
 # this function does not allow specification of directory to 
 # prevent inadvertant file deletion 
 CleanLocalScratch <- function(){
-  local.path = "/tmp/curation/"
-  if(dir.exists(local.path)){system(paste('rm -r', local.path, sep = " "))}
-  dir.create(local.path)
-  local.path
-  }
+  path = "/tmp/curation"
+  if(dir.exists(path)){system(paste('rm -r', path, sep = " "))}
+  dir.create(path)
+  path
+}
 
 # write_to_s3integrated <- s3_writer(s3_path = "/ClinicalData/ProcessedData/Integrated/")
 # write_to_s3integrated(foo = new, name = "test.txt")
@@ -26,7 +26,48 @@ s3_writer <- function(s3_prefix = "s3://celgene.rnd.combio.mmgp.external/", s3_p
   }
 }
 write_to_s3integrated <- s3_writer(s3_path = "/ClinicalData/ProcessedData/Integrated/")
-write_to_archive      <- s3_writer(s3_path = "/ClinicalData/ProcessedData/Integrated/Archive/")
+
+# copies all updated s3 files in a specified directory prefix to an ./Archive subfolder
+#  and appends current date
+Snapshot <- function( prefix ){
+  
+  pre     <- system(paste('aws s3 ls', paste0(prefix, "/"), sep = " "), intern = T)
+  archive <- system(paste('aws s3 ls', paste0(file.path(prefix, "Archive"),"/"), sep = " "), intern = T)
+  
+  archive.table <- data.frame(
+    root    = gsub(".*[0-9] (.*)_[0-9].*","\\1",archive),
+    version = gsub(".*_(.*)\\..*","\\1",archive),
+    stringsAsFactors = F
+  )
+  library(plyr)
+  archive.table <- ddply(archive.table, .(root), summarise, latest = max(version) )
+  
+  current.table <- data.frame(
+    date  = gsub("^([0-9\\-]+).*","\\1",pre),
+    root  = gsub(".* ([^0-9].*)\\..*","\\1",pre),
+    path  = gsub(".* ([^0-9].*\\..*)","\\1",pre),
+    stringsAsFactors = F
+  )
+  # only keep well parsed rows
+  current.table <- current.table[grepl("[0-9\\-]+", current.table$date),]
+  
+  out <- unlist(lapply(current.table$root, function(x){
+    version <- current.table[current.table$root == x,"date"]
+    archive <- archive.table[archive.table$root == x,"latest"]
+    if( (length(archive) == 0) || (version >= archive) ){
+    
+      name   <- current.table[current.table$root == x,"path"]
+      d.name <- gsub("(.*)(\\..*)",  paste0("\\1_",d,"\\2"), name)
+      start  <- file.path(prefix, name)
+      end    <- file.path(prefix, "Archive", d.name)
+      system(paste("aws s3 cp",start, end, "--sse", sep = " "))
+      d.name
+    }
+  }))
+  
+  out
+}
+
 #currently only works for tab-delim tables
 GetS3Table <- function(s3.path, cache = F){
   name  <- basename(s3.path)
@@ -99,7 +140,7 @@ append_df <- function(main, new, id = "Patient",
   # add column to force merged sorting
   main[['table']] <- "main"
   new[['table']]  <- "new"
-
+  
   p <- new[[id]]
   n <- names(new)
   
@@ -123,10 +164,10 @@ append_df <- function(main, new, id = "Patient",
       new_values     <- x[2:length(x)]
       had_value      <- !is.na(original_values) & original_values != ""
       has_new_value  <- any(!is.na(new_values)) & any(new_values != "")
-
+      
       original_values <- clean_values(original_values)
       new_values <- clean_values(new_values)
-
+      
       # Cases:
       # if didn't have a value,      return the new value, this works with blank new values too
       # else if value is the same,   return the value
@@ -134,7 +175,7 @@ append_df <- function(main, new, id = "Patient",
       # else if the mode is replace, return the new values
       # else if the mode is safe,    return the old value and warning
       # else warning 
-
+      
       if( had_value == FALSE ){
         out <- new_values
       }else if(has_new_value & all(new_values == original_values)){
@@ -151,17 +192,17 @@ append_df <- function(main, new, id = "Patient",
         out <- original_values
         warning("Error005 during datamerge")
       }
-
+      
       if(length(out) == 0){out<-NA}
       if(all(is.na(out))){
         out <- NA
       }else{
         out <- paste(out, collapse = delim)
-        }
-
+      }
+      
       return(out)
     }) 
-
+    
     a <- c(a, table="joined")
     a
   })
@@ -243,7 +284,7 @@ cytogenetic_consensus_calling <- function(df, log_file_path = "/tmp/cyto_consens
           }
         })
         names(by_technique) <- techniques
-
+        
         # remove NA techniques
         by_technique <- by_technique[!is.na(by_technique)]
         
@@ -333,10 +374,10 @@ cytogenetic_consensus_calling <- function(df, log_file_path = "/tmp/cyto_consens
     df <- tmp
     rm(tmp)
   }else{warning('dimensions do not match between the merged table and file table')}
-
+  
   ### STEP 3
   ### Other cytogenetic consensus calls
-    
+  
   # other deletions and amplifications are called on a sample bases and do not need longitudinal harmony
   other_cyto <- grep("^CYTO_([da1HM].*)_CONSENSUS", names(df), value = T)
   other_cyto <- gsub("^CYTO_([da1HM].*)_CONSENSUS", "\\1", other_cyto)
@@ -362,12 +403,12 @@ cytogenetic_consensus_calling <- function(df, log_file_path = "/tmp/cyto_consens
       
       # if any are remaining return the last element
       if( length(x) > 0 ){return(x[length(x)])
-        }else({return(NA)})
+      }else({return(NA)})
       
     })    
     
     df[[paste("CYTO",t,"CONSENSUS" , sep="_")]] <- consensus
-
+    
   }  
   
   close.connection(log_con)
