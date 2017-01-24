@@ -22,8 +22,8 @@ table_merge <- function(per.file, per.patient){
   #######################
   # SNV
   # print("SNV Merge........................................", quote = F)
-  # bi <- GetS3Table(file.path(s3joint,"curated_SNV_mutect2.txt"))
-  # df <-  merge_table_files(df1 = df, df2 = snv, id = "File_Name")
+  snv <- GetS3Table(file.path(s3joint,"curated_SNV_mutect2.txt"))
+  df <-  merge_table_files(df1 = df, df2 = snv, id = "File_Name")
   
   return(df)
   }
