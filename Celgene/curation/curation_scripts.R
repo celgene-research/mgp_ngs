@@ -26,7 +26,7 @@ s3_writer <- function(s3_prefix = "s3://celgene.rnd.combio.mmgp.external/", s3_p
   }
 }
 write_to_s3integrated <- s3_writer(s3_path = "/ClinicalData/ProcessedData/Integrated/")
-
+write_to_archive      <- s3_writer(s3_path = "/ClinicalData/ProcessedData/Integrated/Archive/")
 #currently only works for tab-delim tables
 GetS3Table <- function(s3.path, cache = F){
   name  <- basename(s3.path)
@@ -44,6 +44,8 @@ merge_table_files <- function(df1, df2, id = "File_Name"){
   
   if(dim(df)[1] != dim(df1)[1]){
     warning(paste("merge of did not retain proper dimensionality", sep = " "))
+    # print ids of additional columns
+    print( df[!(df$id %in% df1$id) ,id])
     return(df)
   }else{df}
 }
