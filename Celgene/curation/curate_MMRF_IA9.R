@@ -40,10 +40,10 @@ name <- "file_inventory.txt"
 ### file_inventory.2 -------------------------
 # fetch SRR encoded WGS filenames directly from S3
   df <- data.frame(File_Path = system(paste('aws s3 ls', 
-                           's3://celgene.rnd.combio.mmgp.external/SeqData/WGS/OriginalData/MMRF/',
-                           '--recursive |',
-                           'grep "2.fastq.gz$" | sed "s/.*SeqData/SeqData/"',
-                           sep = " "), intern = T),
+                                            's3://celgene.rnd.combio.mmgp.external/SeqData/WGS/OriginalData/MMRF/',
+                                            '--recursive |',
+                                            'grep "2.fastq.gz$" | sed "s/.*SeqData/SeqData/"',
+                                            sep = " "), intern = T),
                    Study = "MMRF",
                    Study_Phase = "",
                    stringsAsFactors = F)
@@ -71,15 +71,15 @@ name <- "file_inventory.txt"
   df[['Tissue_Type']]    <-  ifelse(grepl("BM",df$File_Name), "BM", "PB")
   df[['Cell_Type']]      <-  gsub(".{12}[PBM]+_([A-Za-z0-9]+)_[CT]\\d.*","\\1",df$File_Name)
   df[['Disease_Status']] <-  ifelse(grepl("1$", df$Sample_Name),"ND", "R")
-
+  
   name <- "file.inventory.2.txt"
   name <- paste("curated", study, name, sep = "_")
   path <- file.path(local,name)
   write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
-  
+
 ### IA9_Seq_QC_Summary -------------------------
 # apply higher level sample  variables using IA9 Seq QC table
-  name <- "MMRF_CoMMpass_IA9_Seq_QC_Summary.xlsx"
+name <- "MMRF_CoMMpass_IA9_Seq_QC_Summary.xlsx"
   system(paste("aws s3 cp",
                file.path(s3, "MMRF_CoMMpass_IA9/README_FILES", name),
                file.path(local, name),
@@ -97,52 +97,69 @@ name <- "file_inventory.txt"
   df[df$Excluded_Flag == 0,"Excluded_Specify"] <- NA
   df[df$Sequencing_Type == "Exclude", "Sequencing_Type"] <- NA
   df$Sequencing_Type <- plyr::revalue(df$Sequencing_Type, c(RNA="RNA-Seq", 
-                                                               LI="WGS", 
-                                                               Exome="WES"))
+                                                            LI="WGS", 
+                                                            Exome="WES"))
   
-  name <- paste("curated", study, gsub("xlsx","txt",name), sep = "_")
+  name <- paste("curated", study, name, sep = "_")
+  name <- gsub("xlsx", "txt", name)
   path <- file.path(local,name)
   write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
-  
+
 ### PER_PATIENT_VISIT -------------------------
 # curate per_visit entries with samples taken for the sample-level table
 name <- "PER_PATIENT_VISIT.csv"
   pervisit <- read.csv(file.path(local,name), stringsAsFactors = F, 
                        na.strings = c("Not Done", ""))
-  # only keep visits with affiliated samples
+  # only keep visits with affiliated samples, sort by Sample_Name
   pervisit<- pervisit[ !is.na(pervisit$SPECTRUM_SEQ),]
+  pervisit<- pervisit[ order(pervisit$SPECTRUM_SEQ),]
   
   df <- data.frame(Patient = pervisit$PUBLIC_ID,
                    stringsAsFactors = F)
   
-  df[["Study"]]       <- study
-  df[["Sample_Name"]] <- pervisit$SPECTRUM_SEQ
-  df[["Visit_Name"]] <- pervisit$VJ_INTERVAL
-  df[["Disease_Status"]] <- ifelse(grepl("1$", df$Sample_Name),"ND", "R")
-  df[["Disease_Status_Notes"]] <- pervisit$CMMC_VISIT_NAME
-  df[["Sample_Study_Day"]] <- pervisit$BA_DAYOFASSESSM
-  df[["CYTO_Has_Conventional_Cytogenetics"]] <- ifelse(pervisit$D_CM_cm == 1, 1,0)
-  df[["CYTO_Has_FISH"]] <- ifelse(pervisit$D_TRI_cf == 1, 1,0)
-
-  # df[['CYTO_1qplus_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR13 =="Yes" ,1,0)   
-    
-  df[['CYTO_del(1p)_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR12 =="Yes" ,1,0) 
-  df[['CYTO_t(4;14)_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR3 == "Yes" ,1,0)   
-  df[['CYTO_t(6;14)_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR4 == "Yes" ,1,0)   
-  df[['CYTO_t(11;14)_FISH']]   <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR6 == "Yes" ,1,0)    
-  df[['CYTO_t(12;14)_FISH']]   <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR7 == "Yes" ,1,0)    
-  df[['CYTO_t(14;16)_FISH']]   <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR8 == "Yes" ,1,0)    
-  df[['CYTO_t(14;20)_FISH']]   <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR9 == "Yes" ,1,0)    
-  df[['CYTO_amp(1q)_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR13 == "Yes" ,1,0)
-  df[['CYTO_del(13q)_FISH']]   <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR == "Yes" ,1,0)    
+  df[["Study"]]                  <- study
+  df[["Sample_Name"]]            <- pervisit$SPECTRUM_SEQ
+  df[["Visit_Name"]]             <- pervisit$VJ_INTERVAL
+  df[["Disease_Status"]]         <- ifelse(grepl("1$", df$Sample_Name),"ND", "R")
+  df[["Disease_Status_Notes"]]   <- pervisit$CMMC_VISIT_NAME
+  df[["Sample_Study_Day"]]       <- pervisit$BA_DAYOFASSESSM
   
+  # add a pervisit flag for previous bone marrow transplants
+  pervisit[['BMT_PrevBoneMarrowTransplant']] <- unlist(apply(pervisit, MARGIN = 1, function(x){
+    # find patient transplant date
+    day <- pervisit[pervisit$PUBLIC_ID == x[['PUBLIC_ID']],"BMT_DAYOFTRANSPL"]
+    
+    # if they have a valid day, capture the first one
+    if(any(!is.na(as.numeric(day)))){
+      t <- min(day, na.rm = T )
+    }else{
+      t <- NA
+    }
+    # mark samples taken after the transplant study day as =1
+    ifelse(!is.na(t) & (as.numeric(x[['VISITDY']]) >= t), 1, 0)
+  }))
+  df[['D_PrevBoneMarrowTransplant']] <- pervisit$BMT_PrevBoneMarrowTransplant
+  
+  # cytogenetic fields
+  df[["CYTO_Has_Conventional_Cytogenetics"]] <- ifelse(pervisit$D_CM_cm == 1, 1,0)
+  df[["CYTO_Has_FISH"]]          <- ifelse(pervisit$D_TRI_cf == 1, 1,0)
+  df[['CYTO_1qplus_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR13 =="Yes" ,1,0)
+  df[['CYTO_del(1p)_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR12 =="Yes" ,1,0)
+  df[['CYTO_t(4;14)_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR3 == "Yes" ,1,0)
+  df[['CYTO_t(6;14)_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR4 == "Yes" ,1,0)
+  df[['CYTO_t(11;14)_FISH']]   <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR6 == "Yes" ,1,0)
+  df[['CYTO_t(12;14)_FISH']]   <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR7 == "Yes" ,1,0)
+  df[['CYTO_t(14;16)_FISH']]   <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR8 == "Yes" ,1,0)
+  df[['CYTO_t(14;20)_FISH']]   <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR9 == "Yes" ,1,0)
+  df[['CYTO_amp(1q)_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR13 == "Yes" ,1,0)
+  df[['CYTO_del(13q)_FISH']]   <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR == "Yes" ,1,0)
   d17  <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR2 == "Yes" ,TRUE,FALSE)
   d17p <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR11 == "Yes" ,TRUE,FALSE)
   df[['CYTO_del(17;17p)_FISH']]    <-   ifelse(d17 | d17p, 1,0)
+  df[['CYTO_Hyperdiploid_FISH']]  <- ifelse( pervisit$Hyperdiploid == "Yes" ,1,0)
+  df[['CYTO_MYC_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR5 == "Yes" ,1,0)
   
-  df[['CYTO_Hyperdiploid_FISH']]  <- ifelse( pervisit$Hyperdiploid == "Yes" ,1,0)    
-  df[['CYTO_MYC_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR5 == "Yes" ,1,0)   
-  
+  # blood chemistry fields
   df[['CBC_Absolute_Neutrophil']] <- pervisit$D_LAB_cbc_abs_neut
   df[['CBC_Platelet']]            <- pervisit$D_LAB_cbc_platelet
   df[['CBC_WBC']]                 <- pervisit$D_LAB_cbc_wbc
@@ -162,17 +179,19 @@ name <- "PER_PATIENT_VISIT.csv"
   df[['IG_IgG']]                  <- pervisit$D_LAB_serum_igg
   df[['IG_IgL_Lambda']]           <- pervisit$D_LAB_serum_lambda
   df[['IG_IgM']]                  <- pervisit$D_LAB_serum_igm
-  df[['IG_IgE']]                  <- pervisit$D_LAB_serum_ige 
+  df[['IG_IgE']]                  <- pervisit$D_LAB_serum_ige
   
-  # TODO: verify that we can assume these FISH results are from tumor samples
-  # also note, since single samples correspond to multiple filename there is sample info redundancy
-  tumor_lookup <- inv[inv$Tissue_Type == "BM" ,c("Sample_Name", "File_Name")]
-  df <- merge(df, tumor_lookup, by = "Sample_Name", all.x = T)
+  # We need to add a File_Name column so visit/sample data is added to the per-file table
+  # assume cytogenetic results are only applicable to tumor samples (filter NotNormal files only)
+  # NOTE: since single samples correspond to multiple File_Names (RNA-Seq, WES etc) there is sample info redundancy
+  # in this table
+  df <- merge(df, inv[inv$Sample_Type_Flag == 1, c("Sample_Name", "File_Name")], by = "Sample_Name", all.x = T)
   
   name <- paste("curated", name, sep = "_")
+  name <- gsub("csv", "txt", name)
   path <- file.path(local,name)
   write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
-  rm(df, pervisit, tumor_lookup)
+  rm(df, pervisit)
 
 ### PER_PATIENT -------------------------
 # curate PER_PATIENT entries, requires some standalone tables for calculations
@@ -277,8 +296,9 @@ name <- "PER_PATIENT.csv"
   best_response_table <- respo[respo$trtbresp == 1 & respo$line == 1 ,]
   df[["D_Best_Response_Code"]] <-  unlist(lapply(df$Patient, lookup_by_publicid, dat = best_response_table, field = "bestrespcd"))
   df[["D_Best_Response"]] <-  unlist(lapply(df$Patient, lookup_by_publicid, dat = best_response_table, field = "bestresp"))
-
+  
   name <- paste("curated", name, sep = "_")
+  name <- gsub("csv", "txt", name)
   path <- file.path(local,name)
   write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
   rm(df)
