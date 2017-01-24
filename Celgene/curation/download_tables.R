@@ -1,7 +1,7 @@
 
 # simplified scripts to save s3 files to locally mounted storage
 s3clinical      <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData"
-local_path      <- "~/thindrives/mmgp/data"
+local_path      <- "~/thindrives/mgp/data"
 if(!dir.exists(local_path)){warning("local drive not mounted")}
 
 ###
@@ -19,12 +19,12 @@ if(!dir.exists(local_path)){warning("local drive not mounted")}
 #                '--include "JointData*"', sep = " "))
 
 #  INTEGRATED tables, push dictionary before download
-# system(  paste('aws s3 cp',"mgp_dictionary.xlsx" , file.path(s3clinical, "ProcessedData", "Integrated", "mgp_dictionary.xlsx"), "--sse ", sep = " "))
-# system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "Integrated"),
-#                file.path(local_path),
-#                '--recursive --exclude "Archive*" --exclude "mgp-shiny*" --exclude "sas*"',
-#                '--include "PER*"',
-#                sep = " "))
+system(  paste('aws s3 cp',"mgp_dictionary.xlsx" , file.path(s3clinical, "ProcessedData", "Integrated", "mgp_dictionary.xlsx"), "--sse ", sep = " "))
+system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "Integrated"),
+               file.path(local_path),
+               '--recursive --exclude "Archive*" --exclude "mgp-shiny*" --exclude "sas*"',
+               '--include "PER*"',
+               sep = " "))
 
 #  report and summary tables
 # system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "Integrated"),
@@ -34,8 +34,8 @@ if(!dir.exists(local_path)){warning("local drive not mounted")}
 #                sep = " "))
 
 #  sas tables
-system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "Integrated"),
-               file.path(local_path),
-               '--recursive --exclude "*"',
-               '--include "sas*"',
-               sep = " "))
+# system(  paste('aws s3 cp', file.path(s3clinical, "ProcessedData", "Integrated"),
+#                file.path(local_path),
+#                '--recursive --exclude "*"',
+#                '--include "sas*"',
+#                sep = " "))
