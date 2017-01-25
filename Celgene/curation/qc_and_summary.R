@@ -1,3 +1,25 @@
+
+# This is a manual patch for filling in missing data for rows that are for all intents
+# the same. (e.g., if D_PrevBoneMarrowTransplant is called for one File_Name, it should be the same for all other
+# File_Name rows of the same Sample_Name)
+# by specifies the grouping to consider equal
+# columns is a list of columns to perform this operation on.
+# FillCommonRows <- function(df, by = "Sample_Name", columns){
+# 
+#   ddply(df, .(Sample_Name), summarize, unique(D_PrevBoneMarrowTransplant))
+#   
+#   
+# }
+
+
+# df <- per.file
+# by = "Sample_Name"
+# columns <- c("D_PrevBoneMarrowTransplant", "Sample_Study_Day" )
+
+
+
+
+
 # columns required for df: c("Sample_Name", "File_Path", "Excluded_Flag")
 remove_invalid_samples <- function(df){
   
@@ -108,9 +130,52 @@ add_inventory_flags <- function(df_perpatient, df_perfile){
   df_perpatient[["INV_Has.ND.WGS"]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "Sequencing_Type", value = "WGS", unique_match = F)),1,0)
   
   dat <- df_perfile[df_perfile$Disease_Status == "R",]
-  df_perpatient[["INV_Has.R.WES"]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "Sequencing_Type", value = "WES", unique_match = F)),1,0)
+  df_perpatient[["INV_Has.R.WES"]]    <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "Sequencing_Type", value = "WES", unique_match = F)),1,0)
   df_perpatient[["INV_Has.R.RNASeq"]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "Sequencing_Type", value = "RNA-Seq", unique_match = F)),1,0)
-  df_perpatient[["INV_Has.R.WGS"]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "Sequencing_Type", value = "WGS", unique_match = F)),1,0)
+  df_perpatient[["INV_Has.R.WGS"]]    <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "Sequencing_Type", value = "WGS", unique_match = F)),1,0)
+  
+   # more complex columns for elaborate selection modes
+  x <- "Sample_Type_Flag"
+  tumor <- !is.na(df_perfile[[x]]) & (df_perfile[[x]] == "1")  
+  length(unique(df_perfile[tumor,"Patient"]))
+  
+  x   <- "Disease_Status"
+  nd  <- !is.na(df_perfile[[x]]) & (df_perfile[[x]] == "ND")  
+  length(unique(df_perfile[nd,"Patient"]))
+  
+  r   <- !is.na(df_perfile[[x]]) & (df_perfile[[x]] == "R")  
+  length(unique(df_perfile[r,"Patient"]))
+  
+  x   <- "Sequencing_Type"
+  wes <- !is.na(df_perfile[[x]]) & (df_perfile[[x]] == "WES")  
+  length(unique(df_perfile[wes,"Patient"]))
+  
+  wgs <- !is.na(df_perfile[[x]]) & (df_perfile[[x]] == "WGS")  
+  length(unique(df_perfile[wgs,"Patient"]))
+  
+  rna <- !is.na(df_perfile[[x]]) & (df_perfile[[x]] == "RNA-Seq")  
+  length(unique(df_perfile[rna,"Patient"]))
+
+  
+  df_perfile[['Tumor.ND.WES']] <-  tumor & nd & wes
+  df_perfile[['Tumor.R.WES']]  <-  tumor & r  & wes
+  df_perfile[['Tumor.ND.RNA']] <-  tumor & nd & rna
+  df_perfile[['Tumor.R.RNA']]  <-  tumor & r  & rna
+  
+  df_perpatient[['INV_Has.Tumor.ND.WES']] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = df_perfile, field = "Tumor.ND.WES", value = TRUE, unique_match = F)),1,0)
+  df_perpatient[['INV_Has.Tumor.R.WES']] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = df_perfile, field = "Tumor.R.WES", value = TRUE, unique_match = F)),1,0)
+  df_perpatient[['INV_Has.Tumor.ND.R.WES']] <- ifelse(df_perpatient$INV_Has.Tumor.ND.WES == "1" & df_perpatient$INV_Has.Tumor.R.WES == "1",1,0)
+  df_perpatient[['INV_Has.Tumor.ND.RNA']] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = df_perfile, field = "Tumor.ND.RNA", value = TRUE, unique_match = F)),1,0)
+  df_perpatient[['INV_Has.Tumor.R.RNA']] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = df_perfile, field = "Tumor.R.RNA", value = TRUE, unique_match = F)),1,0)
+  df_perpatient[['INV_Has.Tumor.ND.R.RNA']] <- ifelse(df_perpatient$INV_Has.Tumor.ND.RNA == "1" & df_perpatient$INV_Has.Tumor.R.RNA == "1",1,0)
+  df_perpatient[['INV_Has.Tumor.ND.R.WES.RNA']] <- ifelse(df_perpatient$INV_Has.Tumor.ND.R.WES == "1" & df_perpatient$INV_Has.Tumor.ND.R.RNA == "1",1,0)
+  
+  dat <- df_perpatient
+  df_perpatient[["INV_Has.ISS"]]     <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "D_ISS",     value = "\\d", unique_match = F)),1,0)
+  df_perpatient[["INV_Has.OS"]]      <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "D_OS",      value = "\\d", unique_match = F)),1,0)
+  df_perpatient[["INV_Has.OS_Flag"]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "D_OS_FLAG", value = "\\d", unique_match = F)),1,0)
+  df_perpatient[["INV_Has.PFS"]]     <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "D_PFS",     value = "\\d", unique_match = F)),1,0)
+  df_perpatient[["INV_Has.PFS_Flag"]]<- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "D_PFS_FLAG",value = "\\d", unique_match = F)),1,0)
   
   # consensus cytogenetic call counts for ND-tumor samples
   cyto_consensus_columns <- grep("CONSENSUS", names(df_perfile), value = T, ignore.case = T)
@@ -128,12 +193,6 @@ add_inventory_flags <- function(df_perpatient, df_perfile){
     df_perpatient[[c_name]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = c, value = "0|1", unique_match = F)),1,0)
   }
   
-  dat <- df_perpatient
-  df_perpatient[["INV_Has.ISS"]]     <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "D_ISS",     value = "\\d", unique_match = F)),1,0)
-  df_perpatient[["INV_Has.OS"]]      <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "D_OS",      value = "\\d", unique_match = F)),1,0)
-  df_perpatient[["INV_Has.OS_Flag"]] <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "D_OS_FLAG", value = "\\d", unique_match = F)),1,0)
-  df_perpatient[["INV_Has.PFS"]]     <- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "D_PFS",     value = "\\d", unique_match = F)),1,0)
-  df_perpatient[["INV_Has.PFS_Flag"]]<- ifelse(unlist(lapply(df_perpatient$Patient, check_by_patient, dat = dat, field = "D_PFS_FLAG",value = "\\d", unique_match = F)),1,0)
   
   df_perpatient
 }
