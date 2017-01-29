@@ -13,13 +13,13 @@
 app_version = "0.2"
 library(shiny)
 
-# Import the msot recent data table
-f <- list.files(path = ".", pattern = "^INTEGRATED_patient.*")
+# Import the most recent data table
+f <- list.files(path = "data", pattern = "^INTEGRATED_patient.*", full.names = T)
 if(length(f) > 1){f <- f[-1]}
 data <- read.delim(f)
 data_version <- gsub(".*?([0-9-]+)\\.txt", "\\1",f)
 
-f2 <- list.files(path = ".", pattern = "^integrated_columns.*")
+f2 <- list.files(path = "data", pattern = "^integrated_columns.*", full.names = T)
 if(length(f2) > 1){f2 <- f2[-1]}
 dict <- read.delim(f2)
 dictionary_version <- gsub(".*?([0-9-]+)\\.txt", "\\1",f2)
