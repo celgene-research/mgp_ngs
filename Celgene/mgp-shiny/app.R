@@ -6,32 +6,45 @@
 # drozelle@ranchobiosciences.com
 # Rancho BioSciences 
 #
-# require(shiny)
-# require(rpivotTable)
-# require(DT)
+
+# install.packages("DT")
+# install.packages("rpivotTable")
+
+require(shiny)
+require(rpivotTable)
+require(DT)
+require(readxl)
+require(dplyr)
 
 app_version = "0.2"
 library(shiny)
 
-# Import the most recent data table
-f <- list.files(path = "data", pattern = "^INTEGRATED_patient.*", full.names = T)
-if(length(f) > 1){f <- f[-1]}
-data <- read.delim(f)
-data_version <- gsub(".*?([0-9-]+)\\.txt", "\\1",f)
+# Import the most recent data tables
+option(stringsAsFactors = FALSE)
+p.name    <- tail(list.files(path = "data", pattern = "^PER-PATIENT.*", full.names = T), n=1)
+p         <- read.delim(p.name)
+p.version <- gsub(".*?([0-9-]+)\\.txt", "\\1",p.name)
 
-f2 <- list.files(path = "data", pattern = "^integrated_columns.*", full.names = T)
-if(length(f2) > 1){f2 <- f2[-1]}
-dict <- read.delim(f2)
-dictionary_version <- gsub(".*?([0-9-]+)\\.txt", "\\1",f2)
+# s.name    <- tail(list.files(path = "data", pattern = "^PER-FILE.*", full.names = T), n=1)
+# s         <- read.delim(s.name)
+# s.version <- gsub(".*?([0-9-]+)\\.txt", "\\1",s.name)
 
-# Extract column and study names for checkbox selectors
-study_names <- as.character(unique(data$Study))
+f.name    <- tail(list.files(path = "data", pattern = "^PER-FILE.*", full.names = T), n=1)
+f         <- read.delim(f.name)
+f.version <- gsub(".*?([0-9-]+)\\.txt", "\\1",f.name)
 
-column_names <- names(data)
-s1 <- 1
-s2  <- grep("Absolute_Neutrophil", column_names)
-s3  <- grep("Karyotype", column_names)
-s4  <- grep("Has.Patient", column_names)
+d.name    <- tail(list.files(path = "data", pattern = "^mgp_dictionary.*", full.names = T), n=1)
+d         <- readxl::read_excel(d.name)
+d.version <- gsub(".*?([0-9-]+)\\.txt", "\\1",d.name)
+
+
+# # Extract column and study names for checkbox selectors
+# study_names <- as.character(unique(p$Study))
+# 
+# column_names <- names(p)
+# s1 <- 1
+# s2  <- grep("INV_Has.sample", column_names)
+
 
 ###########################################
 # generate the UI panel with checkbox selectors
@@ -40,37 +53,37 @@ ui <- shinyUI(fluidPage(
   
   headerPanel("MGP Integrated Dataviewer"),
   sidebarLayout(
-    sidebarPanel(width = 4,
-                 downloadButton('download_handler', 'Download Filtered Data'),
-                 checkboxGroupInput(inputId = "checkGroupStudy",
-                                    label = h4("Select Datasets to Include"),
-                                    choices  = study_names,
-                                    selected = study_names
-                 ),
-                 h4("Select Columns to Display"),
-                 tabsetPanel(
-                   tabPanel('Dem', checkboxGroupInput(inputId = "checkGroupDemo", 
-                                                      label = "", 
-                                                      choices = column_names[s1:s2-1],
-                                                      selected = c("Patient", "Study", "D_Medical_History", "D_OS"))
-                   ),
-                   tabPanel('Chem', checkboxGroupInput(inputId = "checkGroupChem", 
-                                                       label = "", 
-                                                       choices = column_names[s2:s3-1],
-                                                       selected = c(""))
-                   ),
-                   tabPanel('Cyto', checkboxGroupInput(inputId = "checkGroupCyto", 
-                                                       label = "", 
-                                                       choices = column_names[s3:s4-1],
-                                                       selected = c("Karyotype"))
-                   ),
-                   tabPanel('Inv', checkboxGroupInput(inputId = "checkGroupInv", 
-                                                      label = "", 
-                                                      choices = column_names[s4:length(column_names)],
-                                                      selected = c("Has.WES"))
-                   )
-                   
-                 )
+    # sidebarPanel(width = 4,
+    #              downloadButton('download_handler', 'Download Filtered Data'),
+    #              checkboxGroupInput(inputId = "checkGroupStudy",
+    #                                 label = h4("Select Datasets to Include"),
+    #                                 choices  = study_names,
+    #                                 selected = study_names
+    #              ),
+    #              h4("Select Columns to Display"),
+    #              tabsetPanel(
+    #                tabPanel('Dem', checkboxGroupInput(inputId = "checkGroupDemo", 
+    #                                                   label = "", 
+    #                                                   choices = column_names[s1:s2-1],
+    #                                                   selected = c("Patient", "Study", "D_Medical_History", "D_OS"))
+    #                ),
+    #                tabPanel('Chem', checkboxGroupInput(inputId = "checkGroupChem", 
+    #                                                    label = "", 
+    #                                                    choices = column_names[s2:s3-1],
+    #                                                    selected = c(""))
+    #                ),
+    #                tabPanel('Cyto', checkboxGroupInput(inputId = "checkGroupCyto", 
+    #                                                    label = "", 
+    #                                                    choices = column_names[s3:s4-1],
+    #                                                    selected = c("Karyotype"))
+    #                ),
+    #                tabPanel('Inv', checkboxGroupInput(inputId = "checkGroupInv", 
+    #                                                   label = "", 
+    #                                                   choices = column_names[s4:length(column_names)],
+    #                                                   selected = c("Has.WES"))
+    #                )
+    #                
+    #              )
     ),
     
     # Generate the output panels
