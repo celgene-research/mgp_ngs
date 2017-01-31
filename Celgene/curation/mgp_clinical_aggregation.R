@@ -3,6 +3,8 @@
 
 # vars
 d <- format(Sys.Date(), "%Y-%m-%d")
+# devtools::install_github("dkrozelle/toolboxR")
+library(toolboxR)
 source("curation_scripts.R")
 source("qc_and_summary.R")
 source("table_merge.R")
@@ -67,38 +69,62 @@ names(per.patient) <- patient_level_columns
   }
 
 #######################
-  # filter and merge tables
+  # merge and filter tables
 
-  per.patient      <- remove_unsequenced_patients(per.patient, per.file)
-  per.patient      <- add_inventory_flags(per.patient, per.file)
-  per.file.all     <- table_merge(per.file, per.patient) 
-  # currently table merge throws dimension error since we have 
-  #  sequencing results that don't have clinical data
-  per.file.all     <- remove_invalid_samples(per.file.all)
+  per.patient           <- remove_unsequenced_patients(per.patient, per.file)
+  per.patient.clinical  <- per.patient # rename for clarity
+  per.file.clinical     <- per.file    # rename for clarity
   
-  # Merge clinical data tables with genomic results, but warning: these functions takes a long time!
-  per.patient.nd.tumor.all      <- collapse_to_patient(per.file.all)
-  per.patient.nd.tumor.clinical <- subset_clinical_columns(per.patient.nd.tumor.all)
-    
+  # currently table merge throws dimension error since CNV contains clinically lost patients, it's OK
+  per.file.all          <- table_merge(per.file.clinical, per.patient.clinical)
+  per.file.all          <- remove_invalid_samples(per.file.all)
+  
+  # add inventory flags to per.patient after table merge since patient inventory flags
+  #  are not applicable to per-file rows
+  per.patient.clinical  <- add_inventory_flags(per.patient.clinical, per.file.clinical)
+  
+  # Collapse file > sample for some analyses
+  per.sample.all        <- toolboxR::CollapseDF(per.file.all, column.names = "Sample_Name")
+  per.sample.clinical   <- subset_clinical_columns(per.sample.all)
+  
+  # Filter for ND-tumor sample only
+  per.file.all.nd.tumor         <- subset(per.file.all,   Sample_Type_Flag == 1 & Disease_Status == "ND")
+  per.sample.all.nd.tumor       <- subset(per.sample.all, Sample_Type_Flag == 1 & Disease_Status == "ND")
+  per.patient.clinical.nd.tumor <- subset(per.patient.clinical, INV_Has.ND.NotNormal.sample == 1)
+  
+  # Select clinical column subsets
+  per.file.clinical.nd.tumor    <- subset_clinical_columns(per.file.all.nd.tumor)
+  per.sample.clinical.nd.tumor  <- subset_clinical_columns(per.sample.all.nd.tumor)
+  
   # qc and summary
   inventory_counts <- get_inventory_counts(per.patient)
   report_unique_patient_counts(per.file, sink_file = file.path(local,"report_unique_patient_counts.txt"))
 
   # write un-dated PER-FILE and PER-PATIENT files to S3
-  write_to_s3integrated(per.file,     name = "PER-FILE_clinical_cyto.txt")
-  write_to_s3integrated(per.file.all, name = "PER-FILE_ALL.txt")
-  write_to_s3integrated(per.patient,  name = "PER-PATIENT_clinical.txt")
-  write_to_s3integrated(per.patient,  name = "PER-PATIENT_nd_tumor_ALL.txt")
-  write_to_s3integrated(per.patient,  name = "PER-PATIENT_nd_tumor_clinical.txt")
+  
+  write_to_s3integrated(per.file.clinical              ,name = "per.file.clinical.txt")
+  write_to_s3integrated(per.file.clinical.nd.tumor     ,name = "per.file.clinical.nd.tumor.txt")
+  write_to_s3integrated(per.file.all                   ,name = "per.file.all.txt")
+  write_to_s3integrated(per.file.all.nd.tumor          ,name = "per.file.all.nd.tumor.txt")
+  
+  write_to_s3integrated(per.sample.clinical            ,name = "per.sample.clinical.txt")
+  write_to_s3integrated(per.sample.clinical.nd.tumor   ,name = "per.sample.clinical.nd.tumor.txt")
+  write_to_s3integrated(per.sample.all                 ,name = "per.sample.all.txt")
+  write_to_s3integrated(per.sample.all.nd.tumor        ,name = "per.sample.all.nd.tumor.txt")
+  
+  write_to_s3integrated(per.patient.clinical           ,name = "per.patient.clinical.txt")
+  write_to_s3integrated(per.patient.clinical.nd.tumor  ,name = "per.patient.clinical.nd.tumor.txt")
 
-  export_sas(per.patient.nd.tumor.all, dict, name = "per.patient.nd.tumor.all")
-  export_sas(per.patient.nd.tumor.clinical, dict, name = "per.patient.nd.tumor.clinical")
   
-  # NOTE: summary statistics are only from patients that have nd+tumor samples.
-  clinical_summary <- summarize_clinical_parameters(per.patient.nd.tumor.clinical)
-  
-  # Backup the new versions with a dated archive 
-  Snapshot(prefix = "s3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/Integrated")
-  
+
+  # export_sas(per.patient.all.nd.tumor, dict, name = "per.patient.all.nd.tumor")
+  # export_sas(per.patient.clinical.nd.tumor, dict, name = "per.patient.clinical.nd.tumor")
+  # 
+  # # NOTE: summary statistics are only from patients that have nd+tumor samples.
+  # clinical_summary <- summarize_clinical_parameters(per.patient.clinical.nd.tumor)
+  # 
+  # # Backup the new versions with a dated archive 
+  # Snapshot(prefix = "s3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/Integrated")
+  # 
   
   
