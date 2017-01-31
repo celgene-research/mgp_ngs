@@ -1,3 +1,7 @@
+
+
+
+
 # this function does not allow specification of directory to 
 # prevent inadvertant file deletion 
 CleanLocalScratch <- function(){
@@ -78,6 +82,15 @@ GetS3Table <- function(s3.path, cache = F){
   df
 }
 
+#currently only works for tab-delim tables
+PutS3Table <- function(object, s3.path, cache = F){
+  name  <- basename(s3.path)
+  local <- file.path("/tmp", name)
+  write.table(object, local, row.names = F, quote = F, sep = "\t")
+  
+  system(  paste('aws s3 cp', local, s3.path, "--sse", sep = " "))
+  if(cache == FALSE){unlink(local)}
+}
 
 merge_table_files <- function(df1, df2, id = "File_Name"){
   
