@@ -13,77 +13,90 @@
 require(shiny)
 require(rpivotTable)
 require(DT)
-require(readxl)
 require(dplyr)
+source("include.R")
 
-app_version = "0.2"
+app.version = "0.2.2"
 library(shiny)
 
+# pull new data tables from S3
+# s3 <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/Integrated/mgp-shiny/data/"
+# system(paste('aws s3 sync',s3, 'data/', sep = " "))
+
 # Import the most recent data tables
-option(stringsAsFactors = FALSE)
-p.name    <- tail(list.files(path = "data", pattern = "^PER-PATIENT.*", full.names = T), n=1)
+options(stringsAsFactors = FALSE)
+p.name    <- tail(list.files(path = "data", pattern = "patient", full.names = T), n=1)
 p         <- read.delim(p.name)
 p.version <- gsub(".*?([0-9-]+)\\.txt", "\\1",p.name)
 
-# s.name    <- tail(list.files(path = "data", pattern = "^PER-FILE.*", full.names = T), n=1)
-# s         <- read.delim(s.name)
-# s.version <- gsub(".*?([0-9-]+)\\.txt", "\\1",s.name)
+s.name    <- tail(list.files(path = "data", pattern = "sample", full.names = T), n=1)
+s         <- read.delim(s.name)
+s.version <- gsub(".*?([0-9-]+)\\.txt", "\\1",s.name)
 
-f.name    <- tail(list.files(path = "data", pattern = "^PER-FILE.*", full.names = T), n=1)
+f.name    <- tail(list.files(path = "data", pattern = "file", full.names = T), n=1)
 f         <- read.delim(f.name)
 f.version <- gsub(".*?([0-9-]+)\\.txt", "\\1",f.name)
 
-d.name    <- tail(list.files(path = "data", pattern = "^mgp_dictionary.*", full.names = T), n=1)
-d         <- readxl::read_excel(d.name)
+d.name    <- tail(list.files(path = "data", pattern = "dictionary", full.names = T), n=1)
+d         <- read.delim(d.name, header = T, sep = "\t")
+d <- select(d, names:UAMS_Source)
 d.version <- gsub(".*?([0-9-]+)\\.txt", "\\1",d.name)
 
-
-# # Extract column and study names for checkbox selectors
-# study_names <- as.character(unique(p$Study))
-# 
-# column_names <- names(p)
-# s1 <- 1
-# s2  <- grep("INV_Has.sample", column_names)
-
+###
+# precalculate some fields
+study.names <- unique(p$Study)
+columns <- names(f)
+chem <- grep("CBC_Absolute_Neutrophil", columns)
+cyto <- grep("CYTO_Karyotype_FISH", columns)
+demo <- grep("D_Gender", columns)
+inv  <- grep("INV_Has.sample", columns)
 
 ###########################################
 # generate the UI panel with checkbox selectors
 ui <- shinyUI(fluidPage(
   theme = "styles.css",
   
-  headerPanel("MGP Integrated Dataviewer"),
+  headerPanel("MGP Data Explorer"),
   sidebarLayout(
-    # sidebarPanel(width = 4,
-    #              downloadButton('download_handler', 'Download Filtered Data'),
-    #              checkboxGroupInput(inputId = "checkGroupStudy",
-    #                                 label = h4("Select Datasets to Include"),
-    #                                 choices  = study_names,
-    #                                 selected = study_names
-    #              ),
-    #              h4("Select Columns to Display"),
-    #              tabsetPanel(
-    #                tabPanel('Dem', checkboxGroupInput(inputId = "checkGroupDemo", 
-    #                                                   label = "", 
-    #                                                   choices = column_names[s1:s2-1],
-    #                                                   selected = c("Patient", "Study", "D_Medical_History", "D_OS"))
-    #                ),
-    #                tabPanel('Chem', checkboxGroupInput(inputId = "checkGroupChem", 
-    #                                                    label = "", 
-    #                                                    choices = column_names[s2:s3-1],
-    #                                                    selected = c(""))
-    #                ),
-    #                tabPanel('Cyto', checkboxGroupInput(inputId = "checkGroupCyto", 
-    #                                                    label = "", 
-    #                                                    choices = column_names[s3:s4-1],
-    #                                                    selected = c("Karyotype"))
-    #                ),
-    #                tabPanel('Inv', checkboxGroupInput(inputId = "checkGroupInv", 
-    #                                                   label = "", 
-    #                                                   choices = column_names[s4:length(column_names)],
-    #                                                   selected = c("Has.WES"))
-    #                )
-    #                
-    #              )
+    sidebarPanel(width = 4,
+                 downloadButton('download_handler', 'Download Filtered Data'),
+                 selectInput(inputId  = "levelSelect",
+                             label    = "Select desired row level",
+                             choices  = list("Per-File","Per-Sample","Per-Patient"),
+                             selected = "Per-File"),
+                 checkboxGroupInput(inputId = "checkGroupStudy",
+                                    label = h4("Select datasets to include"),
+                                    choices  = study.names,
+                                    selected = study.names
+                 ),
+                 h4("Select columns to display"),
+                 tabsetPanel(
+                   tabPanel('Sample', checkboxGroupInput(inputId = "checkGroupSample",
+                                                       label = "",
+                                                       choices = columns[1:chem-1],
+                                                       selected = c("Patient", "Study", "Sample_Name_Tissue_Type"))
+                   ),tabPanel('Dem.', checkboxGroupInput(inputId = "checkGroupDemo",
+                                                       label = "",
+                                                       choices = columns[demo:inv-1],
+                                                       selected = c("D_OS", "D_PFS"))
+                   ),
+                   tabPanel('Chem', checkboxGroupInput(inputId = "checkGroupChem",
+                                                       label = "",
+                                                       choices = columns[chem:cyto-1],
+                                                       selected = c(""))
+                   ),
+                   tabPanel('Cyto', checkboxGroupInput(inputId = "checkGroupCyto",
+                                                       label = "",
+                                                       choices = columns[cyto:demo-1],
+                                                       selected = c(""))
+                   ),
+                   tabPanel('Inv', checkboxGroupInput(inputId = "checkGroupInv",
+                                                      label = "",
+                                                      choices = columns[inv:length(columns)],
+                                                      selected = c(""))
+                   )
+                   
+                 )
     ),
     
     # Generate the output panels
@@ -92,8 +105,8 @@ ui <- shinyUI(fluidPage(
         tabPanel("Details", DT::dataTableOutput(outputId =  "df_main_table")),
         tabPanel("Pivot",  rpivotTable::rpivotTableOutput(outputId =  "pivotObject")),
         tabPanel("Dictionary",  DT::dataTableOutput(outputId =  "dict_table")),
-        tabPanel("Counts", tableOutput(outputId =  "counts")),
-        tabPanel("Help", 
+        # tabPanel("Counts", tableOutput(outputId =  "counts")),
+        tabPanel("Help",
                  p("This R-Shiny application has been created to assist in data exploration and 
                      cohort selection for the Myeloma Genome Project. It provides the ability to 
                    specify subsets of columns and filter individual data on the study and response level.
@@ -124,9 +137,12 @@ ui <- shinyUI(fluidPage(
                  h4("Column Metadata:"),
                  p(""),
                  h4("Version Info:"),
-                 tags$ul(paste("MGP Integrated Dataviewer version:", app_version)),
-                 tags$ul(paste("Data tables processed on:", data_version)),
-                 tags$ul(paste("Data dictionary version:", dictionary_version)),
+                 tags$ul(paste("MGP Integrated Dataviewer version:", app.version)),
+                 tags$ul(paste("Per-Patient version:", p.version)),
+                 tags$ul(paste("Per-Sample version:", s.version)),
+                 tags$ul(paste("Per-File version:", f.version)),
+                 tags$ul(paste("Data dictionary version:", d.version)),
+                 # actionButton("update.data.sources", label = "check for new data"),
                  p(""),
                  span("For questions and comments please contact"),
                  a("Dan Rozelle", href="mailto:drozelle@ranchobiosciences.com"),
@@ -139,56 +155,70 @@ ui <- shinyUI(fluidPage(
 
 
 
-server <- shinyServer(function(input, output) {
+server <- shinyServer(function(input, output, session) {
   
   # generate a filtered subtable every time a checkbox is adjusted
   subtable <- reactive({
-    data[data$Study %in% input$checkGroupStudy, c(input$checkGroupDemo, input$checkGroupChem, input$checkGroupCyto, input$checkGroupInv)]
-  })
+    
+    if( input$levelSelect == "Per-Patient" ){
+        df <- p
+      }else if( input$levelSelect == "Per-Sample" ){
+        df <- s
+      }else if( input$levelSelect == "Per-File" ){
+        df <- f
+      }
+    df[df$Study %in% input$checkGroupStudy, names(df) %in% c(input$checkGroupSample, input$checkGroupDemo, input$checkGroupChem, input$checkGroupCyto, input$checkGroupInv)]
+  
+    })
   
   # generate the details table from the subtable object
   output$df_main_table <- DT::renderDataTable({subtable()}, filter = "top",
-                                              options = list(lengthMenu = c(10, 50, 100), pageLength = 10))
-  
-  output$dict_table <- DT::renderDataTable(dict, filter = "top",
                                               options = list(lengthMenu = c(10, 50, 100), pageLength = 100))
   
+  output$dict_table <- DT::renderDataTable(d, filter = "top",
+                                              options = list(lengthMenu = c(10, 50, 100), pageLength = 100))
+
+
+  
   # generate the summary count table from the subtable object
-  output$counts <- renderTable({
-    logic_table <- !(is.na(subtable()))
-    
-    split <- aggregate.data.frame(logic_table, by = list("Study" = subtable()[,"Study"]), sum)
-    split$Patient <- NULL
-    total <- aggregate.data.frame(logic_table, by = list("Study" = rep(1,nrow(subtable()))), sum)
-    total[1,"Study"] <- "Total"
-    total$Patient <- NULL
-    out <- rbind(split, total)
-    n <- names(out)
-    n[[2]] <- "n"
-    names(out) <- n
-    out
-  })
+  # output$counts <- renderTable({
+  #   logic_table <- !(is.na(subtable()))
+  #   
+  #   split <- aggregate.data.frame(logic_table, by = list("Study" = subtable()[,"Study"]), sum)
+  #   split$Patient <- NULL
+  #   total <- aggregate.data.frame(logic_table, by = list("Study" = rep(1,nrow(subtable()))), sum)
+  #   total[1,"Study"] <- "Total"
+  #   total$Patient <- NULL
+  #   out <- rbind(split, total)
+  #   n <- names(out)
+  #   n[[2]] <- "n"
+  #   names(out) <- n
+  #   out
+  # })
   
   output$pivotObject <- rpivotTable::renderRpivotTable({
-    rpivotTable::rpivotTable(data =   data, 
-                             rows = c("Has.WES", "Has.WGS", "Has.RNA"),
-                             cols="Study",
-                             vals = "votes", 
-                             aggregatorName = "Count", 
-                             rendererName = "Table",
-                             width="50%", 
-                             height="500px")
+    rpivotTable::rpivotTable(data           = subtable(),
+                             # rows           = c("INV_Has.WES", "INV_Has.WGS"),
+                             cols           = "Study",
+                             vals           = "Patient",
+                             aggregatorName = "Count",
+                             rendererName   = "Table",
+                             width          = "50%",
+                             height         = "500px")
   })
   
-  # download the filtered data
-  output$download_handler = downloadHandler('mgp-filtered.csv', content = function(file) {
-    s = input$df_main_table_rows_all
-    write.csv(subtable()[s, , drop = FALSE], file)
-  })
-  
-  output$help_text <- renderText({ 
-    paste("MGP Integrated Dataviewer v0.2 uses data processed on", version)
-  })
+
+  output$download_handler <- downloadHandler(
+    filename = 'mgp-filtered.txt',
+    content  = function(con){
+      s <- input$df_main_table_rows_all  
+      write.table(x = subtable()[s, ], 
+                file = con,
+                quote = F,
+                append = F, 
+                sep = "\t", 
+                row.names = F)}
+    )
 })
 
 shinyApp(ui = ui, server = server)
