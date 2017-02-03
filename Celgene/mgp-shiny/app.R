@@ -21,7 +21,14 @@ library(shiny)
 
 # pull new data tables from S3
 # s3 <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/Integrated/mgp-shiny/data/"
-# system(paste('aws s3 sync',s3, 'data/', sep = " "))
+# 
+# tryCatch(response <- system(paste('aws s3 ls',s3, sep = " "), intern = T), 
+#          error = function(e) "unable to connect with S3 ", finally = stop())
+# if(response == 0){
+#   system(paste('aws s3 sync',s3, 'data/', sep = " "))
+# }else{
+#     stop("local data directory not found")  
+#   }
 
 # Import the most recent data tables
 options(stringsAsFactors = FALSE)
@@ -61,11 +68,11 @@ ui <- shinyUI(fluidPage(
     sidebarPanel(width = 4,
                  downloadButton('download_handler', 'Download Filtered Data'),
                  selectInput(inputId  = "levelSelect",
-                             label    = "Select desired row level",
+                             label    = "Specify desired detail",
                              choices  = list("Per-File","Per-Sample","Per-Patient"),
                              selected = "Per-File"),
                  checkboxGroupInput(inputId = "checkGroupStudy",
-                                    label = h4("Select datasets to include"),
+                                    label = h4("Filter datasets to include"),
                                     choices  = study.names,
                                     selected = study.names
                  ),
