@@ -84,7 +84,7 @@ names(per.patient) <- patient_level_columns
   per.patient.clinical  <- add_inventory_flags(per.patient.clinical, per.file.clinical)
   
   # Collapse file > sample for some analyses
-  per.sample.all        <- toolboxR::CollapseDF(per.file.all, column.names = "Sample_Name")
+  per.sample.all        <- toolboxR::CollapseDF(per.file.all, column.names = "Sample_Name_Tissue_Type")
   per.sample.clinical   <- subset_clinical_columns(per.sample.all)
   
   # Filter for ND-tumor sample only
