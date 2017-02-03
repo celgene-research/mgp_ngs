@@ -1,0 +1,133 @@
+---
+title: "MMRF sample flagging"
+author: "Dan Rozelle"
+date: "December 29, 2016"
+output:
+  html_document: default
+  
+---
+<style> 
+table { 
+    font-size: 70%; 
+    border-spacing: 0px;
+    border-collapse: collapse;
+} 
+</style>
+
+
+
+```{r, echo=F}
+source("curation_scripts.R")
+source("qc_and_summary.R")
+s3 <- "s3://celgene.rnd.combio.mmgp.external"
+itg <- "ClinicalData/ProcessedData/Integrated"
+per.patient <- GetS3Table(file.path(s3, itg, "PER-PATIENT_clinical.txt"))
+per.file <- GetS3Table(file.path(s3, itg, "PER-FILE_clinical_cyto.txt"))
+```
+
+#### SRR files in the WGS directory that correspond to existing WES files.
+```{r}
+knitr::kable(per.file[grepl("; ", per.file$File_Name_Actual),c("Sample_Name", "File_Name_Actual", "Sequencing_Type")])
+```
+
+#### Excluded files that we have 
+```{r}
+knitr::kable(per.file[(per.file$Excluded_Flag == 1 & !is.na(per.file$Excluded_Flag) & 
+            per.file$File_Name_Actual != "" & !is.na(per.file$File_Name_Actual)),
+         c("Sample_Name", "File_Path" ,  "Excluded_Specify")])
+```
+
+#### Files from IA9 SeqQC that we don't have
+```{r}
+df <- per.file[((per.file$Excluded_Flag == 0 | is.na(per.file$Excluded_Flag)) & 
+           is.na(per.file$File_Path)),
+         c("Sample_Name", "File_Path" ,  "Excluded_Specify")]
+print("#none")
+```
+
+#### MMRF patients missing all clinical data
+```{r}
+valid.patients <- per.patient[
+  apply(!is.na(per.patient[,grep("D_Gender", names(per.patient)):grep("^D_Best_Response$", names(per.patient))]), MARGIN = 1, any),"Patient"]
+knitr::kable(per.file[!(per.file$Patient %in% valid.patients) & per.file$Study == "MMRF",c("Sample_Name", "File_Name_Actual", "Sequencing_Type")])
+```
+
+#### count file types we have for all datasets
+```{r}
+gplots::venn(list(
+  `ND`=per.patient[per.patient$INV_Has.ND.sample == 1,"Patient"],
+  `R`=per.patient[per.patient$INV_Has.R.sample == 1,"Patient"],
+  `WES`=per.patient[per.patient$INV_Has.WES == 1,"Patient"],
+  `WGS`=per.patient[per.patient$INV_Has.WGS == 1,"Patient"],
+  `RNA-Seq`=per.patient[per.patient$INV_Has.RNASeq == 1,"Patient"]
+))
+```
+
+#### count file types we have for MMRF
+```{r}
+dataset <- "MMRF"
+gplots::venn(list(
+  `ND`=per.patient[per.patient$INV_Has.ND.sample == 1 & 
+                     per.patient$Study == dataset,"Patient"],
+  `R`=per.patient[per.patient$INV_Has.R.sample == 1 & 
+                     per.patient$Study == dataset,"Patient"],
+  `WES`=per.patient[per.patient$INV_Has.WES == 1 & 
+                     per.patient$Study == dataset,"Patient"],
+  `WGS`=per.patient[per.patient$INV_Has.WGS == 1 & 
+                     per.patient$Study == dataset,"Patient"],
+  `RNA-Seq`=per.patient[per.patient$INV_Has.RNASeq == 1 & 
+                     per.patient$Study == dataset,"Patient"]
+))
+```
+
+#### count file types we have for DFCI
+```{r}
+dataset <- "DFCI"
+gplots::venn(list(
+  `ND`=per.patient[per.patient$INV_Has.ND.sample == 1 & 
+                     per.patient$Study == dataset,"Patient"],
+  `R`=per.patient[per.patient$INV_Has.R.sample == 1 & 
+                     per.patient$Study == dataset,"Patient"],
+  `WES`=per.patient[per.patient$INV_Has.WES == 1 & 
+                     per.patient$Study == dataset,"Patient"],
+  `WGS`=per.patient[per.patient$INV_Has.WGS == 1 & 
+                     per.patient$Study == dataset,"Patient"],
+  `RNA-Seq`=per.patient[per.patient$INV_Has.RNASeq == 1 & 
+                     per.patient$Study == dataset,"Patient"]
+))
+```
+
+#### count file types we have for UAMS
+```{r}
+dataset <- "UAMS"
+gplots::venn(list(
+  `ND`=per.patient[per.patient$INV_Has.ND.sample == 1 & 
+                     per.patient$Study == dataset,"Patient"],
+  `R`=per.patient[per.patient$INV_Has.R.sample == 1 & 
+                     per.patient$Study == dataset,"Patient"],
+  `WES`=per.patient[per.patient$INV_Has.WES == 1 & 
+                     per.patient$Study == dataset,"Patient"],
+  `WGS`=per.patient[per.patient$INV_Has.WGS == 1 & 
+                     per.patient$Study == dataset,"Patient"],
+  `RNA-Seq`=per.patient[per.patient$INV_Has.RNASeq == 1 & 
+                     per.patient$Study == dataset,"Patient"]
+))
+```
+
+
+#### count file types we have for New Diagnosis MMRF
+```{r}
+
+gplots::venn(list(
+  `WES`=per.patient[per.patient$INV_Has.WES == 1 & 
+                     per.patient$Study == "MMRF" & per.patient$INV_Has.ND.sample == 1,"Patient"],
+  `WGS`=per.patient[per.patient$INV_Has.WGS == 1 & 
+                     per.patient$Study == "MMRF" & per.patient$INV_Has.ND.sample == 1,"Patient"],
+  `RNA-Seq`=per.patient[per.patient$INV_Has.RNASeq == 1 & 
+                     per.patient$Study == "MMRF" & per.patient$INV_Has.ND.sample == 1,"Patient"]
+))
+```
+
+```{r}
+get_inventory_counts(per.patient)
+```

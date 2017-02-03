@@ -1,0 +1,119 @@
+---
+title: "MGP Translocation Consensus QC"
+author: "Dan Rozelle, PhD"
+date: "January 5, 2017"
+output:
+html_document: default
+
+---
+<style>
+table {
+font-size: 70%;
+border-spacing: 0px;
+border-collapse: collapse;
+}
+.table{
+width: 40%;
+}
+</style>
+
+
+
+```{r, echo=F}
+source("curation_scripts.R")
+source("qc_and_summary.R")
+library(printr)
+
+s3 <- "s3://celgene.rnd.combio.mmgp.external"
+itg <- "ClinicalData/ProcessedData/Integrated"
+per.patient <- GetS3Table(file.path(s3, itg, "PER-PATIENT_clinical.txt"))
+per.file <- GetS3Table(file.path(s3, itg, "PER-FILE_clinical_cyto.txt"))
+
+call.log <- read.delim("/tmp/cyto_consensus.log", stringsAsFactors = F)
+```
+
+The cytogenetic_consensus_calling script performs 3 sequential functions using results reported directly from dataset sources (FISH/cytogenetic calls)
+and molecular calls we've performed from various techniques (MANTA, ControlFreec). 
+
+1. Call consensus translocations using multiple techniques (FISH or MANTA). If longitudinal samples (ND, R, R2...) are not consistent for an individual translocation (t(4;14) ND=1, R=0) then a consensus is only called if the preferred technique is consistent
+
+- t(4;14) | ND=1, R=1 by FISH | ND=NA, R=NA by MANTA | called as ND=1, R=1
+- t(4;14) | ND=1, R=0 by FISH | ND=NA, R=NA by MANTA | called as ND=NA, R=NA
+- t(4;14) | ND=1, R=0 by FISH | ND=0, R=0   by MANTA | called as ND=0, R=0
+
+2. Calls the CYTO_Translocation_Consensus field by determining if a single t14 consensus translocation has been called for all samples (split by tumor or normal)
+
+- t(4;14)=0;t(6;14)=0;t(11;14)=1;t(14;16)=0 | called as "11" 
+- t(4;14)=0;t(6;14)=0;t(11;14)=1;t(14;16)=1 | called as "NA" 
+- t(4;14)=0;t(6;14)=0;t(11;14)=0;t(14;16)=0 | called as ""
+
+3. Similar to step 1, but for non-exclusive deletions and amplifications.
+
+- amp(1q) | ND=0, R=1 by FISH | ND=NA, R=NA by MANTA | called as ND=0, R=1
+- amp(1q) | ND=0, R=1 by FISH | ND=1,  R=NA by MANTA | called as ND=1, R=1
+
+During the consensus calling run, each decision is logged for assessment later. Decisions are **all** if all techniques for a sample show the same result (or there is only one technique), **manta** if they are conflicting and we take the manta result as true, **no technique** if we have no results for the sample, and **ERROR** if longitudinal samples within the preferred/only method are inconsistent. 
+```{r}
+# count the total number of translocations that 
+as.data.frame(table(call.log$decision))
+```
+
+As a side note, I also wanted to confirm that **CD138 PB** samples should be considered tumor samples with the same SV profile as **CD138 BM** samples?
+```{r}
+per.file[per.file$Patient == "MMRF_2531", c("Sample_Name", "Sequencing_Type", "Sample_Type", "Disease_Status", "Cell_Type", "Tissue_Type", grep("t.4.14", names(per.file), value = T) )]
+```
+
+Initially we only have 1 ERROR for the `r nrow(call.log)` translocation calls...not too bad ;) Lets inspect this error on the call.log and with more info on the per.file table. Looks like MMRF called the ndMM and relapse samples differently for t(11;14) by FISH, the translocation consensus calls for this are correctly left blank until we have manta results.
+```{r, echo=F}
+# count the total number of translocations that 
+error.patient <- call.log[call.log$decision == "ERROR","Patient"]
+error.trsl <- call.log[call.log$decision == "ERROR","Translocation"]
+
+call.log[call.log$decision == "ERROR",c(1:3,5:7)]
+per.file[per.file$Patient == error.patient, 
+         c("Sample_Name_Tissue_Type", "Sequencing_Type", 
+           grep("t.11|CYTO_Translocation_Consensus", names(per.file), value = T) )]
+
+```
+
+Looking more generally at translocation calls that were conflicting between techniques, but we had a preferred method (manta). In general it appears that MANTA is a more conservative translocation calling method compared to the clinical FISH results. 
+```{r}
+as.data.frame(table(call.log[call.log$conflicting_technique_results == TRUE,"raw_results"]))
+
+```
+
+The next step in translocation calling seeks to identify a single chr.14 translocation has been called for all samples (split by tumor or normal), and where >1 exclusive translocation is observed an ERROR2 is marked and should be inspected manually.
+```{r, echo = F}
+# subset for error samples and only consensus columns
+df <- per.file[per.file$CYTO_Translocation_Consensus == "ERROR2", 
+               c("Patient", "Sample_Name_Tissue_Type", "Study", names(per.file)[grepl("^CYTO_(t.*)_CONSENSUS", names(per.file))]) ]
+
+error.patients <- unique(df$Patient)
+names(df) <- gsub("CYTO_(t.[0-9]+.[0-9]+)._CONSENSUS", "\\1", names(df))
+df <- df[!duplicated(df$Sample_Name_Tissue_Type),]
+samples <- df$Sample_Name_Tissue_Type
+df <- df[,grep("t.4.14", names(df)):ncol(df)]
+
+trsl <- gsub("t.", "", names(df))
+trsl <- gsub("14.|.14", "", trsl)
+
+df <- data.frame(sample = samples,
+                 flagged.translocations = unlist(apply(df, 1, function(x){ 
+                   x[is.na(x)] <- "0"
+                   x <- ifelse(x=="1",TRUE,FALSE)
+                   paste(trsl[x], collapse = "; ")
+                 }))
+)
+df
+
+```
+
+Print out more detail for which techniques were used to determine these conflicted calls.
+```{r, echo=F}
+for(p in error.patients){
+  print(call.log[call.log$Patient == p & call.log$type_flag == "1" & !is.na(call.log$result) , 
+                 c("Patient", "Translocation", "raw_results", "result")])
+cat("\n")
+  }
+
+```

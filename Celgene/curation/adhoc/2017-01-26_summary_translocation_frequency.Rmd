@@ -1,0 +1,101 @@
+---
+title: "ND Tumor Translocation Summary"
+author: "Dan Rozelle, PhD. Rancho BioSciences"
+date: "January 26, 2017"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(toolboxR)
+source("../curation_scripts.R")
+```
+
+After some concerns were raised about the apparently inflated t4;14 frequency in MMRF, I was asked to identify areas of probably error. This inflation was like derived from numerous redundant (WES, WGS, and RNA-Seq files) and longitudinal (relapse samples) MMRF files being included in the analysis. Since translocation data is curated at the file level (based on the files used to generate such results), we must first aggregate and filter in such a way as to obtain a unique result for each patient. We accomplished this by first collapsing the per-file table consensus translocation results onto each patient identifier. No collisions were detected during this operatio nand we confirmed that all identifiers were unique. To visualize the data we generated a scatter plot (colored by trial set. For translocation types that had frequency results from more than one dataset we furthermore generated an aggregated mean (red points).
+
+
+```{r, message=F, warning=F}
+s3 <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/Integrated"
+df <- GetS3Table(s3.path = file.path(s3, "per.file.clinical.nd.tumor.txt"))
+df <- df[,c("Study", "Patient", grep("CYTO.*CONSENSUS", names(df), value = T))]
+df <- CollapseDF(df, "Patient")
+df$Patient <- NULL
+
+means <- df %>%
+  gather(translocation, call, -Study) %>%
+  filter( call !="NA" ) %>%
+  group_by(Study, translocation) %>%
+  summarise(m = mean(as.numeric(call), na.rm = T)) %>%
+  arrange(translocation, Study)
+
+means[['label']] <- gsub("CYTO_(.*)_CONSENSUS", "\\1", means$translocation)
+```
+
+```{r, echo = F}
+ggplot(means, aes(factor(label), m)) +
+  stat_summary(fun.y = "mean", color = "red", size = 5, shape = 95, geom = "point") +
+  geom_point(aes(color = factor(Study))) +
+  labs(title = "MGP dataset translocations and deletions",
+       x = "Translocation",
+       y = "Frequency",
+       color = "Study")+
+  theme(
+    text = element_text(family = "Arial",
+                        size   = 12)
+    ,line = element_line(size = 1)
+    ,plot.title = element_text(size = rel(1.2),
+                               face = "italic",
+                               angle = 0,
+                               margin = margin(20,0,15,0),
+                               lineheight = 1.0)
+    ,legend.title = element_text(size = rel(1.0))
+    ,legend.key = element_rect(fill=NA,color = NA)
+    ,legend.position = "right"  # none, left, top, right, bottom, c(.9, .5)
+    ,legend.background = element_blank()
+
+    ,axis.title = element_text(size = rel(0.9))
+    ,axis.text  = element_text(angle = 90)
+    ,axis.ticks = element_line(size = 0.5)
+    ,axis.ticks.length = unit(5, "pt")
+    ,axis.line = element_line(size = 0.5, color = "black", linetype = "solid")
+    # ,axis.line.x  = element_line()
+    # ,axis.line.y  = element_line()
+
+    # ,panel.border = element_rect(fill=NA,
+    #                             color = "black",
+    #                             size  = 1)
+
+    ,panel.background = element_rect(fill = NA)
+    ,panel.grid.major = element_line(color = "gray80", size = rel(0.5), linetype = "dashed")
+    # ,panel.grid.minor = element_blank()
+    ,plot.margin = unit(c(0.2, 0.4, 0.5, 0.5), "cm") #top, right, bottom, left
+  )
+```
+
+In order to make these types of summary scoring easier for our collaborator, I've added a per-sample table to the S3 resource. This table contains all of the columns as the per-file table, but has been collapsed to the sample-level. Please note that some columns (File_Name, Sequencing_Type) multiple values may be serialied into the field. Additionally, the <per.sample.clinical.txt> Otherwise, this table may serve as an improved option for some collaborators. I've ketched out how this table may be used to recreate the above information in a simplified manner. It turns out that the MMRF cohort actually has the lowest t4;14 frequency.
+
+```{r}
+df <- GetS3Table(s3.path = file.path(s3, "per.sample.clinical.nd.tumor.txt"))
+
+# NOTE: since we have selected the *nd.tumor* filtered version of this table, this table also has non-redundant patients
+any(duplicated(df$Patient))
+
+aggregate(df$CYTO_t.4.14._CONSENSUS, by = list(df$Study), mean, na.rm = T)
+
+counts <- df %>%
+  gather(translocation, call, -Study) %>%
+  filter( call !="NA" ) %>%
+  group_by(Study, translocation) %>%
+  summarise(zero = sum(call == "0"), one = sum(call == "1")) %>%
+  arrange(translocation, Study)
+
+```
+
+```{r}
+sessionInfo()
+```

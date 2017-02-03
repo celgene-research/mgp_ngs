@@ -1,0 +1,33 @@
+---
+title: "Bone Marrow Transplant"
+author: "Dan Rozelle"
+date: "January 23, 2017"
+output: slidy_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Bone Marrow Transplant
+Several patients received a Bone Marrow Transplant during the MMRF trial. Most (37/38) occured during a relapse visit. Questions for curation:
+
+- Should I differentiate between autologous and allogenic; or specify stem cell based therapy?
+- Should *ALL* samples subsequent to the transplant be flagged? How about when the actual transplant occured after the sample date?
+
+```{r, echo = F}
+  pervisit <- read.csv("/tmp/curation/PER_PATIENT_VISIT.csv", stringsAsFactors = F, 
+                       na.strings = c("Not Done", ""))
+  pervisit<- pervisit[ !is.na(pervisit$SPECTRUM_SEQ),]
+  df <- pervisit[,c("PUBLIC_ID", "SPECTRUM_SEQ", "VISITDY",grep("^BMT", names(pervisit), value=T))]
+ 
+  # are all visits post-BMT marked
+  bmt_patients <- df[df$BMT_WASABONEMARRO == "Yes" & !is.na(df$BMT_WASABONEMARRO), "PUBLIC_ID"]
+  bmt_patients <- df[df$PUBLIC_ID %in% bmt_patients,]
+  print(bmt_patients[bmt_patients$PUBLIC_ID %in% c("MMRF_1223"), 
+               c("SPECTRUM_SEQ", "VISITDY", "BMT_DAYOFTRANSPL", "BMT_WASABONEMARRO")])
+  print(bmt_patients[bmt_patients$PUBLIC_ID %in% c("MMRF_1251"), 
+               c("SPECTRUM_SEQ", "VISITDY", "BMT_DAYOFTRANSPL", "BMT_WASABONEMARRO")])
+  
+```
+
