@@ -1,46 +1,45 @@
 ## drozelle@ranchobiosciences.com
 ## UAMS file curation
 
-# vars
+source("curation_scripts.R")
+
 study <- "UAMS"
 d <- format(Sys.Date(), "%Y-%m-%d")
-
-# locations
-s3clinical    <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData"
-raw_inventory <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/Integrated/file_inventory.txt"
-local         <- "/tmp/curation"
-  if(!dir.exists(local)){dir.create(local)}
+s3    <- "s3://celgene.rnd.combio.mmgp.external"
+local <- CleanLocalScratch()
 
 # get current original files
-original <- file.path(s3clinical,"OriginalData",study)
-system(  paste('aws s3 cp', original, local, '--recursive', sep = " "))
-system(  paste('aws s3 cp', raw_inventory, local, sep = " "))
+system(  paste('aws s3 cp', file.path(s3,"ClinicalData/OriginalData", study), local, '--recursive', sep = " "))
+system(  paste('aws s3 cp', file.path(s3, "ClinicalData/ProcessedData/Integrated", "file_inventory.txt"), local, sep = " "))
 
 ################################################
 name <- "UAMS_UK_sample_info.xlsx"
 df <- readxl::read_excel(file.path(local,name), sheet = 1)
-df[ df == "N/A" ] = NA
-# chomp column names
-names(df) <- gsub("^\\s+|\\s+$","",names(df))
 
-  df[['Patient']] <- sprintf("UAMS_%04d", as.numeric(df$MyXI_Trial_ID))
-  df[["Study"]] <- study
-  df[['Sample_Name']] <- df$Sample_name
-  df[['File_Name']] <- df$filename
-  df[['Sample_Type']] <-  ifelse(grepl("Tumour",df$Type), "NotNormal", "Normal")
+  # fix NAs
+  df[ df == "N/A" ] = NA
+  names(df) <- gsub("^\\s+|\\s+$","",names(df))
+
+  df[['Patient']]          <- sprintf("UAMS_%04d", as.numeric(df$MyXI_Trial_ID))
+  df[["Study"]]            <- study
+  df[['Sample_Name']]      <- df$Sample_name
+  df[['File_Name']]        <- df$filename
+  df[['Sample_Type']]      <-  ifelse(grepl("Tumour",df$Type), "NotNormal", "Normal")
   df[['Sample_Type_Flag']] <-  ifelse(grepl("Tumour",df$Type), "1", "0")
-  df[['D_Gender']] <-  ifelse(grepl("M",toupper(df$Gender) ), "Male", "Female")
-  df[['Disease_Status']] <-  ifelse(grepl("NDMM",df$experiment), "ND", "MM")
-  df[['Tissue_Type']]    <-  ifelse(grepl("BM",df$tissue), "BM", "PB")
-  df[['Cell_Type']]      <-  ifelse(grepl("CD138",df$tissue), "CD138pos", "PBMC")
+  df[['D_Gender']]         <-  ifelse(grepl("M",toupper(df$Gender) ), "Male", "Female")
+  df[['Disease_Status']]   <-  ifelse(grepl("NDMM",df$experiment), "ND", "MM")
+  df[['Tissue_Type']]      <-  ifelse(grepl("BM",df$tissue), "BM", "PB")
+  df[['Cell_Type']]        <-  ifelse(grepl("CD138",df$tissue), "CD138pos", "PBMC")
   
-  df[['CYTO_t(11;14)_FISH']]           <-  ifelse( grepl("11", df$Translocation_consensus),1,0) 
-  df[['CYTO_t(4;14)_FISH']]            <-  ifelse( grepl("4", df$Translocation_consensus),1,0) 
-  df[['CYTO_t(6;14)_FISH']]            <-  ifelse( grepl("6", df$Translocation_consensus),1,0) 
-  df[['CYTO_t(14;16)_FISH']]           <-  ifelse( grepl("16", df$Translocation_consensus),1,0) 
-  df[['CYTO_t(14;20)_FISH']]           <-  ifelse( grepl("20", df$Translocation_consensus),1,0) 
-  df[['CYTO_MYC_FISH']]  <-  ifelse( df$`MYC translocation` != "0" ,1,0) 
-
+  # Convert consensus to numeric, leave NAs for NA and Unknown, change "NONE" to 0
+  df$Translocation_consensus <- as.numeric(gsub("NONE", "0", df$Translocation_consensus))
+  df[['CYTO_t(11;14)_FISH']] <- ifelse( df$Translocation_consensus == 11, 1, 0)
+  df[['CYTO_t(4;14)_FISH']]  <- ifelse( df$Translocation_consensus == 4, 1, 0)
+  df[['CYTO_t(6;14)_FISH']]  <- ifelse( df$Translocation_consensus == 6, 1, 0) 
+  df[['CYTO_t(14;16)_FISH']] <- ifelse( df$Translocation_consensus == 16, 1, 0)
+  df[['CYTO_t(14;20)_FISH']] <- ifelse( df$Translocation_consensus == 20, 1, 0)
+  df[['CYTO_MYC_FISH']]      <- ifelse( df$`MYC translocation` != "0" ,1,0) 
+  
   name <- paste("curated_sheet1", name, sep = "_")
   name <- gsub("xlsx", "txt", name)
   path <- file.path(local,name)
@@ -90,7 +89,7 @@ rm(df, df2, inv)
 
 
 # put curated files back as ProcessedData on S3
-processed <- file.path(s3clinical,"ProcessedData",study)
+processed <- file.path(s3, "ClinicalData/ProcessedData", study)
 system(  paste('aws s3 cp', local, processed, '--recursive --exclude "*" --include "curated*" --sse', sep = " "))
 return_code <- system('echo $?', intern = T)
 
