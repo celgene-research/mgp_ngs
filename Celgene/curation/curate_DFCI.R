@@ -1,25 +1,23 @@
 ## drozelle@ranchobiosciences.com
 ## DFCI file curation
 
-# vars
+source("curation_scripts.R")
+library(dplyr)
+
 study <- "DFCI"
 d <- format(Sys.Date(), "%Y-%m-%d")
-source("curation_scripts.R")
-# locations
-s3clinical <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData"
-raw_inventory <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/Integrated/file_inventory.txt"
-local      <- "/tmp/curation"
-  if(!dir.exists(local)){
-    dir.create(local)
-    } else {
-system(paste0("rm -r ", local))
-}
-
+s3    <- "s3://celgene.rnd.combio.mmgp.external"
+local <- CleanLocalScratch()
 
 # get current original files
-original <- file.path(s3clinical,"OriginalData",study)
-system(  paste('aws s3 cp', original, local, '--recursive', sep = " "))
-system(  paste('aws s3 cp', raw_inventory, local, sep = " "))
+system(  paste('aws s3 cp', 
+               file.path(s3,"ClinicalData/OriginalData", study), 
+               local, 
+               '--recursive', sep = " "))
+system(  paste('aws s3 cp', 
+               file.path(s3, "ClinicalData/ProcessedData/Integrated", "file_inventory.txt"), 
+               local, 
+               sep = " "))
 
 # inventory ---------------------------------------
 # clean up the inventory entries and lookup values with df
@@ -64,7 +62,7 @@ df <- readxl::read_excel(file.path(local,name), sheet = 1)
   # rename columns already encoded 1/0
   # df[,c("CYTO_Hyperdiploid_FISH","CYTO_del(17)_FISH")] <- df[,c("HYPER", "Del(17p)")]
   
-  # we don't currently have these fields, but they may come in handy
+  # TODO: we don't currently have these fields, but they may come in handy
   df["D_Diagnosis_Date"] <-format(lubridate::ymd_hms(df$Diagnosis), format = "%Y-%m-%d")
   df["D_Relapse_Date"] <-format(df$Relapse, format = "%Y-%m-%d")
   df["D_Last_Visit_Date"] <-format(df$Last_visit, format = "%Y-%m-%d")
@@ -247,14 +245,8 @@ df2 <- df[,4:14]
 rm(df, df2, inv)
 
 # put curated files back as ProcessedData on S3
-processed <- file.path(s3clinical,"ProcessedData",study)
-system(  
-  paste('aws s3 cp', local, processed, '--recursive --exclude "*" --include ',paste0("curated_", study, "*"),' --sse', sep = " ")
-  )
-return_code <- system('echo $?', intern = T)
+system(  paste('aws s3 cp',
+               local,
+               file.path(s3,"ClinicalData/ProcessedData", study),
+               '--recursive --exclude "*" --include ',paste0("curated_", study, "*"),' --sse', sep = " "))
 
-# as a failsafe to prevent reading older versions of source files remove the 
-#  cached version file if transfer was successful.
-# if(return_code == "0") system(paste0("rm -r ", local))
-  
-  
