@@ -51,7 +51,7 @@ for(f in files){
   per.file <- append_df(per.file, new, id = "File_Name", mode = "append")
 }
 
-  per.file$Sample_Name_Tissue_Type <- paste(per.file$Sample_Name, per.file$Tissue_Type, sep="_")
+  # per.file$Sample_Name_Tissue_Type <- paste(per.file$Sample_Name, per.file$Tissue_Type, sep="_")
   per.file  <- remove_invalid_samples(per.file)
   per.file  <- cytogenetic_consensus_calling(per.file)
   
