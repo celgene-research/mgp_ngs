@@ -1,44 +1,65 @@
 ## drozelle@ranchobiosciences.com
 ## MMRF file curation
 
-# vars
+#
+# revision 2017-02-09  
+# Sample_Name (e.g., MMRF_1007_1) will now include the cell type 
+# extension (e.g., MMRF_1007_1_BM). This is to address the fact that (as of IA9)
+# 778 of 825 patients had samples names that referred to both BM and PB. All other
+# datasets provide a unique sample name for tumor vs normal samples. We will retain 
+# the shorter form as a new Sample_Sequence fields.
+# 
+
+source("curation_scripts.R")
+library(dplyr)
+
 study <- "MMRF"
 d <- format(Sys.Date(), "%Y-%m-%d")
-source("curation_scripts.R")
+s3    <- "s3://celgene.rnd.combio.mmgp.external"
 local <- CleanLocalScratch()
 
-# locations
-s3            <- "s3://celgene.rnd.combio.mmgp.external"
-raw_inventory <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/Integrated/file_inventory.txt"
-
 # get current original files
-original <- file.path(s3,"ClinicalData/OriginalData/MMRF_IA9/")
-system(  paste('aws s3 cp', original, local, '--recursive', sep = " "))
-system(  paste('aws s3 cp', raw_inventory, local, sep = " "))
+system(  paste('aws s3 cp', 
+               file.path(s3,"ClinicalData/OriginalData", "MMRF_IA9"), 
+               local, 
+               '--recursive', sep = " "))
+system(  paste('aws s3 cp', 
+               file.path(s3, "ClinicalData/ProcessedData/Integrated", "file_inventory.txt"), 
+               local, 
+               sep = " "))
 
 ### file_inventory -------------------------
 name <- "file_inventory.txt"
   inv <- read.delim(file.path(local,name), stringsAsFactors = F)
   inv <- inv[inv$Study == "MMRF",]
   
-  # remove Sequencing_Type and only use from SeqQC source table
+  # remove Sequencing_Type and only use from official SeqQC source table
   inv$Sequencing_Type <- NULL
+  
+  # Correct Sample_Name to include Cell_Type designation
+  inv$Sample_Name     <- gsub("^(MMRF.*[BMP]+)_.*", "\\1",  inv$File_Name)
+  inv$Sample_Sequence <- gsub("^(MMRF.*)_[BMP]+_.*", "\\1",  inv$File_Name)
+  
   # we can also parse a few more fields from the MMRF names
   inv[['File_Name_Actual']] <- inv$File_Name
   # remove filename extension
-  inv$File_Name <- gsub("^(.*?)\\..*$", "\\1", inv$File_Name)
-  inv[['Sample_Type']]    <-  ifelse(grepl("CD138pos",inv$File_Name), "NotNormal", "Normal")
+  inv$File_Name            <- gsub("^(.*?)\\..*$", "\\1", inv$File_Name)
+  inv[['Sample_Type']]     <- ifelse(grepl("CD138pos",inv$File_Name), "NotNormal", "Normal")
   inv[['Sample_Type_Flag']]<- ifelse(grepl("CD138pos",inv$File_Name), "1", "0")
-  inv[['Tissue_Type']]    <-  ifelse(grepl("BM",inv$File_Name), "BM", "PB")
-  inv[['Cell_Type']]      <-  gsub(".{12}[PBM]+_([A-Za-z0-9]+)_[CT]\\d.*","\\1",inv$File_Name)
-  inv[['Disease_Status']] <-  ifelse(grepl("1$", inv$Sample_Name),"ND", "R")
+  inv[['Tissue_Type']]     <- ifelse(grepl("BM",inv$File_Name), "BM", "PB")
+  inv[['Sequencing_Type']] <- gsub("SeqData\\/(.*)\\/OriginalData.*","\\1",inv$File_Path)
   
+  # Harmonize Cell_Type to CD138; CD3; PBMC types 
+  inv[['Cell_Type']]       <- gsub(".{12}[PBM]+_([A-Za-z0-9]+)_[CT]\\d.*","\\1",inv$File_Name)
+  inv$Cell_Type            <- gsub("WBC|Whole", "PBMC", inv$Cell_Type)
+  
+  curated.inv <- inv
   name <- paste("curated", study, name, sep = "_")
   path <- file.path(local,name)
   write.table(inv, path, row.names = F, col.names = T, sep = "\t", quote = F)
 
-### file_inventory.2 -------------------------
-# fetch SRR encoded WGS filenames directly from S3
+### wgs file_inventory.2 -------------------------
+# fetch SRR encoded WGS filename inventory directly from S3
   df <- data.frame(File_Path = system(paste('aws s3 ls', 
                                             's3://celgene.rnd.combio.mmgp.external/SeqData/WGS/OriginalData/MMRF/',
                                             '--recursive |',
@@ -57,21 +78,41 @@ name <- "file_inventory.txt"
                file.path(local, name),
                sep = " "))
   kostas.import <- read.delim(file.path(local, name), stringsAsFactors = F)
-  mapping <- data.frame(File_Name_Actual = gsub(".*(SRR.*)", "\\1", kostas.import$filename),
-                        File_Name        = kostas.import$vendor_id,
-                        stringsAsFactors = F)
+
+  # NOTE: for some reason the vendor_id values supplied here are not properly zero-padded
+  # as in the Seqqc table. Edit all File_Names to end a 5-digit K00000 or L00000.
+  #   from:
+  #     MMRF_1327_1_PB_Whole_C1_TSWGL_K3755
+  #   to:
+  #     MMRF_1327_1_PB_Whole_C1_TSWGL_K03755
+  # 
+  prefix <- gsub("(MMRF_\\d+_\\d+_[BMPB]+_[WBCCD138posWhole]+_[TC]\\d+_.*_)(.)(.*)$", 
+                 "\\1\\U\\2", kostas.import$vendor_id, perl = T)  
+  padded.suffix <- gsub("(MMRF_\\d+_\\d+_[BMPB]+_[WBCCD138posWhole]+_[TC]\\d+_.*_)(.)(.*)$", 
+                 "\\3", kostas.import$vendor_id)
+  padded.suffix <- sprintf("%05d", as.numeric(padded.suffix))
+    # table(unlist(lapply(padded.suffix, nchar))) # verify all numbers are 5 digits long
+  kostas.import[['vendor_id_fixed']] <- paste0(prefix, padded.suffix)
   
+  mapping <- data.frame(File_Name_Actual = gsub(".*(SRR.*)", "\\1", kostas.import$filename),
+                        File_Name        = kostas.import$vendor_id_fixed,
+                        stringsAsFactors = F)
   df <- merge(df, mapping, by = "File_Name_Actual", all.x = T)
   
   # we can also parse directly from the MMRF names
-  df[['Sample_Name']]    <- gsub("^(MMRF_[0-9]+_[0-9]+)_.*$", "\\1", df$File_Name)
-  df[['Patient']]    <- gsub("^(MMRF_[0-9]+)_[0-9]+_.*$", "\\1", df$File_Name)
-  df[['Sample_Type']]    <-  ifelse(grepl("CD138pos",df$File_Name), "NotNormal", "Normal")
-  df[['Sample_Type_Flag']]<- ifelse(grepl("CD138pos",df$File_Name), "1", "0")
-  df[['Tissue_Type']]    <-  ifelse(grepl("BM",df$File_Name), "BM", "PB")
-  df[['Cell_Type']]      <-  gsub(".{12}[PBM]+_([A-Za-z0-9]+)_[CT]\\d.*","\\1",df$File_Name)
-  df[['Disease_Status']] <-  ifelse(grepl("1$", df$Sample_Name),"ND", "R")
+  # Correct Sample_Name to include Cell_Type designation
+  df[['Sample_Name']]      <- gsub("^(MMRF.*[BMP]+)_.*", "\\1",  df$File_Name)
+  df[['Sample_Sequence']]  <- gsub("^(MMRF.*)_[BMP]+_.*", "\\1",  df$File_Name)
+  df[['Patient']]          <- gsub("^(MMRF_[0-9]+)_[0-9]+_.*$", "\\1", df$File_Name)
+  df[['Sample_Type']]      <-  ifelse(grepl("CD138pos",df$File_Name), "NotNormal", "Normal")
+  df[['Sample_Type_Flag']] <- ifelse(grepl("CD138pos",df$File_Name), "1", "0")
+  df[['Tissue_Type']]      <-  ifelse(grepl("BM",df$File_Name), "BM", "PB")
+  df[['Sequencing_Type']]  <- "srr-wgs"
+  # Harmonize Cell_Type to CD138; CD3; PBMC types 
+  df[['Cell_Type']]        <- gsub(".{12}[PBM]+_([A-Za-z0-9]+)_[CT]\\d.*", "\\1", df$File_Name)
+  df$Cell_Type             <- gsub("WBC|Whole", "PBMC", df$Cell_Type)
   
+  inv.wgs <- df
   name <- "file.inventory.2.txt"
   name <- paste("curated", study, name, sep = "_")
   path <- file.path(local,name)
@@ -84,23 +125,29 @@ name <- "MMRF_CoMMpass_IA9_Seq_QC_Summary.xlsx"
                file.path(s3, "MMRF_CoMMpass_IA9/README_FILES", name),
                file.path(local, name),
                sep = " "))
+  df <- readxl::read_excel(file.path(local, name)) %>% select(1:MMRF_Release_Status )
   
-  df <- readxl::read_excel(file.path(local, name))
-  df <- data.frame(File_Name       = df$`QC Link SampleName`,
-                   Sample_Name     = df$`Visits::Study Visit ID`,
-                   Sequencing_Type = gsub("(.*)-.*", "\\1", df$MMRF_Release_Status),
-                   Excluded_Flag   = ifelse(grepl("^Exclude|RNA-No|LI-Neither|Exome-Neither",df$MMRF_Release_Status),1,0),                           
-                   Excluded_Specify = df$MMRF_Release_Status,                           
-                   stringsAsFactors = F)
+  df[['File_Name']]       <- df$`QC Link SampleName`
+  df[['Sample_Name']]     <- gsub("^(MMRF.*[BMP]+)_.*", "\\1",  df$File_Name)
+  df[['Sample_Sequence']] <- gsub("^(MMRF.*)_[BMP]+_.*", "\\1",  df$File_Name)
+  df[['Sequencing_Type']] <- gsub("(.*)-.*", "\\1", df$MMRF_Release_Status)
   
+                 
   # remove exclude_specify for retained samples
+  df[['Excluded_Flag']]    <-ifelse(grepl("^Exclude|RNA-No|LI-Neither|Exome-Neither",
+                                          df$MMRF_Release_Status),1,0)
+  df[['Excluded_Specify']]    <-df$MMRF_Release_Status
+  
+  # remove exclude_specify for retained samples and sequencing type from excluded
   df[df$Excluded_Flag == 0,"Excluded_Specify"] <- NA
   df[df$Sequencing_Type == "Exclude", "Sequencing_Type"] <- NA
   df$Sequencing_Type <- plyr::revalue(df$Sequencing_Type, c(RNA="RNA-Seq", 
                                                             LI="WGS", 
                                                             Exome="WES"))
+  df <- select(df, File_Name:ncol(df))
   
-  name <- paste("curated", study, name, sep = "_")
+  curated.seqqc <- df
+  name <- paste("curated", name, sep = "_")
   name <- gsub("xlsx", "txt", name)
   path <- file.path(local,name)
   write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
@@ -109,20 +156,26 @@ name <- "MMRF_CoMMpass_IA9_Seq_QC_Summary.xlsx"
 # curate per_visit entries with samples taken for the sample-level table
 name <- "PER_PATIENT_VISIT.csv"
   pervisit <- read.csv(file.path(local,name), stringsAsFactors = F, 
-                       na.strings = c("Not Done", ""))
-  # only keep visits with affiliated samples, sort by Sample_Name
-  pervisit<- pervisit[ !is.na(pervisit$SPECTRUM_SEQ),]
-  pervisit<- pervisit[ order(pervisit$SPECTRUM_SEQ),]
+                       na.strings = c("Not Done", "")) %>%
+    filter(SPECTRUM_SEQ != "") %>%
+    arrange(SPECTRUM_SEQ)
   
   df <- data.frame(Patient = pervisit$PUBLIC_ID,
                    stringsAsFactors = F)
   
   df[["Study"]]                  <- study
-  df[["Sample_Name"]]            <- pervisit$SPECTRUM_SEQ
+  df[["Sample_Sequence"]]        <- pervisit$SPECTRUM_SEQ
   df[["Visit_Name"]]             <- pervisit$VJ_INTERVAL
-  df[["Disease_Status"]]         <- ifelse(grepl("1$", df$Sample_Name),"ND", "R")
+  df[["Disease_Status"]]         <- ifelse(grepl("Baseline", pervisit$VJ_INTERVAL, ignore.case = T),"ND", "R")
   df[["Disease_Status_Notes"]]   <- pervisit$CMMC_VISIT_NAME
   df[["Sample_Study_Day"]]       <- pervisit$BA_DAYOFASSESSM
+  
+  # # QC to verify ND derived from Baseline and R from all others (month/year)
+  # df <- mutate(df, grp = paste( gsub(".*([0-9]{1})$", "\\1", Short_Sample_Name),
+  #                         Visit_Name,
+  #                         Disease_Status,
+  #                         sep = "-"))
+  # table((df$grp))
   
   # add a pervisit flag for previous bone marrow transplants
   pervisit[['BMT_PrevBoneMarrowTransplant']] <- unlist(apply(pervisit, MARGIN = 1, function(x){
@@ -141,7 +194,11 @@ name <- "PER_PATIENT_VISIT.csv"
   df[['D_PrevBoneMarrowTransplant']] <- pervisit$BMT_PrevBoneMarrowTransplant
   
   # cytogenetic fields
-  df[["CYTO_Has_Conventional_Cytogenetics"]] <- ifelse(pervisit$D_CM_cm == 1, 1,0)
+  df[["CYTO_Has_Conventional_Cytogenetics"]]           <- ifelse(pervisit$D_CM_cm == 1, 1,0)
+  df[["CYTO_Has_Conventional_Metaphase_Cytogenetics"]] <- ifelse(pervisit$D_CM_WASCONVENTION == 1, 1,0)
+  df[["CYTO_Has_Cytogenetics_FISH_Performed"]]         <- ifelse(pervisit$D_TRI_CF_WASCYTOGENICS == 1, 1,0)
+  df[["CYTO_Has_cIg_staining_with_FISH"]]              <- ifelse(pervisit$D_TRI_CF_WASCLGFISHORP == 1, 1,0)
+  
   df[["CYTO_Has_FISH"]]          <- ifelse(pervisit$D_TRI_cf == 1, 1,0)
   df[['CYTO_1qplus_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR13 =="Yes" ,1,0)
   df[['CYTO_del(1p)_FISH']]    <- ifelse( pervisit$D_TRI_CF_ABNORMALITYPR12 =="Yes" ,1,0)
@@ -180,12 +237,25 @@ name <- "PER_PATIENT_VISIT.csv"
   df[['IG_IgL_Lambda']]           <- pervisit$D_LAB_serum_lambda
   df[['IG_IgM']]                  <- pervisit$D_LAB_serum_igm
   df[['IG_IgE']]                  <- pervisit$D_LAB_serum_ige
+
+  # We need to bind this visit data to a File_Name so that it can be incorporated
+  # into the integrated per-file table
+  # Make a mapping table from inv from BM sample type if present, else PB 
+  filename.lookup <- unique(rbind(inv[,c("Sample_Sequence", "File_Name", "Sequencing_Type")],
+                                     curated.seqqc[,c("Sample_Sequence", "File_Name", "Sequencing_Type")],
+                                     inv.wgs[,c("Sample_Sequence", "File_Name", "Sequencing_Type")])) %>% 
+    mutate(type      = gsub(".*_([BMP]+).*","\\1", File_Name)) %>%
+    mutate(seq_order = recode( Sequencing_Type, WES="a", WGS="b", "srr-wgs"="b", "RNA-Seq"="c"  )) %>%
+    group_by(Sample_Sequence) %>%
+    arrange(type, seq_order) %>%   # prefer binding BM, WES file to sample where present
+    slice(1) %>%
+    select(Sample_Sequence, File_Name)
   
-  # We need to add a File_Name column so visit/sample data is added to the per-file table
-  # assume cytogenetic results are only applicable to tumor samples (filter NotNormal files only)
-  # NOTE: since single samples correspond to multiple File_Names (RNA-Seq, WES etc) there is sample info redundancy
-  # in this table
-  df <- merge(df, inv[inv$Sample_Type_Flag == 1, c("Sample_Name", "File_Name")], by = "Sample_Name", all.x = T)
+  # verify that all Sample_Sequences have a corresponding Sample_Name before merge
+  df$Sample_Sequence[!(df$Sample_Sequence %in% filename.lookup$Sample_Sequence)]
+  #NOTE: we're throwing out 366 visit entries because we don't have any files associated with them
+  
+  df <- merge(df, filename.lookup, by = "Sample_Sequence", all.x = T)
   
   name <- paste("curated", name, sep = "_")
   name <- gsub("csv", "txt", name)
