@@ -107,7 +107,11 @@ name <- "file_inventory.txt"
   df[['Sample_Type']]      <-  ifelse(grepl("CD138pos",df$File_Name), "NotNormal", "Normal")
   df[['Sample_Type_Flag']] <- ifelse(grepl("CD138pos",df$File_Name), "1", "0")
   df[['Tissue_Type']]      <-  ifelse(grepl("BM",df$File_Name), "BM", "PB")
-  df[['Sequencing_Type']]  <- "srr-wgs"
+  
+  # used to troubleshoot filename origins
+  # all seq types should explicitly come from SeqQC table
+  # df[['Sequencing_Type']]  <- "srr-wgs" 
+   
   # Harmonize Cell_Type to CD138; CD3; PBMC types 
   df[['Cell_Type']]        <- gsub(".{12}[PBM]+_([A-Za-z0-9]+)_[CT]\\d.*", "\\1", df$File_Name)
   df$Cell_Type             <- gsub("WBC|Whole", "PBMC", df$Cell_Type)
@@ -242,8 +246,7 @@ name <- "PER_PATIENT_VISIT.csv"
   # into the integrated per-file table
   # Make a mapping table from inv from BM sample type if present, else PB 
   filename.lookup <- unique(rbind(inv[,c("Sample_Sequence", "File_Name", "Sequencing_Type")],
-                                     curated.seqqc[,c("Sample_Sequence", "File_Name", "Sequencing_Type")],
-                                     inv.wgs[,c("Sample_Sequence", "File_Name", "Sequencing_Type")])) %>% 
+                                     curated.seqqc[,c("Sample_Sequence", "File_Name", "Sequencing_Type")])) %>% 
     mutate(type      = gsub(".*_([BMP]+).*","\\1", File_Name)) %>%
     mutate(seq_order = recode( Sequencing_Type, WES="a", WGS="b", "srr-wgs"="b", "RNA-Seq"="c"  )) %>%
     group_by(Sample_Sequence) %>%
@@ -252,7 +255,8 @@ name <- "PER_PATIENT_VISIT.csv"
     select(Sample_Sequence, File_Name)
   
   # verify that all Sample_Sequences have a corresponding Sample_Name before merge
-  df$Sample_Sequence[!(df$Sample_Sequence %in% filename.lookup$Sample_Sequence)]
+  # tmp <- df$Sample_Sequence[!(df$Sample_Sequence %in% filename.lookup$Sample_Sequence)]
+  # any(tmp %in% inv.wgs$Sample_Sequence)
   #NOTE: we're throwing out 366 visit entries because we don't have any files associated with them
   
   df <- merge(df, filename.lookup, by = "Sample_Sequence", all.x = T)
