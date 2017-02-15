@@ -1,7 +1,7 @@
 
 # simplified scripts to save s3 files to locally mounted storage
 s3clinical      <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData"
-local_path      <- "~/thindrives/mgp/data"
+local_path      <- "/scratch/tmp/drozelle/"
 if(!dir.exists(local_path)){warning("local drive not mounted")}
 
 ###
@@ -17,14 +17,14 @@ system(  paste('aws s3 sync',
                '--exclude "Archive*" --exclude "sas*" ', sep = " "))
 
 # ORIGINAL data
-# system(  paste('aws s3 sync', file.path(s3clinical, "OriginalData"),
-#                             file.path(local_path, "OriginalData"), 
-#                             sep = " "))
+system(  paste('aws s3 sync', file.path(s3clinical, "OriginalData"),
+                            file.path(local_path, "OriginalData"),
+                            sep = " "))
 
 # all individual PROCESSED data tables
-# system(  paste('aws s3 sync', file.path(s3clinical, "ProcessedData"),
-#                             file.path(local_path, "ProcessedData"), 
-#                             sep = " "))
+system(  paste('aws s3 sync', file.path(s3clinical, "ProcessedData"),
+                            file.path(local_path, "ProcessedData"),
+                            sep = " "))
 
 # Archive and sas table
 # system(  paste('aws s3 sync', 
