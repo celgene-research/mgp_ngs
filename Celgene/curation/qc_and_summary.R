@@ -23,48 +23,51 @@
 # columns required for df: c("Sample_Name", "File_Path", "Excluded_Flag")
 remove_invalid_samples <- function(df){
   
-  # remove rows without a valid File_Name
-  if( "File_Path" %in% names(df) ){
-    df <- df[!is.na(df$File_Path),]
-  }
+  # Only keep rows where we have a File_Name
+  if( "File_Path" %in% names(df) ){ df <- filter(df, !is.na(File_Path)) }
   
-  # warn if they don't have a Sample_Name
+  # Warn if any don't have a Sample_Name
   if( any(is.na(df$Sample_Name)) ){
     warning(paste(sum(is.na(df$Sample_Name)),  
                   "rows do not have a valid Sample_Name",
-                  sep = " "))
-  }
+                  sep = " "))  }
+  
   # Get the table of excluded patients
   ex <- GetS3Table(file.path("s3://celgene.rnd.combio.mmgp.external",
                              "ClinicalData/ProcessedData/JointData",
                              "Excluded_Samples.txt"))
   
-  # Identify excluded samples either from excluded table or excluded on the SeqQc table
-  excluded.samples <- (!is.na(df$Sample_Name)   & df$Sample_Name %in% ex$Sample_Name) | 
-                      (!is.na(df$Excluded_Flag) & df$Excluded_Flag == "1")
+  excluded.files <- df %>% 
+    filter(Sample_Name %in% ex$Sample_Name |
+           Excluded_Flag == "1" )%>%
+    select(Sample_Name, File_Name, Sequencing_Type) %>%
+    arrange(File_Name)
+  excluded.files <- merge(excluded.files, ex, by = "Sample_Name", all.x = T)
   
-  # warn and log samples if any are removed
-  if( any(excluded.samples) ){
-    warning(paste(sum(excluded.samples),  
-                  "samples were removed that have been excluded",
-                  sep = " ")
-    )
-    
-    # write excluded file info to log file
-    out <- df[excluded.samples, c("Sample_Name", "File_Path")]
-    out <- merge(out,ex, by = "Sample_Name", all.x = T)
-    
-    spec <- df[!is.na(df$Excluded_Specify),c("Sample_Name", "Excluded_Specify")]
-    out <- merge(out,spec, by = "Sample_Name", all.x = T)
-    
-    write.table(x = out,
-                file = file.path(local, "excluded_filenames.txt"),
-                sep = "\t", row.names = F)
+  # remove patients with samples indicating they had PCL
+  pcl.files <- df %>%
+    group_by(Patient) %>%
+    mutate(tissue_cell = paste(tolower(Tissue_Type), tolower(Cell_Type), sep="-")) %>%
+    mutate(pcl = "pb-cd138pos" %in% tissue_cell) %>%
+    filter( pcl ) %>%
+    ungroup() %>%
+    select(Sample_Name, File_Name, Sequencing_Type) %>%
+    mutate(Note = "patient has Plasma Cell Leukemia (PB with CD138 cells)") %>%
+    arrange(File_Name)
+  
+  excluded.files <- rbind(excluded.files, pcl.files)
+  
+  
+  # Push table of removed files to S3 and throw warning
+  if( nrow(excluded.files) > 0 ){
+    warning(paste(nrow(excluded.files),  
+                  "files were removed that have been excluded",
+                  sep = " "))
+    PutS3Table(excluded.files, "s3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/Integrated/Excluded_Samples.txt")
   }
   
-  df <- df[!(excluded.samples),]
-  
-  df
+  # Remove excluded files from table and return
+  df %>% filter(File_Name %in% excluded.files$File_Name)
 }
 
 remove_sensitive_columns <- function(df, dict){
