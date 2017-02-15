@@ -39,7 +39,7 @@ remove_invalid_samples <- function(df){
                              "ClinicalData/ProcessedData/JointData",
                              "Excluded_Samples.txt"))
   
-  # Identify excluded samples
+  # Identify excluded samples either from excluded table or excluded on the SeqQc table
   excluded.samples <- (!is.na(df$Sample_Name)   & df$Sample_Name %in% ex$Sample_Name) | 
                       (!is.na(df$Excluded_Flag) & df$Excluded_Flag == "1")
   
@@ -50,7 +50,7 @@ remove_invalid_samples <- function(df){
                   sep = " ")
     )
     
-    
+    # write excluded file info to log file
     out <- df[excluded.samples, c("Sample_Name", "File_Path")]
     out <- merge(out,ex, by = "Sample_Name", all.x = T)
     
