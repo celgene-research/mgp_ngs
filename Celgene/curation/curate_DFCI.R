@@ -244,9 +244,76 @@ df2 <- df[,4:14]
   
 rm(df, df2, inv)
 
-# put curated files back as ProcessedData on S3
+
+# DFCI_RNASeq_Clinical.xls ---------------------------------------
+
+name.map <- "2017-01-18_DFCI_RNASeq_Samples.xlsx"
+map      <- readxl::read_excel(file.path(local,name.map)) %>%
+  mutate(Sample_Name = gsub("^(.*)_[ATCG]+_.*", "\\1", File_R1 )) %>%
+  mutate(File_Name = paste(File_R1, File_R2, sep = "; ")) %>%
+  rename(Patient = SampleID) %>%
+  select(-c(File_R1, File_R2)) %>%
+  arrange(Patient)
+  
+
+name <- "2017-02-01_DFCI_RNASeq_Clinical.xls"
+raw <- read.delim(file.path(local,name), stringsAsFactors = F)
+
+df <- with(raw,
+    data.frame(
+   Patient       = SampleID 
+  ,D_Age         = as.numeric(Age.at.diagnosis)
+  ,D_Gender      = recode(Sex, "1"="Male", "2"="Female")
+  ,D_ISS         = as.numeric(ISS)
+  ,D_OS          = DiagToDeath
+  ,D_OS_FLAG     = Death
+  ,D_PFS         = DiagToRelapse
+  ,D_PFS_FLAG    = Relapse
+  
+  ,`CYTO_t(4;14)_FISH`  = as.numeric(gsub("9", NA, t_4_14) )
+  # ,`CYTO_t(11;14)_FISH` = t_11_14
+  ,`CYTO_t(14;16)_FISH` = as.numeric(gsub("9", NA, t_14_16) )
+  ,`CYTO_1qplus_FISH`   = Gain_1q
+  ,`CYTO_del(1p)_FISH` = Del1p
+  # Del1p22
+  ,`CYTO_del(1p32)_FISH`= Del1p32
+  # Del8p  #MYC?
+  # del13_per
+  # del17p
+  # Trisomie5
+  # Trisomie9
+  # Trisomie15
+  # Monosomie_14
+  # del14q
+  ,`CYTO_del(16q)_FISH` = del16q
+  # del20p
+  # del22q
+  # Purity
+  
+  ,stringsAsFactors = F
+))
+
+df <- full_join(df, map, by = "Patient") %>%   arrange(is.na(D_Age), Patient)
+df[['Study']] <-  "DFCI.2009"
+
+# save a table of samples without clinical data
+missing.clinical.data <- subset(df, is.na(D_Age)) %>% 
+  separate(File_Name, into = c("File_R1", "File_R2"), sep = "; " ) %>%
+  select(Patient, File_R1, File_R2)
+
+write.table(missing.clinical.data, "~/thindrives/mgp/DFCI_missing_clinical_data.txt",
+            sep = "\t", row.names = F)
+
+name <- paste("curated", study, gsub("^DFCI_","", name), sep = "_")
+name <- gsub("xls", "txt", name)
+path <- file.path(local,name)
+write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
+rm(df, map)
+
+# put curated files back as ProcessedData on S3 --------------------------------
 system(  paste('aws s3 cp',
                local,
                file.path(s3,"ClinicalData/ProcessedData", study),
-               '--recursive --exclude "*" --include ',paste0("curated_", study, "*"),' --sse', sep = " "))
+               '--recursive --exclude "*" --include ',paste0("curated_", study, "*"),
+               ' --sse', sep = " "))
 
