@@ -44,19 +44,24 @@ remove_invalid_samples <- function(df){
     arrange(File_Name)
   excluded.files <- merge(excluded.files, ex, by = "Sample_Name", all.x = T)
   
-  # remove patients with samples indicating they had PCL
-  pcl.files <- df %>%
-    group_by(Patient) %>%
+  # generate disease.type column based on file types
+  df <- df %>% group_by(Patient) %>%
     mutate(tissue_cell = paste(tolower(Tissue_Type), tolower(Cell_Type), sep="-")) %>%
-    mutate(pcl = "pb-cd138pos" %in% tissue_cell) %>%
-    filter( pcl ) %>%
-    ungroup() %>%
-    select(Sample_Name, File_Name, Sequencing_Type) %>%
-    mutate(Note = "patient has Plasma Cell Leukemia (PB with CD138 cells)") %>%
-    arrange(File_Name)
+    mutate(Disease_Type = ifelse("pb-cd138pos" %in% tissue_cell, "PCL", "MM"))%>%
+    select(-tissue_cell)
   
-  excluded.files <- rbind(excluded.files, pcl.files)
-  
+  # remove PCL files by enabling this region
+  remove.pcl.files <- FALSE
+  if(remove.pcl.files){ 
+    
+    pcl.files <- df %>%
+      subset(Disease_Type == "PCL")%>%
+      select(Sample_Name, File_Name, Sequencing_Type) %>%
+      mutate(Note = "patient has Plasma Cell Leukemia (PB with CD138 cells)") %>%
+      arrange(File_Name)
+    
+    excluded.files <- rbind(excluded.files, pcl.files)
+    }
   
   # Push table of removed files to S3 and throw warning
   if( nrow(excluded.files) > 0 ){
