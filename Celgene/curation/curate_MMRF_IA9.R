@@ -133,6 +133,7 @@ name <- "MMRF_CoMMpass_IA9_Seq_QC_Summary.xlsx"
   
   df[['File_Name']]       <- df$`QC Link SampleName`
   df[['Sample_Name']]     <- gsub("^(MMRF.*[BMP]+)_.*", "\\1",  df$File_Name)
+  # df[["Disease_Status"]]  <- ifelse(grepl("Baseline", df$`Visits::Reason_For_Collection`, ignore.case = T),"ND", "R")
   df[['Sample_Sequence']] <- gsub("^(MMRF.*)_[BMP]+_.*", "\\1",  df$File_Name)
   df[['Sequencing_Type']] <- gsub("(.*)-.*", "\\1", df$MMRF_Release_Status)
   
@@ -242,11 +243,13 @@ name <- "PER_PATIENT_VISIT.csv"
   df[['IG_IgM']]                  <- pervisit$D_LAB_serum_igm
   df[['IG_IgE']]                  <- pervisit$D_LAB_serum_ige
 
-  # We need to bind this visit data to a File_Name so that it can be incorporated
+  # We want to bind this visit data to a File_Name so that it can be incorporated
   # into the integrated per-file table
   # Make a mapping table from inv from BM sample type if present, else PB 
-  filename.lookup <- unique(rbind(inv[,c("Sample_Sequence", "File_Name", "Sequencing_Type")],
-                                     curated.seqqc[,c("Sample_Sequence", "File_Name", "Sequencing_Type")])) %>% 
+  file.table <- unique(rbind(inv[,c("Sample_Sequence", "File_Name", "Sequencing_Type")],
+                      curated.seqqc[curated.seqqc$Excluded_Flag == 0,c("Sample_Sequence", "File_Name", "Sequencing_Type")]))
+  
+  filename.lookup <- file.table %>% 
     mutate(type      = gsub(".*_([BMP]+).*","\\1", File_Name)) %>%
     mutate(seq_order = recode( Sequencing_Type, WES="a", WGS="b", "srr-wgs"="b", "RNA-Seq"="c"  )) %>%
     group_by(Sample_Sequence) %>%
@@ -260,12 +263,17 @@ name <- "PER_PATIENT_VISIT.csv"
   #NOTE: we're throwing out 366 visit entries because we don't have any files associated with them
   
   df <- merge(df, filename.lookup, by = "Sample_Sequence", all.x = T)
-  
   name <- paste("curated", name, sep = "_")
   name <- gsub("csv", "txt", name)
   path <- file.path(local,name)
   write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
-  rm(df, pervisit)
+  
+  ###---
+  # we also want some of this pervisit information appended to every per-file row
+  # so we need to bind those columns to an unfiltered per-file table and save separately
+  df <- merge(file.table, select(df, 1:D_PrevBoneMarrowTransplant), by = "Sample_Sequence")
+  path <- file.path(local,"curated_MMRF_perfile_status.txt")
+  write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
 
 ### PER_PATIENT -------------------------
 # curate PER_PATIENT entries, requires some standalone tables for calculations
