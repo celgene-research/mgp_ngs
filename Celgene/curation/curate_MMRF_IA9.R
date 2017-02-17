@@ -32,6 +32,7 @@ system(  paste('aws s3 cp',
 name <- "file_inventory.txt"
   inv <- read.delim(file.path(local,name), stringsAsFactors = F)
   inv <- inv[inv$Study == "MMRF",]
+  inv <- inv[inv$Study_Phase != "IA10",]
   
   # remove Sequencing_Type and only use from official SeqQC source table
   inv$Sequencing_Type <- NULL
@@ -133,7 +134,15 @@ name <- "MMRF_CoMMpass_IA9_Seq_QC_Summary.xlsx"
   
   df[['File_Name']]       <- df$`QC Link SampleName`
   df[['Sample_Name']]     <- gsub("^(MMRF.*[BMP]+)_.*", "\\1",  df$File_Name)
-  # df[["Disease_Status"]]  <- ifelse(grepl("Baseline", df$`Visits::Reason_For_Collection`, ignore.case = T),"ND", "R")
+  df[["Visit_Name"]]      <- df$`Visits::Reason_For_Collection`
+  df[["Disease_Status"]]  <- recode(df$`Visits::Reason_For_Collection`, 
+                                    "Baseline"            = "ND", 
+                                    "Confirm Progression" = "R", 
+                                    "Confirm Response"    = "R",
+                                    "Other"               = "NA",
+                                    "Unknown"             = "NA" )
+  df$Disease_Status <- gsub("NA", NA, df$Disease_Status)
+  
   df[['Sample_Sequence']] <- gsub("^(MMRF.*)_[BMP]+_.*", "\\1",  df$File_Name)
   df[['Sequencing_Type']] <- gsub("(.*)-.*", "\\1", df$MMRF_Release_Status)
   
