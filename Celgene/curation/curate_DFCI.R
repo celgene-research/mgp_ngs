@@ -248,12 +248,15 @@ rm(df, df2, inv)
 # DFCI_RNASeq_Clinical.xls ---------------------------------------
 
 name.map <- "2017-01-18_DFCI_RNASeq_Samples.xlsx"
+
+# we're using the R1 filename as the File_Name and appending R1; R2 for File_Name_Actual
 map      <- readxl::read_excel(file.path(local,name.map)) %>%
   mutate(Sample_Name = gsub("^(.*)_[ATCG]+_.*", "\\1", File_R1 )) %>%
-  mutate(File_Name = paste(File_R1, File_R2, sep = "; ")) %>%
+  mutate(File_Name_Actual = paste(File_R1, File_R2, sep = "; ")) %>%
+  mutate(File_Name = gsub(".*(NM[^ ]*R1[^ ]*)\\.fastq.*", "\\1", File_Name_Actual)) %>%
   rename(Patient = SampleID) %>%
   select(-c(File_R1, File_R2)) %>%
-  arrange(Patient)
+  arrange(Patient) 
   
 
 name <- "2017-02-01_DFCI_RNASeq_Clinical.xls"
@@ -261,7 +264,7 @@ raw <- read.delim(file.path(local,name), stringsAsFactors = F)
 
 df <- with(raw,
     data.frame(
-   Patient       = SampleID 
+   Patient            = SampleID 
   ,D_Age         = as.numeric(Age.at.diagnosis)
   ,D_Gender      = recode(Sex, "1"="Male", "2"="Female")
   ,D_ISS         = as.numeric(ISS)
@@ -294,11 +297,20 @@ df <- with(raw,
 ))
 
 df <- full_join(df, map, by = "Patient") %>%   arrange(is.na(D_Age), Patient)
-df[['Study']] <-  "DFCI.2009"
+df[['Study']]            <-  "DFCI.2009"
+df[['Sample_Type_Flag']]  <- "1"
+df[['Sample_Type']]       <- "NotNormal"
+df[['Sequencing_Type']]   <- "RNA-Seq"
+df[['Excluded_Flag']]     <- NA
+df[['Excluded_Specify']]  <- NA
+df[['Disease_Status']]    <- "ND"
+df[['Disease_Type']]      <- "MM"
+df[['Tissue_Type']]       <- NA
+df[['Cell_Type']]         <- NA
 
 # save a table of samples without clinical data
 missing.clinical.data <- subset(df, is.na(D_Age)) %>% 
-  separate(File_Name, into = c("File_R1", "File_R2"), sep = "; " ) %>%
+  tidyr::separate(File_Name_Actual, into = c("File_R1", "File_R2"), sep = "; " ) %>%
   select(Patient, File_R1, File_R2)
 
 write.table(missing.clinical.data, "~/thindrives/mgp/DFCI_missing_clinical_data.txt",
@@ -308,9 +320,29 @@ name <- paste("curated", study, gsub("^DFCI_","", name), sep = "_")
 name <- gsub("xls", "txt", name)
 path <- file.path(local,name)
 write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
-rm(df, map)
+rm(map)
 
-# put curated files back as ProcessedData on S3 --------------------------------
+# RNA-Seq inventory ---------------------------------------
+name <- "file_inventory.txt"
+  inv <- read.delim(file.path(local,name), stringsAsFactors = F)
+  inv <- inv[inv$Study == "DFCI.2009",]
+
+  # everything else should already be capture by table above,
+  #  but the inventory is the only palce to get File_Path and File_Name_Actual
+  inv <- inv %>%
+    mutate(File_Name_Actual = File_Name,
+           File_Name = gsub("(.*)\\.fastq\\.gz", "\\1", File_Name),
+           File_Name = gsub("R2", "R1", File_Name),
+           read = gsub(".*(R\\d).*","\\1",  File_Name_Actual) ) %>% 
+    group_by(File_Name) %>%
+    summarise(File_Name_Actual = paste(File_Name_Actual, collapse = "; "),
+              File_Path = paste(File_Path, collapse = "; "))
+  
+  name <- "curated_DFCI2009_file_inventory.txt"
+  path <- file.path(local,name)
+  write.table(inv, path, row.names = F, col.names = T, sep = "\t", quote = F)
+
+# to ProcessedData S3 --------------------------------
 system(  paste('aws s3 cp',
                local,
                file.path(s3,"ClinicalData/ProcessedData", study),
