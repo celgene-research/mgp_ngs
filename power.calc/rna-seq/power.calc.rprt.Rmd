@@ -1,0 +1,75 @@
+---
+title: "Power Calculation for RNA-seq data"
+author: "Fadi Towfic"
+date: "February 17, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+system('aws s3 cp s3://celgene.rnd.combio.mmgp.external/SeqData/RNA-Seq/FinalData/MMRF/CountsSalmon.RData ~/CountsSalmon.RData')
+load('~/CountsSalmon.RData')
+unlink('~/CountsSalmon.RData')
+
+
+pooled.var <- function(X,class,label1,label2) {
+  class1 <- X[!is.na(class) & class == label1]
+  class2 <- X[!is.na(class) & class == label2]
+  (var(class1)*(length(class1)-1)+var(class2)*(length(class2)-1))/((length(class1)-1)+(length(class2)-1))
+}
+
+```
+
+## Overview
+We will calculate the number of samples required to achieve at least 80% power
+for detecting significant genes associated with a given subgroup
+after FDR cutoff of < 0.05
+
+## Assumptions for the power calculation of RNASeq
+     * Samples are processed using similar techniques as utilized for MMRF
+     * We are looking for transcripts whose expression is >= 2 raw fold change
+     * We expect <= ~20% of genes to be differentially expressed
+
+```{r}
+library(ssize.fdr)
+library(limma)
+library(edgeR)
+
+# Let's process the MMRF data with LIMMA voom
+countData.salmon <- apply(countData.salmon[,-1],c(1:2),as.numeric)
+dge <- DGEList(counts=countData.salmon)
+keep <- rowSums(cpm(dge) > round(quantile(apply(cpm(dge),1,mean),probs = c(0.1)),digits=0)) >= 35
+dge <- calcNormFactors(dge[keep,])
+lab <- sample(x = c(1:2),size = ncol(countData.salmon),replace = T)
+v=voom(dge,design = model.matrix(~lab),plot=T,normalize="quantile")
+
+# Let's calculate the pooled sd
+pooled.sd.per.gene <- c();
+for(i in c(1:100)) {
+  lab <- sample(x = c(1:2),size = ncol(countData.salmon),replace = T)
+  pooled.var.per.gene <- apply(v$E,1,pooled.var,class=lab,label1=1,label2=2);
+  pooled.sd.per.gene <- c(pooled.sd.per.gene,sqrt(pooled.var.per.gene))
+}
+
+
+plot(density(pooled.sd.per.gene))
+ssize.twoSamp(delta = log2(2),sigma =median(pooled.sd.per.gene),power=c(0.8),pi0 = c(0.8),maxN = 100)
+```
+
+## Assumptions for the power calculation of OR for WES
+
+     * Samples are processed using similar techniques as utilized for MMRF
+     * We are looking for mutations whose expression is >= 2 OR
+     
+```{r}
+library(epiR)
+prev <- c(1:50)/100;
+pow <- function(X) {
+  epi.ccsize(OR = 2.0, p0 = X, n = 1500, power = NA, r = 0.3, rho = 0, 
+           design = 1, sided.test = 2, conf.level = 0.95, method = "unmatched", 
+           fleiss = FALSE)[[1]]
+}
+power.calcs <- unlist(lapply(prev,pow))
+plot(prev,power.calcs,xlab='Prevalence of mutation',ylab='Power',ylim=c(0,1),type='o',pch=19)
+grid()
+```
