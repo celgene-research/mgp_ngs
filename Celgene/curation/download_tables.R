@@ -1,7 +1,7 @@
 
 # simplified scripts to save s3 files to locally mounted storage
 s3clinical      <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData"
-local_path      <- "/scratch/tmp/drozelle/"
+local_path      <- "~/Desktop/"
 if(!dir.exists(local_path)){warning("local drive not mounted")}
 
 ###
