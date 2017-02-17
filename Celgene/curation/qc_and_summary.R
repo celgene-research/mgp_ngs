@@ -42,13 +42,15 @@ remove_invalid_samples <- function(df){
            Excluded_Flag == "1" )%>%
     select(Sample_Name, File_Name, Sequencing_Type) %>%
     arrange(File_Name)
+  
   excluded.files <- merge(excluded.files, ex, by = "Sample_Name", all.x = T)
   
   # generate disease.type column based on file types
   df <- df %>% group_by(Patient) %>%
     mutate(tissue_cell = paste(tolower(Tissue_Type), tolower(Cell_Type), sep="-")) %>%
     mutate(Disease_Type = ifelse("pb-cd138pos" %in% tissue_cell, "PCL", "MM"))%>%
-    select(-tissue_cell)
+    select(-tissue_cell) %>%
+    ungroup()
   
   # remove PCL files by enabling this region
   remove.pcl.files <- FALSE
@@ -72,7 +74,8 @@ remove_invalid_samples <- function(df){
   }
   
   # Remove excluded files from table and return
-  df %>% filter(File_Name %in% excluded.files$File_Name)
+  df <- df %>% filter(!(File_Name %in% excluded.files$File_Name))
+  as.data.frame(df)
 }
 
 remove_sensitive_columns <- function(df, dict){
