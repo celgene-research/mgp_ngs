@@ -1,177 +1,140 @@
 ## drozelle@ranchobiosciencs.com
 ##
+## 2017-02-20 revised to incorporate second iteration of molecular calls
 
-d <- format(Sys.Date(), "%Y-%m-%d")
+source("curation_scripts.R")
+local <- CleanLocalScratch()
 
-# locations
-s3            <- "s3://celgene.rnd.combio.mmgp.external"
-s3clinical    <- file.path(s3, "ClinicalData")
+# used to get examples of existing data formats
+# per.file <- GetS3Table(file.path(s3,"ClinicalData/ProcessedData/Integrated",
+#                               "per.file.clinical.txt"))  
+# per.file.examples <- per.file %>% 
+#   group_by(Study) %>%
+#   sample_n(2) %>%
+#   ungroup() %>%
+#   select(Patient, Sample_Name, File_Name, File_Name_Actual, File_Path)
 
-local         <- "/tmp/curation"
-if(!dir.exists(local)){dir.create(local)}
 
-
+                    
 # CNV --------------------------------------------------------------------
 ## CNV from Cody (TCAshby@uams.edu)
 print("CNV Curation........................................")
-  # copy original tables to local
-  system(paste('aws s3 cp', 's3://celgene.rnd.combio.mmgp.external/SeqData/WES/ProcessedData/DFCI_MMRF_UAMS/copy_number/copy_number_table.xlsx', local, sep = " "))
-  name <- "copy_number_table.xlsx"
-  cnv <- readxl::read_excel(file.path(local,name),
-                            sheet = 1, # sheet one has all unfiltered results
-                            skip = 1 )
-  
+
   # I applied a three step criteria for filtering:
-    # 1.) t-test on regions of relative chromosomal stability (chromosome 2 and 10). If neither of them are normal (CN=2) than the sample fails.
-    # 2.) Median of the standard deviations of the data points across all chromosomes. If higher than 0.3, than the sample fails.
-    # 3.) If there are more than 600 CN segments, then the sample fails.
-  cnv <- cnv[cnv$passed_filter == 1,]
-  cnv$passed_filter <- NULL
+  # 1.) t-test on regions of relative chromosomal stability (chromosome 2 and 10). If neither of them are normal (CN=2) than the sample fails.
+  # 2.) Median of the standard deviations of the data points across all chromosomes. If higher than 0.3, than the sample fails.
+  # 3.) If there are more than 600 CN segments, then the sample fails.
   
-  n <- names(cnv)
-  n <- paste("CNV",n,"ControlFreec", sep = "_")
-  n[1] <- "File_Name"
-  names(cnv) <- n
-  
-  # edit filenames to match integrated table and check 
-  cnv$File_Name <- gsub("HUMAN_37_pulldown_", "", cnv$File_Name)
-  cnv$File_Name <- gsub("^_E.*_([bcdBCD])", "\\1", cnv$File_Name)
-  #all(cnv$File_Name %in% per.file$File_Name)
-  
-  # write to local
-  path <- file.path(local,"curated_CNV_ControlFreec.txt")
-  write.table(cnv, path, row.names = F, col.names = T, sep = "\t", quote = F)
-  
-  # compile a cnv dictionary
-  cnv_locations <- data.frame(t(readxl::read_excel(file.path(local,"copy_number_table.xlsx"),
-                            sheet = 1, col_names = F )[1:2,]))
-  # trim top two lines
-  cnv_locations <- cnv_locations[3:nrow(cnv_locations),]
-  
-  cnv_locations['names'] <-   paste("CNV",cnv_locations$X2,"ControlFreec", sep = "_")
-  cnv_locations['key_val'] <- '0"=homozygous deletion"; 1="loss"; 2="normal"; -2="copy number neutral loss of heterozygosity"; 3="gain"; 4="amplification"'
-  cnv_locations['description'] <- paste("chromosome_hg19 start position", cnv_locations$X1, sep = " ")
-  
-  cnv_locations[,c("X1", "X2")] <- NULL
-  
-  # write to local
-  path <- file.path(local,"cnv_dictionary.txt")
-  write.table(cnv_locations, path, row.names = F, col.names = T, sep = "\t", quote = F)
-  
-  name <- "curated_CNV_ControlFreec.txt"
-  system(  paste('aws s3 cp', file.path(local, name), file.path(s3clinical, "ProcessedData", "JointData", name), '--sse', sep = " "))
-  
-  name <- "cnv_dictionary.txt"
-  system(  paste('aws s3 cp', file.path(local, name), file.path(s3clinical, "ProcessedData", "Integrated", name), '--sse', sep = " "))
-  return_code <- system('echo $?', intern = T)
-  if(return_code == "0") system(paste0("rm -r ", local))
-  rm(cnv, cnv_locations)
+  # cnv <- GetS3Table(file.path(s3,"ClinicalData/OriginalData/Joint",
+  #                             "2017-02-21_cody_copy_number_table_all.txt"))  
+  # 
+  # 
+  # cnv <- cnv %>% rename(File_Name = X)
+  # 
+  # head(setdiff(cnv$File_Name, per.file$File_Name_Actual))
+  # grep("4283", per.file$File_Name, value = T)
+  # 
+  # cnv <- cnv[cnv$passed_filter == 1,]
+  # cnv$passed_filter <- NULL
+  # 
+  # n <- names(cnv)
+  # n <- paste("CNV",n,"ControlFreec", sep = "_")
+  # n[1] <- "File_Name"
+  # names(cnv) <- n
+  # 
+  # # edit filenames to match integrated table and check 
+  # cnv$File_Name <- gsub("HUMAN_37_pulldown_", "", cnv$File_Name)
+  # cnv$File_Name <- gsub("^_E.*_([bcdBCD])", "\\1", cnv$File_Name)
+  # #all(cnv$File_Name %in% per.file$File_Name)
+  # 
+  # # write to local
+  # path <- file.path(local,"curated_CNV_ControlFreec.txt")
+  # write.table(cnv, path, row.names = F, col.names = T, sep = "\t", quote = F)
+  # 
+  # # compile a cnv dictionary
+  # cnv_locations <- data.frame(t(readxl::read_excel(file.path(local,"copy_number_table.xlsx"),
+  #                           sheet = 1, col_names = F )[1:2,]))
+  # # trim top two lines
+  # cnv_locations <- cnv_locations[3:nrow(cnv_locations),]
+  # 
+  # cnv_locations['names'] <-   paste("CNV",cnv_locations$X2,"ControlFreec", sep = "_")
+  # cnv_locations['key_val'] <- '0"=homozygous deletion"; 1="loss"; 2="normal"; -2="copy number neutral loss of heterozygosity"; 3="gain"; 4="amplification"'
+  # cnv_locations['description'] <- paste("chromosome_hg19 start position", cnv_locations$X1, sep = " ")
+  # 
+  # cnv_locations[,c("X1", "X2")] <- NULL
+  # 
+  # # write to local
+  # path <- file.path(local,"cnv_dictionary.txt")
+  # write.table(cnv_locations, path, row.names = F, col.names = T, sep = "\t", quote = F)
+  # 
+  # name <- "curated_CNV_ControlFreec.txt"
+  # system(  paste('aws s3 cp', file.path(local, name), file.path(s3clinical, "ProcessedData", "JointData", name), '--sse', sep = " "))
+  # 
+  # name <- "cnv_dictionary.txt"
+  # system(  paste('aws s3 cp', file.path(local, name), file.path(s3clinical, "ProcessedData", "Integrated", name), '--sse', sep = " "))
+  # return_code <- system('echo $?', intern = T)
+  # if(return_code == "0") system(paste0("rm -r ", local))
+  # rm(cnv, cnv_locations)
 
 # Trsl --------------------------------------------------------------------
 ## Translocations using MANTA from Brian (BWalker2@uams.edu)
 print("Translocation Curation........................................")
   
-  # locations
-  s3clinical <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData"
-  local      <- "/tmp/curation"
-  if(!dir.exists(local)){dir.create(local)}
+  trsl <- GetS3Table(file.path(s3,"ClinicalData/OriginalData/Joint",
+                   "2017-01-11_complete_translocation_table_pass3_FINAL.xlsx"))  
   
-  # get current original files
-  name <- "All_translocation_Summaries_from_BWalker_2016-10-04_zeroed_dkr.xlsx"
-  s3.path <- file.path(s3clinical,"OriginalData", "Joint", name)
-  system(  paste('aws s3 cp', s3.path, local, sep = " "))
+  # Split table into sequencing types, filter to remove NA rows (everything should now be either 0/1)
   
-  local.path=file.path(local, name)
+  wes <- trsl %>% 
+    select(starts_with("WES"), Translocation_Summary, Dataset) %>% 
+    rename(id = WES_prep_id) %>%
+    filter( id != "NA") %>%
+    gather( key = field, value = Value, ends_with("MMSET"):ends_with("MAFB") ) %>%
+    separate( field, c("Sequencing_Type", "Result"), "_")
   
-  uams <- readxl::read_excel(path=local.path,sheet=1);
-  dfci <- readxl::read_excel(path=local.path,sheet=2);
-  mmrf <- readxl::read_excel(path=local.path,sheet=3);
-  uams[uams == 'N/A'] <- NA;
-  dfci[dfci == 'N/A'] <- NA;
-  mmrf[mmrf == 'N/A'] <- NA;
+  wgs <- trsl %>% 
+    select(starts_with("WGS"), Translocation_Summary, Dataset) %>% 
+    rename(id = WGS_prep_id) %>%
+    filter( id != "NA") %>%
+    gather( key = field, value = Value, ends_with("MMSET"):ends_with("MAFB") ) %>%
+    separate( field, c("Sequencing_Type", "Result"), "_")
   
-  df <- data.frame(study=c(rep('UAMS',nrow(uams)),
-                           rep('DFCI',nrow(dfci)),
-                           rep('MMRF',nrow(mmrf))),
-                   ss1 = c(uams$Sample,
-                           dfci$Sample,
-                           mmrf$SampleSet1
-                   ),
-                   ss2 = c(uams$Sample,
-                           dfci$Sample,
-                           mmrf$SampleSet2
-                   ),
-                   File_Name=c(uams$simple_name,
-                               dfci$Sample,
-                               
-                               # parse mmrf filenames from first two columns
-                               unlist( mapply(function(uno, dos){
-                                 if( !is.na(uno) & uno != "0"){
-                                   s <- uno
-                                 }else{
-                                   s <- dos
-                                 }
-                                 gsub("^.*(MMRF.*)$","\\1",s)
-                               }, mmrf$SampleSet1, mmrf$SampleSet2))
-                              
-                   ),
-                   CYTO_Hyperdiploid_ControlFreec=c(uams$UK_HRD_CALL == 'HRD',
-                                                    dfci$HRD_summary == 'HRD',
-                                                    mmrf$HRD_Summary == 'HRD'),
-                   CYTO_Translocation_CONSENSUS=c(as.character(uams$UK_Tx_CALL),
-                                                  as.character(dfci$TC_summary),
-                                                  as.character(mmrf$TC_Summary)),
-                   
-                   "CYTO_1q_plus_ControlFreec" = c(rep(NA, times = nrow(uams)),
-                                                   dfci$`ControlFreec_1Q+` == "1Q+",
-                                                   mmrf$`ControlFreec_1Q+` == "1Q+"),
-                   "CYTO_amp(1q)_ControlFreec" = c(rep(NA, times = nrow(uams)),
-                                                   rep(NA, times = nrow(dfci)),
-                                                   mmrf$`ControlFreec_1Q+` == "GAIN"),
-                   "CYTO_del(1q)_ControlFreec" = c(rep(NA, times = nrow(uams)),
-                                                   rep(NA, times = nrow(dfci)),
-                                                   mmrf$`ControlFreec_1Q+` == "DEL1Q"),
-                   
-                   "CYTO_t(4;14)_MANTA"= c(uams$`MANTA_(4;14)`  != "0",
-                                           dfci$`MANTA_(4;14)`  != "0",
-                                           mmrf$`MANTA_(4;14)`  != "0"),
-                   "CYTO_t(6;14)_MANTA"= c(uams$`MANTA_(6;14)`  != "0",
-                                           dfci$`MANTA_(6;14)`  != "0",
-                                           mmrf$`MANTA_(6;14)`  != "0"),
-                   "CYTO_t(11;14)_MANTA"=c(uams$`MANTA_(11;14)` != "0",
-                                           dfci$`MANTA_(11;14)` != "0",
-                                           mmrf$`MANTA_(11;14)` != "0"),
-                   "CYTO_t(14;16)_MANTA"=c(uams$`MANTA_(14;16)` != "0",
-                                           dfci$`MANTA_(14;16)` != "0",
-                                           mmrf$`MANTA_(14;16)` != "0"),
-                   "CYTO_t(14;20)_MANTA"=c(uams$`MANTA_(14;20)` != "0",
-                                           dfci$`MANTA_(14;20)` != "0",
-                                           mmrf$`MANTA_(14;20)` != "0"),
-                   "CYTO_MYC_MANTA"=     c(uams$`MANTA_MYC`     != "0",
-                                           dfci$`MANTA_MYC`     != "0",
-                                           mmrf$`MANTA_MYC`     != "0"),
-                   
-                   
-                   check.names = F, stringsAsFactors = F
-  )
+  rna <- trsl %>% 
+    select(starts_with("RNA"), Translocation_Summary, Dataset) %>% 
+    rename(id = RNA_prep_id) %>%
+    filter( id != "NA") %>%
+    gather( key = field, value = Value, ends_with("MMSET"):ends_with("MAFB") ) %>%
+    separate( field, c("Sequencing_Type", "Result"), "_")
   
-  df[df==TRUE]  <- "1"
-  df[df==FALSE] <- "0"
+  df <- rbind(wes, wgs, rna) %>%
+    # code any field with a value as ="1", all others "0"
+    mutate( Value = ifelse(is.na(Value),0,1) ) %>%
+    # translate etiological groups back to actual MANTA translocation column
+    mutate( Result = recode(Result,
+                            MMSET = "CYTO_t(4;14)_MANTA",
+                            CCND3 = "CYTO_t(6;14)_MANTA",
+                            CCND1 = "CYTO_t(11;14)_MANTA",
+                            MAF   = "CYTO_t(14;16)_MANTA",
+                            MAFA  = "CYTO_t(8;14)_MANTA",
+                            MAFB  = "CYTO_t(14;20)_MANTA")) %>%
+    # fix provided sample names to match harmonized File_Name field
+    mutate(File_Name = case_when(
+      .$Dataset == "UAMS" ~ gsub("_.*?_([^E].*)$", "\\1", .$id),
+      .$Dataset == "DFCI" ~ gsub(".*_(.*)$", "\\1", .$id),
+      .$Dataset == "MMRF" ~ .$id ))
   
-  name <- paste("curated", name, sep = "_")
-  name <- gsub("xlsx", "txt", name)
-  local.path <- file.path(local,name)
-  write.table(df, local.path, row.names = F, col.names = T, sep = "\t", quote = F)
-  rm(df)
   
-  # put curated file back as ProcessedData
-  system(  paste('aws s3 cp', local.path, file.path(s3clinical,"ProcessedData", "JointData", name), "--sse", sep = " "))
-  return_code <- system('echo $?', intern = T)
+  out <-   df %>%
+    # TODO: temporary fix to allow duplicated file names
+    select(File_Name, Result, Value) %>%
+    group_by(File_Name, Result) %>%
+    summarise(Value = Simplify(Value)) %>%
+    
+    # spread back to integrated table layout
+    spread(key = Result, value = Value)
   
-  # as a failsafe to prevent reading older versions of source files remove the
-  #  cached version file if transfer was successful.
-  if(return_code == "0") system(paste0("rm -r ", local))
-  rm(dfci, mmrf, uams)
+  PutS3Table(out, file.path(s3,"ClinicalData/ProcessedData/JointData",
+                                 "curated_translocation_calls_2017-01-11.txt"))
   
   
   # SNV --------------------------------------------------------------------
