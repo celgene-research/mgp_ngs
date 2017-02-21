@@ -1,6 +1,11 @@
 
-
-
+# global vars
+d  <- format(Sys.Date(), "%Y-%m-%d")
+s3 <- "s3://celgene.rnd.combio.mmgp.external"
+# devtools::install_github("dkrozelle/toolboxR")
+library(toolboxR, quietly = T)
+library(dplyr)
+library(tidyr)
 
 # this function does not allow specification of directory to 
 # prevent inadvertant file deletion 
@@ -11,74 +16,13 @@ CleanLocalScratch <- function(){
   path
 }
 
-# write_to_s3integrated <- s3_writer(s3_path = "/ClinicalData/ProcessedData/Integrated/")
-# write_to_s3integrated(foo = new, name = "test.txt")
-s3_writer <- function(s3_prefix = "s3://celgene.rnd.combio.mmgp.external/", s3_path){
-  function(foo, name){
-    local_file <- file.path("/tmp",name)
-    s3_file <- file.path(gsub("\\/+$","",s3_prefix), gsub("^\\/+|\\/+$","",s3_path), name)
-    
-    write.table(foo, local_file, row.names = F, col.names = T, sep = "\t", quote = F)
-    system(  paste('aws s3 cp', local_file, s3_file , '--sse', sep = " "))
-    response <- system('echo $?', intern = T)
-    if( response == 0 ){
-      unlink(local_file)
-    }else{
-      warning(paste("Error writing",name, "to S3", sep = " "))
-    }
-    response
-  }
-}
-write_to_s3integrated <- s3_writer(s3_path = "/ClinicalData/ProcessedData/Integrated/")
-
-# copies all updated s3 files in a specified directory prefix to an ./Archive subfolder
-#  and appends current date
-Snapshot <- function( prefix ){
-  
-  pre     <- system(paste('aws s3 ls', paste0(prefix, "/"), sep = " "), intern = T)
-  archive <- system(paste('aws s3 ls', paste0(file.path(prefix, "Archive"),"/"), sep = " "), intern = T)
-  
-  archive.table <- data.frame(
-    root    = gsub(".*[0-9] (.*)_[0-9].*","\\1",archive),
-    version = gsub(".*_(.*)\\..*","\\1",archive),
-    stringsAsFactors = F
-  )
-  library(plyr)
-  archive.table <- ddply(archive.table, .(root), summarise, latest = max(version) )
-  
-  current.table <- data.frame(
-    date  = gsub("^([0-9\\-]+).*","\\1",pre),
-    root  = gsub(".* ([^0-9].*)\\..*","\\1",pre),
-    path  = gsub(".* ([^0-9].*\\..*)","\\1",pre),
-    stringsAsFactors = F
-  )
-  # only keep well parsed rows
-  current.table <- current.table[grepl("[0-9\\-]+", current.table$date),]
-  
-  out <- unlist(lapply(current.table$root, function(x){
-    version <- current.table[current.table$root == x,"date"]
-    archive <- archive.table[archive.table$root == x,"latest"]
-    if( (length(archive) == 0) || (version >= archive) ){
-    
-      name   <- current.table[current.table$root == x,"path"]
-      d.name <- gsub("(.*)(\\..*)",  paste0("\\1_",d,"\\2"), name)
-      start  <- file.path(prefix, name)
-      end    <- file.path(prefix, "Archive", d.name)
-      system(paste("aws s3 cp",start, end, "--sse", sep = " "))
-      d.name
-    }
-  }))
-  
-  out
-}
-
-#currently only works for tab-delim tables
+#currently only works for tables (csv, tab-delim txt or xlsx)
 GetS3Table <- function(s3.path, cache = F){
   name  <- basename(s3.path)
-  local <- file.path("/tmp", name)
-  system(  paste('aws s3 cp', s3.path, local, sep = " "))
-  df <- read.delim(local, sep = "\t", stringsAsFactors = F)
-  if(cache == FALSE){unlink(local)}
+  local.filename <- file.path("/tmp", name)
+  system(  paste('aws s3 cp', s3.path, local.filename, sep = " "))
+  df <- toolboxR::AutoRead(local.filename)
+  if(cache == FALSE){unlink(local.filename)}
   df
 }
 
