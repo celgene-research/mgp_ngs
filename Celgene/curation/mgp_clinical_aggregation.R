@@ -51,6 +51,13 @@ for(f in files){
 }
 
   per.file  <- remove_invalid_samples(per.file)
+  
+  # temporary fix to add disease.status fields to MMRF samples with unannotated visit.
+  unmarked <- per.file[is.na(per.file$Disease_Status) & per.file$Study == "MMRF","Sample_Name"]
+  seq <- as.numeric(gsub("MMRF_[0-9]+_([0-9]+)_[BMP]+", "\\1", as.character(unmarked)))
+  seq <- recode(seq, "ND", "R", "R", "R")
+  per.file[is.na(per.file$Disease_Status) & per.file$Study == "MMRF","Disease_Status"] <- seq
+  
   per.file  <- cytogenetic_consensus_calling(per.file)
   
 ### PATIENT-LEVEL AGGREGATION --------------------------------------------------
