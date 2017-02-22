@@ -4,7 +4,7 @@ d  <- format(Sys.Date(), "%Y-%m-%d")
 s3 <- "s3://celgene.rnd.combio.mmgp.external"
 # devtools::install_github("dkrozelle/toolboxR")
 library(toolboxR, quietly = T)
-library(dplyr)
+library(dplyr) # don't load plyr, it will conflict
 library(tidyr)
 
 # this function does not allow specification of directory to 
@@ -32,6 +32,44 @@ write.object <- function(x, path = local, env){
   file.path(path, paste0(x,".txt"))
 }
 
+# copies all updated s3 files in a specified directory prefix to an ./Archive subfolder
+#  and appends current date
+Snapshot <- function( prefix ){
+  
+  pre     <- system(paste('aws s3 ls', paste0(prefix, "/"), sep = " "), intern = T)
+  archive <- system(paste('aws s3 ls', paste0(file.path(prefix, "Archive"),"/"), sep = " "), intern = T)
+  
+  
+  archive.table <- data.frame(
+    root    = gsub(".*[0-9] (.*)_[0-9].*","\\1",archive),
+    version = gsub(".*_(.*)\\..*","\\1",archive),
+    stringsAsFactors = F ) %>%
+    group_by(root) %>%
+    summarise(latest = max(version))
+
+  current.table <- data.frame(
+    date  = gsub("^([0-9\\-]+).*","\\1",pre),
+    root  = gsub(".* ([^0-9].*)\\..*","\\1",pre),
+    path  = gsub(".* ([^0-9].*\\..*)","\\1",pre),
+    stringsAsFactors = F   ) %>%
+    filter(grepl("^2", date))
+  
+  out <- unlist(lapply(current.table$root, function(x){
+    version <- current.table[current.table$root == x,"date"]
+    archive <- archive.table[archive.table$root == x,"latest"]
+    if( (length(archive) == 0) || (version >= archive) ){
+      
+      name   <- current.table[current.table$root == x,"path"]
+      d.name <- gsub("(.*)(\\..*)",  paste0("\\1_",d,"\\2"), name)
+      start  <- file.path(prefix, name)
+      end    <- file.path(prefix, "Archive", d.name)
+      system(paste("aws s3 cp",start, end, "--sse", sep = " "))
+      d.name
+    }
+  }))
+  
+  out
+}
 #currently only works for tables (csv, tab-delim txt or xlsx)
 GetS3Table <- function(s3.path, cache = F){
   name  <- basename(s3.path)
@@ -311,7 +349,7 @@ lookup.values <- function(id) {
 CleanColumnNamesForSAS <- function(n){
   
   # substitute non-alphanumeric characters
-  n <- gsub("[^[:alnum:]]", "_", n)
+  n <- gsub("[^[:alnum:]]+", "_", n)
   
   
   n <- sapply(n, function(x){
