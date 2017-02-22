@@ -16,6 +16,22 @@ CleanLocalScratch <- function(){
   path
 }
 
+
+write.object <- function(x, path = local, env){
+  if( is.environment(env)){  
+    df <- get(x, envir = env)
+  }else{
+    df <- get(x)
+  }
+  write.table(df, 
+              file.path(path, paste0(x,".txt")), 
+              sep = "\t", 
+              row.names = F, 
+              col.names = T, 
+              quote = F   )
+  file.path(path, paste0(x,".txt"))
+}
+
 #currently only works for tables (csv, tab-delim txt or xlsx)
 GetS3Table <- function(s3.path, cache = F){
   name  <- basename(s3.path)
@@ -48,140 +64,9 @@ merge_table_files <- function(df1, df2, id = "File_Name"){
   }else{df}
 }
 
-
-clean_values <- function(x, delim = "; "){
-  # first we need to split any collapsed strings using the delimited
-  # get rid of NA fields
-  x <- x[!is.na(x)]
-  x <- lapply(x, strsplit, split = delim)
-  x <- unlist(x)
+cytogenetic_consensus_calling <- function(df){
   
-  # chomp each value
-  x <- gsub("^\\s+", "", x)
-  x <- gsub("\\s+$", "", x)
-  
-  # remove duplicate values
-  if( length(unique(toupper(x))) == length(unique(x)) ){
-    x <- unique(x)
-  }else{
-    x <- unique(toupper(x))
-  }
-  x[order(x)]
-}
-
-# mode
-#   append : append any new values to preexisting values using delimiter
-#   replace: replace any preexisting values with new value
-#   safe   : only write new value if no preexisting value
-append_df <- function(main, new, id = "Patient", 
-                      mode = "safe", verbose = TRUE, delim = "; "){
-  
-  if(!id %in% names(new)){
-    message(paste0("dataframe does not contain specified id column: ", id))
-    return(main)
-  }else if(sum(names(new) %in% names(main)) == 1){
-    message(paste0("dataframe does not contain additional columns to add"))
-    return(main)
-  }
-  
-  # subset new df to only columns in main
-  new <- new[,names(new) %in% names(main)]
-  
-  # add new rows if new patients are found
-  if( any(!new[[id]] %in% main[[id]]) ) {
-    for(i in unique(new[[id]][!new[[id]] %in% main[[id]]])){
-      main[nrow(main)+1,id] <- i 
-    }
-  }
-  
-  # add column to force merged sorting
-  main[['table']] <- "main"
-  new[['table']]  <- "new"
-  
-  p <- new[[id]]
-  n <- names(new)
-  
-  # extract the rows and columns of main that are in new
-  main_subset   <- main[main[[id]] %in% p ,n]
-  
-  # merge without any "by" arguments duplicates non-identical rows
-  m <- merge(main_subset, new, all = T)
-  m <- m[ order(m[,id], m[,"table"]), ]
-  
-  # lapply for each patient, this allows to 
-  #  subset to just the rows of a single patient
-  l <- lapply(unique(m[[id]]), function(identifier){
-    
-    # inside the apply, we then perform the merge for each column set
-    # x is a character vector of the available values that needs to be collapsed
-    a<- apply(m[m[[id]] == identifier, !names(m) %in% c("table")], MARGIN = 2, function(x){
-      
-      # capture pre-existing vs new values separately
-      original_values <- x[1]
-      new_values     <- x[2:length(x)]
-      had_value      <- !is.na(original_values) & original_values != ""
-      has_new_value  <- any(!is.na(new_values)) & any(new_values != "")
-      
-      original_values <- clean_values(original_values)
-      new_values <- clean_values(new_values)
-      
-      # Cases:
-      # if didn't have a value,      return the new value, this works with blank new values too
-      # else if value is the same,   return the value
-      # else if the mode is append,  join them and return
-      # else if the mode is replace, return the new values
-      # else if the mode is safe,    return the old value and warning
-      # else warning 
-      
-      if( had_value == FALSE ){
-        out <- new_values
-      }else if(has_new_value & all(new_values == original_values)){
-        out <- new_values
-      }else if(mode == "append"){
-        out <- clean_values(c(new_values,original_values))
-      }else if(mode == "replace"){
-        out <- new_values
-      }else if(mode == "safe"){
-        #TODO: don't warn if replacement is blank.
-        warning(paste0("Identifier:", identifier, " has existing value (",paste(original_values, collapse = "; "),"), attempted overwrite with (",paste(new_values, collapse = "; "), ") with safe mode enabled"))  
-        out <- original_values
-      }else {
-        out <- original_values
-        warning("Error005 during datamerge")
-      }
-      
-      if(length(out) == 0){out<-NA}
-      if(all(is.na(out))){
-        out <- NA
-      }else{
-        out <- paste(out, collapse = delim)
-      }
-      
-      return(out)
-    }) 
-    
-    a <- c(a, table="joined")
-    a
-  })
-  
-  updated_fields <- as.data.frame(Reduce(rbind, l), stringsAsFactors = F)
-  # updated_fields[[id]] <- unique(m[[id]])
-  # updated_fields <- updated_fields[, n]
-  
-  main <- main[ order(main[[id]]), ]
-  updated_fields <- updated_fields[ order(updated_fields[[id]]), ]
-  
-  main[main[[id]] %in% p, n] <- updated_fields
-  # field_update_count
-  main$table <- NULL
-  
-  
-  return(main)
-}
-
-cytogenetic_consensus_calling <- function(df, log_file_path = "/tmp/cyto_consensus.log"){
-  
-  # this script performs 3 sequential functions
+  # this revised script performs 3 sequential functions
   # 1. call consensus translocations using multiple techniques (FISH or MANTA). 
   #    If longitudinal samples (ND, R, R2...) are not consistent for an individual translocation 
   #    (t(4;14) ND=1, R=0) then a consensus is only called if the preferred technique is consistent
@@ -203,173 +88,93 @@ cytogenetic_consensus_calling <- function(df, log_file_path = "/tmp/cyto_consens
   #   amp(1q) | ND=0, R=1 by FISH | ND=1,  R=NA by MANTA | called as ND=1, R=1
   #
   
-  # df <- per.file
-  
-  # print a qc debugging log
-  lf <- log_file_path
-  if(file.exists(lf)) file.remove(lf)
-  log_con <- file(lf, open = "a")
-  cat(paste("Patient","Translocation","type_flag","conflicting_technique_results", "decision","raw_results","result", sep = "\t"), file = log_con, sep = "\n")
-  
-  # get a list of translocation consensus calls to make from dictionary
-  # Since the translocations should be mutually exclusive we'll call them separately
-  translocations <- grep("^CYTO_(t.*)_CONSENSUS", names(df), value = T)
-  translocations <- gsub("^CYTO_(t.*)_CONSENSUS", "\\1", translocations)
-  
-  id_columns <- names(df) %in% c("Patient", "Sample_Name", "Sample_Type_Flag", "Disease_Status")
-  
-  ### STEP 1
-  ### Translocation consensus calls
-  for(p in unique(df$Patient)){
-    patient_rows <- df$Patient == p
+  # tidy all translocation columns, filter out NA rows, sort by preferred method 
+  sorted <- df %>% 
+    select(Patient, Sample_Name, Study, matches("CYTO_t.*_FISH$"), matches("CYTO_t.*_MANTA$")) %>%
+    gather( key = field, value = Value, -c(Patient, Sample_Name,Study) ) %>%
     
-    for(t in translocations){
-      # get a list of techniques to compare
-      techniques <-grep(t, names(df), value = T, fixed = T)
-      techniques <- gsub(paste0("CYTO_",t,"_"),"",techniques, fixed = T)
-      techniques <- techniques[!(techniques %in% "CONSENSUS")]
-      # c("FISH", "MANTA")
-      
-      for(type_flag in c(0,1)){
-        df_sub <- df[patient_rows & df$Sample_Type_Flag == type_flag, id_columns | grepl(t, names(df), fixed = T)]
-        
-        # get a list of all unique values for each technique
-        by_technique <- lapply(techniques, function(technique){
-          if(all(is.na(df_sub[,grepl(technique, names(df_sub))]))){return(NA)
-          }else{
-            unique(df_sub[,grepl(technique, names(df_sub))][!is.na(df_sub[,grepl(technique, names(df_sub))])])
-          }
-        })
-        names(by_technique) <- techniques
-        
-        # remove NA techniques
-        by_technique <- by_technique[!is.na(by_technique)]
-        
-        # check for consistency groups
-        # all techniques and timepoints have the same result
-        if( length(unique(unlist(by_technique))) == 1 ){
-          # set this values as consensus for this patient and sample type
-          decision <- "all"
-          result   <- unique(by_technique)
-          df[patient_rows & df$Sample_Type_Flag == type_flag, paste("CYTO",t,"CONSENSUS",sep="_")] <- result
-          
-        }else if(length(unique(unlist(by_technique["MANTA"]))) == 1 & 
-                 "MANTA" %in% names(by_technique)){
-          # if we have a good MANTA results, use this
-          decision <- "manta"
-          result   <- unique(by_technique["MANTA"])
-          df[patient_rows & df$Sample_Type_Flag == type_flag, paste("CYTO",t,"CONSENSUS",sep="_")] <- result
-          
-        }else if(length(unique(unlist(by_technique["ControlFreec"]))) == 1 & 
-                 "ControlFreec" %in% names(by_technique)){
-          # if we have a good ControlFreec results, use this
-          decision <- "controlfreec"
-          result   <- by_technique["ControlFreec"]
-          df[patient_rows & df$Sample_Type_Flag == type_flag, paste("CYTO",t,"CONSENSUS",sep="_")] <- result
-          
-        }else if(length( by_technique ) == 0 ){
-          # if we have a good ControlFreec results, use this
-          decision <- "no techniques"
-          result   <- NA
-          df[patient_rows & df$Sample_Type_Flag == type_flag, paste("CYTO",t,"CONSENSUS",sep="_")] <- result
-          
-        }else{
-          decision <- "ERROR"
-          result   <- NA
-          df[patient_rows & df$Sample_Type_Flag == type_flag, paste("CYTO",t,"CONSENSUS",sep="_")] <- result
-        }
-        
-        # provide unique values for each technique
-        raw_results <- paste(mapply(function(x,y){
-          paste(x,y,sep = "=")
-        }, names(by_technique), as.character(by_technique)),
-        collapse = "; ")
-        
-        conflicting_technique_results <- length(unique(by_technique)) >1
-        
-        cat(paste(p,t,type_flag,conflicting_technique_results,decision,raw_results,result, sep = "\t"), file = log_con, sep = "\n")
-      }
-    }
-  }
+    # merge any duplicate File_Name rows, ideally these will be removed at curation
+    group_by(Study, Patient, Sample_Name, field) %>%
+    summarise(Value = Simplify(Value)) %>%
+    
+    # split column name 
+    separate( field, c("Cat", "Type", "Technique"), "_") %>%
+    filter(Value != "NA") %>%
+    ungroup()%>%
+    
+    # sort based on dataset preference for technique type
+    # DFCI/UAMS preferd FISH data, MMRF prefers MANTA
+    mutate( sort = case_when(
+      .$Study %in% c("DFCI", "UAMS") ~ recode(.$Technique, FISH = 1, MANTA = 2),
+      .$Study %in% c("MMRF")         ~ recode(.$Technique, FISH = 2, MANTA = 1)
+    )) %>%
+    group_by(Patient, Sample_Name, Type) %>%
+    arrange(Sample_Name, Type, sort) %>%
+    select(-sort)
   
-  ### STEP 2
-  ### Mutually exclusive translocation calls
-  tcalls <- c()
-  patient_type_table <- unique(df[,c("Patient", "Sample_Type_Flag")])
+  # since translocation calls can be made by multiple unique files per-sample,
+  # we need to flag inconsistencies. These are currently retained for QC. 
+  conflicted.samples <- sorted  %>%
+    filter( length(unique(Value)) >1 ) %>%
+    spread(key = Technique, value = Value)
+
+  # report conflicted result counts
+  x <- ungroup(conflicted.samples) %>% count(Study) %>% unite(x, c(Study, n), sep = " = ")
+  message(paste("<conflicted.samples.txt>",
+                "Samples with results conflicted between techniques:", 
+                paste(x$x, collapse = ", "), 
+                sep = " "))
+   
+  # remove redundant or less preferred translocation calls
+  preferred <- sorted  %>%
+    # only retain the most preferred value
+    slice( 1 ) %>%
+    ungroup() %>%
+    select(Patient, Sample_Name, Type, Value) 
   
-  CYTO_Translocation_Consensus <- apply(patient_type_table, MARGIN = 1, function(x){
-    
-    patient_rows <- (df$Patient == x[['Patient']]) & (df$Sample_Type_Flag == x[['Sample_Type_Flag']])
-    tmp <- df[patient_rows,  grepl("^CYTO_(t.*)_CONSENSUS", names(df))]
-    
-    # determine if each translocation had been called by any individual sample
-    type <- apply(tmp, MARGIN = 2, function(x){
-      any(!is.na(x) & x == 1)
-    })
-    
-    if(sum(type) == 1){ 
-      colname <- names(type)[type]
-      trsl <- gsub("CYTO_t\\((.*)\\)_CONSENSUS","\\1",colname)
-      trsl <- gsub(";14|14;","",trsl)
-    }else if(sum(type) == 0){
-      trsl <- ""
-    }else if(sum(type) > 1){
-      trsl <- "ERROR2"
-    }else{
-      trsl <- "ERROR1"
-    }
-    trsl
-    
-  })
+  # call a simplified translocation per-sample (t(4;14 = "4"))
+  translocation.consensus <- preferred %>%
+    filter( Value == 1 ) %>%
+    mutate( Type = gsub("t\\(([0-9]+;[0-9]+)\\)", "\\1", Type)) %>%
+    mutate( Type = gsub(";14|14;", "", Type)) %>%
+    group_by(Patient, Sample_Name) %>%
+    summarise(CYTO_Translocation_Consensus = Simplify(Type))
+  # record samples that were tested but don't show any translocations
+  no.translocations <- preferred %>% 
+    group_by(Patient, Sample_Name) %>%
+    summarise(CYTO_Translocation_Consensus = all(Value == "0")) %>%
+    filter(CYTO_Translocation_Consensus) %>%
+    mutate(CYTO_Translocation_Consensus = "None")
+  translocation.consensus <- rbind(translocation.consensus, no.translocations)  
   
-  # merge the translocation call column back onto teach pateient/sampletype
-  df$CYTO_Translocation_Consensus <- NULL
-  call_lookup <-   cbind(patient_type_table, CYTO_Translocation_Consensus)
-  tmp <- merge(df, call_lookup, by = c("Patient", "Sample_Type_Flag"), all = T)
+  # report patients that don't have consistent translocation consensus for all samples
+  # currently this data is retained, but should eventually be converted to NA
+  longitudinally.inconsistent.patients <- translocation.consensus %>% 
+    group_by(Patient) %>%
+    filter( length(unique(CYTO_Translocation_Consensus)) > 1) %>%
+    ungroup() %>%
+    arrange(Patient, Sample_Name)
+  # report inconsistent patient counts
+  x <- ungroup(longitudinally.inconsistent.patients) %>% summarise(n())
+  message(paste("<longitudinally.inconsistent.patients.txt>",
+                x, "patients have inconsistent translocations", 
+                sep = " "))
   
-  if(dim(tmp)[1] == dim(df)[1]) {
-    df <- tmp
-    rm(tmp)
-  }else{warning('dimensions do not match between the merged table and file table')}
+  # rename translocation variables for integrated table, spread and merge
+  out <- preferred %>%
+    mutate(Type = paste("CYTO", .$Type, "CONSENSUS", sep = "_")) %>%
+    spread(key = Type, value = Value) 
+  # merge consensus calls back to duplicate per-file from per-sample
+  out <- merge(df[,c("Sample_Name", "File_Name")], out, by = "Sample_Name", all = T)
+  out <- merge(out, translocation.consensus, by = "Sample_Name", all = T)
+  # append consensus fields back onto per.file and return
+  out <- toolboxR::append_df(df, select(out, -Sample_Name), id = "File_Name")
   
-  ### STEP 3
-  ### Other cytogenetic consensus calls
+  # log intermediate tables to scratch
+  sapply(c("sorted", "conflicted.samples", "longitudinally.inconsistent.patients", 
+           "preferred", "translocation.consensus"), write.object, env = environment())
   
-  # other deletions and amplifications are called on a sample bases and do not need longitudinal harmony
-  other_cyto <- grep("^CYTO_([da1HM].*)_CONSENSUS", names(df), value = T)
-  other_cyto <- gsub("^CYTO_([da1HM].*)_CONSENSUS", "\\1", other_cyto)
-  
-  # t<-"amp(1q)"
-  for(t in other_cyto){
-    # get a list of techniques to compare
-    columns <- grep(t, names(df), value = T, fixed = T)
-    columns <- grep("CONSENSUS", columns, invert = T, value = T)
-    techniques <- gsub(paste0("CYTO_",t,"_"),"",columns, fixed = T)
-    # c("FISH", "MANTA")
-    
-    # reconstruct column names to order by technique priority
-    
-    
-    consensus <- apply(df[, columns], MARGIN = 1, function(x){
-      
-      # table is organized with "better" techniques to the right
-      # FISH < MANTA < ControlFreec
-      
-      # remove NA value
-      x <- x[!is.na(x)]
-      
-      # if any are remaining return the last element
-      if( length(x) > 0 ){return(x[length(x)])
-      }else({return(NA)})
-      
-    })    
-    
-    df[[paste("CYTO",t,"CONSENSUS" , sep="_")]] <- consensus
-    
-  }  
-  
-  close.connection(log_con)
-  df
+  out
 }
 
 #' Check for explicit value in df
@@ -517,3 +322,5 @@ CleanColumnNamesForSAS <- function(n){
     warning(paste("Abbreviated column titles are non-unique:", paste(unique(n[duplicated(n)]), collapse = "; "), sep = " "))
   } else{n}
 }
+
+
