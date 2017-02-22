@@ -84,12 +84,14 @@ remove_sensitive_columns <- function(df, dict){
 }
 
 remove_unsequenced_patients <- function(p,f){
-  excluded_patients <- unique(p$Patient)[!unique(p$Patient) %in% unique(f$Patient)]
-  warning(paste(length(excluded_patients), "patients did not have sequence data and were removed", sep = " "))
-  p[!p$Patient %in% excluded_patients,]
+  unsequenced_patients <- unique(p$Patient)[!unique(p$Patient) %in% unique(f$Patient)]
+  warning(paste(length(unsequenced_patients), "patients did not have sequence data and were removed", sep = " "))
+  
+  write.object("unsequenced_patients", env = environment())
+  p[!p$Patient %in% unsequenced_patients,]
 }
 
-report_unique_patient_counts <- function(df, sink_file = "/tmp/unique_patient_counts.txt"){
+report_unique_patient_counts <- function(df, sink_file = file.path(local, "unique_patient_counts.txt")){
   sink(file = sink_file) 
   df <- aggregate.data.frame(per.file[,"Patient"], by = list(per.file$Study, per.file$Sequencing_Type, per.file$Disease_Status), 
                              function(x){  length(unique(x))  })
@@ -221,8 +223,7 @@ get_inventory_counts <- function(df_perpatient){
   
   df[['Category']] <- row.names(df)
   
-  
-  write_to_s3integrated(df, "report_inventory_counts.txt")
+  PutS3Table(df, file.path(s3, "ClinicalData/ProcessedData/Integrated", "report_inventory_counts.txt"))
   
   df$Category <- NULL
   df
@@ -300,11 +301,11 @@ export_sas <- function(df, dict, name){
   
   system(paste("aws s3 cp", 
                local.data.path, 
-               file.path(s3clinical, "ProcessedData", "Integrated", "sas", paste0(root,".txt")),
+               file.path(s3, "ClinicalData/ProcessedData/Integrated", "sas", paste0(root,".txt")),
                "--sse", sep = " "))
   system(paste("aws s3 cp", 
                local.code.path, 
-               file.path(s3clinical, "ProcessedData", "Integrated", "sas", paste0(root,".sas")),
+               file.path(s3, "ClinicalData/ProcessedData/Integrated", "sas", paste0(root,".sas")),
                "--sse", sep = " "))
   
 }
