@@ -252,6 +252,8 @@ name <- "PER_PATIENT_VISIT.csv"
   df[['IG_IgM']]                  <- pervisit$D_LAB_serum_igm
   df[['IG_IgE']]                  <- pervisit$D_LAB_serum_ige
 
+  curated.pervisit <- df
+  
   # We want to bind this visit data to a File_Name so that it can be incorporated
   # into the integrated per-file table
   # Make a mapping table from inv from BM sample type if present, else PB 
@@ -284,6 +286,7 @@ name <- "PER_PATIENT_VISIT.csv"
   path <- file.path(local,"curated_MMRF_perfile_status.txt")
   write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
 
+  
 ### PER_PATIENT -------------------------
 # curate PER_PATIENT entries, requires some standalone tables for calculations
 name <- "PER_PATIENT.csv"
