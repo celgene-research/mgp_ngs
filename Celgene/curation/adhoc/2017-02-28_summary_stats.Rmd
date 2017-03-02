@@ -1,0 +1,29 @@
+---
+title: "MGP Clinical Data QC"
+author: "Dan Rozelle"
+date: "February 22, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+source("curation_scripts.R")
+per.file.clinical <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData/Integrated/per.file.clinical.txt"))
+```
+
+## Summary statistics
+
+
+```{r}
+df <- per.file.clinical %>% 
+  select(Patient, Study, Sample_Name, Sample_Type_Flag, File_Name, 
+         File_Name_Actual, Sequencing_Type, Disease_Status, Disease_Type) %>% 
+  group_by(Study)
+
+
+
+  df %>% summarise_all(mean)
+
+```
+
