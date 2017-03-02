@@ -362,3 +362,30 @@ CleanColumnNamesForSAS <- function(n){
 }
 
 
+local_collapse_dt <- function(df, column.names, unique = F){
+  
+  dt   <- data.table::as.data.table(df)
+  
+  # suppress the coersion warning since it is expected
+  # <simpleWarning in melt.data.table(dt, id.vars = "Sample_Name", na.rm = TRUE):
+  # 'measure.vars' [File_Name, Patient, Study, Study_Phase, ...] are not all of
+  # the same type. By order of hierarchy, the molten data value column will be of
+  # type 'character'. All measure variables not of type 'character' will be coerced
+  # to. Check DETAILS in ?melt.data.table for more on coercion.>
+  suppressWarnings(long <- data.table::melt(dt, id.vars = column.names, na.rm = TRUE))
+  
+  # filter to remove all NA, blank, or non-duplicated rows
+  # remove sample-variable sets that are already unique
+  already.unique <- long[(value != "NA"), n := .N, by = c(column.names, "variable")][n==1, 1:3]
+  duplicated     <- long[(value != "NA"), n := .N, by = c(column.names, "variable")][n>1, 1:3]
+  
+  # summarize remaining fields to simplify
+  dedup          <- duplicated[, .(value = toolboxR::Simplify(value)), by = c(column.names, "variable")]
+  
+  # join and spread
+  long <- rbind(already.unique, dedup)
+  wide <- data.table::dcast(long, get(column.names) ~ variable, value.var = "value" )
+  wide <- dplyr::rename_(wide, .dots=setNames("column.names", column.names))
+  wide
+  
+}
