@@ -10,7 +10,7 @@ table_merge <- function(per.file, per.patient){
   #######################
   # CNV
   print("CNV Merge........................................", quote = F)
-  new <- GetS3Table(file.path(s3joint,"curated_CNV_ControlFreec.txt"))
+  new <- GetS3Table(file.path(s3joint,"curated_cnv_ControlFreec_2017-02-21.txt"))
   new <- filter(new, new$File_Name %in% per.file$File_Name)
   df <-  merge_table_files(df, new, id = "File_Name")
   
@@ -23,10 +23,10 @@ table_merge <- function(per.file, per.patient){
   
   #######################
   # SNV
-  # print("SNV Merge........................................", quote = F)
-  # new <- GetS3Table(file.path(s3joint,"curated_SNV_mutect2.txt"))
-  # new <- filter(new, new$File_Name %in% per.file$File_Name)
-  # df <-  merge_table_files(df, new, id = "File_Name")
+  print("SNV Merge........................................", quote = F)
+  new <- GetS3Table(file.path(s3joint,"curated_SNV_BinaryConsensus_2017-02-13.txt"))
+  new <- filter(new, new$File_Name %in% per.file$File_Name)
+  df <-  merge_table_files(df, new, id = "File_Name")
   
   return(df)
   }

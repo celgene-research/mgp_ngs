@@ -36,7 +36,7 @@ for(f in files){
   new <-   read.delim(f, stringsAsFactors = F, check.names = F)
   per.file <- append_df(per.file, new, id = "File_Name", mode = "append")
 }
-
+  per.file[per.file == "NA"] <- NA
   per.file  <- remove_invalid_samples(per.file)
   
   # temporary fix to add disease.status fields to MMRF samples with unannotated visit.
@@ -73,7 +73,7 @@ names(per.patient) <- patient_level_columns
   per.patient.clinical  <- add_inventory_flags(per.patient.clinical, per.file.clinical)
   
   # Collapse file > sample for some analyses
-  per.sample.all        <- toolboxR::CollapseDF(per.file.all, column.names = "Sample_Name")
+  per.sample.all        <- collapse_dt(per.file.all, column.names = "Sample_Name")
   per.sample.clinical   <- subset_clinical_columns(per.sample.all)
   
   # Filter for ND-tumor sample only
@@ -86,8 +86,8 @@ names(per.patient) <- patient_level_columns
   per.sample.clinical.nd.tumor  <- subset_clinical_columns(per.sample.all.nd.tumor)
   
   # qc and summary
-  inventory_counts <- get_inventory_counts(per.patient)
-  report_unique_patient_counts(per.file)
+  inventory_counts <- get_inventory_counts(per.patient.clinical)
+  report_unique_patient_counts(per.file.clinical)
 
   # write un-dated PER-FILE and PER-PATIENT files to S3
   

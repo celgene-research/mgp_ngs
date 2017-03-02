@@ -114,10 +114,10 @@ report_unique_patient_counts <- function(df, sink_file = file.path(local, "uniqu
 }
 
 add_inventory_flags <- function(df_perpatient, df_perfile){
-  # df_perpatient <- per.patient
-  # df_perfile <- per.file
+  # df_perpatient <- per.patient.clinical
+  # df_perfile <- per.file.clinical
   
-  check_by_patient <- check.value("Patient")
+  check_by_patient <- toolboxR::check.value("Patient")
   
   df_perpatient[["INV_Has.sample"]] <- ifelse(df_perpatient$Patient %in% df_perfile$Patient, 1,0)
   
@@ -210,9 +210,9 @@ add_inventory_flags <- function(df_perpatient, df_perfile){
   df_perpatient
 }
 
-
-get_inventory_counts <- function(df_perpatient){
-  df <- aggregate.data.frame(df_perpatient[,grepl("Has",names(df_perpatient))], by = list(df_perpatient$Study), function(x){
+# it is expected that you supply a per-patient table to obtain unique patient counts
+get_inventory_counts <- function(df){
+  df <- aggregate.data.frame(df[,grepl("Has",names(df))], by = list(df$Study), function(x){
     sum(x == "1")
   })
   df <- as.data.frame(t(df), stringsAsFactors = F)
@@ -223,7 +223,7 @@ get_inventory_counts <- function(df_perpatient){
   
   df[['Category']] <- row.names(df)
   
-  PutS3Table(df, file.path(s3, "ClinicalData/ProcessedData/Integrated", "report_inventory_counts.txt"))
+  # PutS3Table(df, file.path(s3, "ClinicalData/ProcessedData/Integrated", "report_inventory_counts.txt"))
   
   df$Category <- NULL
   df
