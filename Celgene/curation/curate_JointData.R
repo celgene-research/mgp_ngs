@@ -79,26 +79,27 @@ print("CNV Curation........................................")
 ## Translocations using MANTA from Brian (BWalker2@uams.edu)
 print("Translocation Curation........................................")
 
-trsl <- GetS3Table(file.path(s3,"ClinicalData/OriginalData/Joint",
-                             "2017-01-11_complete_translocation_table_pass3_FINAL.xlsx"))  
+# df <- GetS3Table(file.path(s3,"ClinicalData/OriginalData/Joint",
+#                              "2017-01-11_complete_translocation_table_pass3_FINAL.xlsx"))  
 
+df <- toolboxR::AutoRead("../../../data/OriginalData/Joint/2017-03-02_complete_translocation_table_pass4.xlsx")
+  
 # Split table into sequencing types, filter to remove NA rows (everything should now be either 0/1)
-
-wes <- trsl %>% 
+wes <- df %>% 
   select(starts_with("WES"), Translocation_Summary, Dataset) %>% 
   rename(id = WES_prep_id) %>%
   filter( id != "NA") %>%
   gather( key = field, value = Value, ends_with("MMSET"):ends_with("MAFB") ) %>%
   separate( field, c("Sequencing_Type", "Result"), "_")
 
-wgs <- trsl %>% 
+wgs <- df %>% 
   select(starts_with("WGS"), Translocation_Summary, Dataset) %>% 
   rename(id = WGS_prep_id) %>%
   filter( id != "NA") %>%
   gather( key = field, value = Value, ends_with("MMSET"):ends_with("MAFB") ) %>%
   separate( field, c("Sequencing_Type", "Result"), "_")
 
-rna <- trsl %>% 
+rna <- df %>% 
   select(starts_with("RNA"), Translocation_Summary, Dataset) %>% 
   rename(id = RNA_prep_id) %>%
   filter( id != "NA") %>%
@@ -123,7 +124,7 @@ df <- rbind(wes, wgs, rna) %>%
     .$Dataset == "MMRF" ~ .$id ))
 
 
-out <-   df %>%
+df <-   df %>%
   # TODO: temporary fix to allow duplicated file names
   select(File_Name, Result, Value) %>%
   group_by(File_Name, Result) %>%
