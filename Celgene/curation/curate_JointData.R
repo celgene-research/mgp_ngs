@@ -1,7 +1,7 @@
 ## drozelle@ranchobiosciencs.com
 ##
 ## 2017-02-20 revised to incorporate second iteration of molecular calls
-
+library(data.table)
 source("curation_scripts.R")
 local <- CleanLocalScratch()
 
@@ -21,8 +21,10 @@ per.file <- GetS3Table(file.path(s3,"ClinicalData/ProcessedData/Integrated",
 print("CNV Curation........................................")
 
 # I applied a three step criteria for filtering:
-# 1.) t-test on regions of relative chromosomal stability (chromosome 2 and 10). If neither of them are normal (CN=2) than the sample fails.
-# 2.) Median of the standard deviations of the data points across all chromosomes. If higher than 0.3, than the sample fails.
+# 1.) t-test on regions of relative chromosomal stability (chromosome 2 and 10). 
+#      If neither of them are normal (CN=2) than the sample fails.
+# 2.) Median of the standard deviations of the data points across all chromosomes. 
+#      If higher than 0.3, than the sample fails.
 # 3.) If there are more than 600 CN segments, then the sample fails.
 
   # import call file and rename columns for integrated dictionary
@@ -136,11 +138,37 @@ PutS3Table(out, file.path(s3,"ClinicalData/ProcessedData/JointData",
 
 # SNV --------------------------------------------------------------------
 ## SNV from Chris (CPWardell@uams.edu)
-# print("SNV Curation........................................")
-# 
-# snv <- GetS3Table(file.path(s3,"ClinicalData/OriginalData/Joint",
-#                              "20170213.snvsindels.filtered.metadata.ndmmonly.slim.txt"))  
-# 
+print("SNV Curation........................................")
+
+# were using a data.table instead of a data.frame due to the large size
+
+f <- "20170213.snvsindels.filtered.metadata.ndmmonly.slim.txt"
+system(paste("aws s3 cp",
+      file.path(s3,"ClinicalData/OriginalData/Joint",f),
+      local,
+      "", sep = " "))
+snv <- data.table::fread(file.path(local, f))
+
+# select filename and gene name columns, add a "call" column as binary indicator 
+#  (Does this gene have any mutations? 0=No; 1=Yes)
+DT <- snv[,.(File_Name = tumorname, Hugo_Symbol), .(call = rep(1, length(Hugo_Symbol))) ]
+# spread table long to wide so we have a file ~ gene binary matrix
+DT <- dcast(DT, File_Name ~ Hugo_Symbol, value.var = "call", fun = function(x){ ifelse(length(x)>=1,1,0) })
+
+# rename columns, remove extraneous underscore characters from gene names
+names(DT)    <- gsub("_+", "\\.", names(DT))
+names(DT)    <- paste("SNV", names(DT), "BinaryConsensus", sep = "_")
+names(DT)[1] <- "File_Name"
+
+# clean File_Name as for CNVs above
+DT$File_Name <- gsub("^_E.*?_([^E].*)$", "\\1", DT$File_Name)
+DT$File_Name <- gsub("HUMAN_37_pulldown_", "", DT$File_Name)
+  
+# all(DT$File_Name %in% per.file$File_Name)
+# TRUE
+
+PutS3Table(DT, file.path(s3,"ClinicalData/ProcessedData/JointData/",
+                         "curated_SNV_BinaryConsensus_2017-02-13.txt"))
 
 
 # BI --------------------------------------------------------------------
