@@ -1,0 +1,57 @@
+# 2017-02-15---------------------------------------------------
+
+9 files in SeqData/WGS/OriginalData/MMRF/IA3-IA9/ map to MMRF filenames that actually correspond to WES samples (and not WGS samples as implied by their location).
+
+One example:
+SeqData/WGS/OriginalData/MMRF/IA3-IA9/SRR3163618_2.fastq.gz
+
+matching vendor_id from <data.import.WGS.Kostas.IA3-IA7.xls>
+
+    filename                = SeqData/WGS/OriginalData/MMRF/IA3-IA9/SRR3163618_2.fastq.gz
+    vendor_id              = MMRF_1293_1_BM_CD138pos_T1_KAS5U_L01708
+    experiment_type  = DNA-Seq Whole genome
+
+
+lookup info from IA9 SeqQC table
+
+    `Patients::KBase_Patient_ID`  = MMRF_1293
+    `QC Link SampleName`           = MMRF_1293_1_BM_CD138pos_T1_KAS5U_L01708
+    MMRF_Release_Status              = Exome-All
+
+
+now as a final sanity check, I'll verify that the files contain the same information, yes they do.
+
+$ cat MMRF_1293_1_BM_CD138pos_T1_KAS5U_L01708.fq| \
+grep "GGGTTAGGGCTAGGGGTTAGGGTTGGGTTAGGGTTAGGGTTAGGGTTAGGGTTAGCGTTAGGGTTAGGGTAGGGGTAGGGTT" -A 2 -B 1 -n
+
+    29-@HWI-700477R:286:C299GACXX:5:1206:15933:40647
+    30:GGGTTAGGGCTAGGGGTTAGGGTTGGGTTAGGGTTAGGGTTAGGGTTAGGGTTAGCGTTAGGGTTAGGGTAGGGGTAGGGTT
+    31-+
+    32-==<<>?FECFD?FCCB@A9EED@BFCC@BAFDD=@?GEE@A;GEF@A>GFDAA@G+>128EDD###################
+
+
+$ zcat SRR3163618_2.fastq.gz | \
+grep "GGGTTAGGGCTAGGGGTTAGGGTTGGGTTAGGGTTAGGGTTAGGGTTAGGGTTAGCGTTAGGGTTAGGGTAGGGGTAGGGTT" -A 2 -B 1 -n
+
+    1-@SRR3163618.1 1 length=82
+    2:GGGTTAGGGCTAGGGGTTAGGGTTGGGTTAGGGTTAGGGTTAGGGTTAGGGTTAGCGTTAGGGTTAGGGTAGGGGTAGGGTT
+    3-+SRR3163618.1 1 length=82
+    4-==<<>?FECFD?FCCB@A9EED@BFCC@BAFDD=@?GEE@A;GEF@A>GFDAA@G+>128EDD###################
+
+
+Counting lines, it looks like the WES bam file contains 2x the lines as a single read fastq, with
+apparently a few reads removed
+                                                wc -l     /4        /2
+zcat SRR3163618_2.fastq.gz                      4.78E+08  1.19E+08  2.39E+08
+cat MMRF_1293_1_BM_CD138pos_T1_KAS5U_L01708.fq  9.05E+08  2.26E+08
+
+Sample_Name                                                                   WES.to.keep                                      duplicate.FQ.to.remove
+MMRF_1293_1_BM SeqData/WES/OriginalData/MMRF/IA6/MMRF_1293_1_BM_CD138pos_T1_KAS5U_L01708.bam SeqData/WGS/OriginalData/MMRF/IA3-IA9/SRR3163618_2.fastq.gz
+MMRF_1401_1_BM SeqData/WES/OriginalData/MMRF/IA5/MMRF_1401_1_BM_CD138pos_T1_KAS5U_L01921.bam SeqData/WGS/OriginalData/MMRF/IA3-IA9/SRR1566944_2.fastq.gz
+MMRF_1401_1_PB    SeqData/WES/OriginalData/MMRF/IA5/MMRF_1401_1_PB_Whole_C2_KAS5U_L01932.bam SeqData/WGS/OriginalData/MMRF/IA3-IA9/SRR1566945_2.fastq.gz
+MMRF_1424_1_BM SeqData/WES/OriginalData/MMRF/IA5/MMRF_1424_1_BM_CD138pos_T1_KAS5U_L01597.bam SeqData/WGS/OriginalData/MMRF/IA3-IA9/SRR1566948_2.fastq.gz
+MMRF_1424_1_PB    SeqData/WES/OriginalData/MMRF/IA5/MMRF_1424_1_PB_Whole_C2_KAS5U_L01606.bam SeqData/WGS/OriginalData/MMRF/IA3-IA9/SRR1566949_2.fastq.gz
+MMRF_1462_1_BM SeqData/WES/OriginalData/MMRF/IA5/MMRF_1462_1_BM_CD138pos_T2_KAS5U_L02453.bam SeqData/WGS/OriginalData/MMRF/IA3-IA9/SRR3163627_2.fastq.gz
+MMRF_1462_1_PB    SeqData/WES/OriginalData/MMRF/IA5/MMRF_1462_1_PB_Whole_C3_KAS5U_L02464.bam SeqData/WGS/OriginalData/MMRF/IA3-IA9/SRR3163628_2.fastq.gz
+MMRF_1496_1_PB SeqData/WES/OriginalData/MMRF/IA5/MMRF_1496_1_PB_CD138pos_T2_KAS5U_L02465.bam SeqData/WGS/OriginalData/MMRF/IA3-IA9/SRR3163629_2.fastq.gz
+MMRF_1499_1_BM SeqData/WES/OriginalData/MMRF/IA5/MMRF_1499_1_BM_CD138pos_T2_KAS5U_L02373.bam SeqData/WGS/OriginalData/MMRF/IA3-IA9/SRR3163626_2.fastq.gz
