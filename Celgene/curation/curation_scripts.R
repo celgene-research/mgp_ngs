@@ -2,10 +2,11 @@
 # global vars
 d  <- format(Sys.Date(), "%Y-%m-%d")
 s3 <- "s3://celgene.rnd.combio.mmgp.external"
-# devtools::install_github("dkrozelle/toolboxR")
-library(toolboxR, quietly = T)
+# devtools::install_github("dkrozelle/toolboxR", force = TRUE)
+library(toolboxR)
 library(dplyr) # don't load plyr, it will conflict
 library(tidyr)
+library(data.table)
 
 # this function does not allow specification of directory to 
 # prevent inadvertant file deletion 
@@ -386,6 +387,6 @@ local_collapse_dt <- function(df, column.names, unique = F){
   long <- rbind(already.unique, dedup)
   wide <- data.table::dcast(long, get(column.names) ~ variable, value.var = "value" )
   wide <- dplyr::rename_(wide, .dots=setNames("column.names", column.names))
-  wide
+  as.data.frame(wide)
   
 }
