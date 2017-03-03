@@ -6,8 +6,8 @@ source("curation_scripts.R")
 local <- CleanLocalScratch()
 
 # used to get examples of existing data formats
-per.file <- GetS3Table(file.path(s3,"ClinicalData/ProcessedData/Integrated",
-                              "per.file.clinical.txt"))
+# per.file <- GetS3Table(file.path(s3,"ClinicalData/ProcessedData/Integrated",
+#                               "per.file.clinical.txt"))
 # per.file.examples <- per.file %>% 
 #   group_by(Study) %>%
 #   sample_n(2) %>%
@@ -79,11 +79,9 @@ print("CNV Curation........................................")
 ## Translocations using MANTA from Brian (BWalker2@uams.edu)
 print("Translocation Curation........................................")
 
-# df <- GetS3Table(file.path(s3,"ClinicalData/OriginalData/Joint",
-#                              "2017-01-11_complete_translocation_table_pass3_FINAL.xlsx"))  
+df <- GetS3Table(file.path(s3,"ClinicalData/OriginalData/Joint",
+                             "2017-03-02_complete_translocation_table_pass4.xlsx"))
 
-df <- toolboxR::AutoRead("../../../data/OriginalData/Joint/2017-03-02_complete_translocation_table_pass4.xlsx")
-  
 # Split table into sequencing types, filter to remove NA rows (everything should now be either 0/1)
 wes <- df %>% 
   select(starts_with("WES"), Translocation_Summary, Dataset) %>% 
@@ -123,7 +121,32 @@ df <- rbind(wes, wgs, rna) %>%
     .$Dataset == "DFCI" ~ gsub(".*_(.*)$", "\\1", .$id),
     .$Dataset == "MMRF" ~ .$id ))
 
+### Just a quick QC to check that filenames are not duplicated
+# per.file <- GetS3Table(file.path(s3,"ClinicalData/ProcessedData/Integrated",
+#                                 "per.file.clinical.txt"))
+# long.trsl <- df
+# multiple.calls <- long.trsl %>%
+#   group_by(File_Name, Result) %>%
+#   summarise( n = n(),
+#              consensus = Simplify(Value)) %>%
+#   filter( n > 1)
+# multiple.calls
+# # good, even though we have duplicated file calls, none appear to be conflicting
+# 
+# mismatched.seq.types <- per.file %>%
+#   mutate(per.file.Sequencing_Type = gsub("\\-Seq","",Sequencing_Type)) %>%
+#   select(File_Name, per.file.Sequencing_Type) %>%
+#   merge(., long.trsl, by = "File_Name") %>%
+#   mutate(mismatch = (per.file.Sequencing_Type != Sequencing_Type)) %>%
+#   filter(mismatch) %>%
+#   group_by(File_Name) %>%
+#   summarise(per.file.type = Simplify(per.file.Sequencing_Type),
+#             type = Simplify(Sequencing_Type))
+# mismatched.seq.types
+# # These aren't a problem either since the translocation table uses them under 
+# # these incorrect types, and also the right ones. 
 
+ 
 df <-   df %>%
   # TODO: temporary fix to allow duplicated file names
   select(File_Name, Result, Value) %>%
@@ -133,8 +156,8 @@ df <-   df %>%
   # spread back to integrated table layout
   spread(key = Result, value = Value)
 
-PutS3Table(out, file.path(s3,"ClinicalData/ProcessedData/JointData",
-                          "curated_translocation_calls_2017-01-11.txt"))
+PutS3Table(df, file.path(s3,"ClinicalData/ProcessedData/JointData",
+                          "curated_translocation_calls_2017-03-02.txt"))
 
 
 # SNV --------------------------------------------------------------------
@@ -168,7 +191,7 @@ DT$File_Name <- gsub("HUMAN_37_pulldown_", "", DT$File_Name)
 # all(DT$File_Name %in% per.file$File_Name)
 # TRUE
 
-PutS3Table(DT, file.path(s3,"ClinicalData/ProcessedData/JointData/",
+PutS3Table(DT, file.path(s3,"ClinicalData/ProcessedData/JointData",
                          "curated_SNV_BinaryConsensus_2017-02-13.txt"))
 
 
@@ -182,10 +205,8 @@ software  <- "Flag"
 
 # copy original tables to local
 name    <- 'biallelic_table_cody_2016-11-09.xlsx'  
-system(paste('aws s3 cp', file.path(s3clinical, "OriginalData", 'Joint', name), file.path(local, name), sep = " "))
+bi <- GetS3Table(file.path(s3,"ClinicalData/OriginalData/Joint",name))
 
-bi <- readxl::read_excel(file.path(local,name),
-                         sheet = 1)
 
 # I'm attaching a matrix that contains regions of 'biallelic inactivation'. It's a similar format to the copy number table with genes across the top and patients as the rows. 
 # 
@@ -214,28 +235,16 @@ bi$File_Name <- gsub("^_E.*_([bcdBCD])", "\\1", bi$File_Name)
 # all(bi$File_Name %in% per.file$File_Name)
 # TRUE
 
-# write to local and S3
+# write to S3
 name <- paste0("curated_",technique,"_",software,".txt")
-path     <- file.path(local,name)
-write.table(bi, path, row.names = F, col.names = T, sep = "\t", quote = F)
+PutS3Table(bi, file.path(s3,"ClinicalData/ProcessedData/JointData", name))
 
-system(  paste('aws s3 cp', file.path(local, name), file.path(s3clinical, "ProcessedData", "JointData", name), '--sse', sep = " "))
-
-## now make a sparse dictionary
-dict <- data.frame(
-  names       = names(bi)[2:length(bi)],
-  key_val     = '0="no inactivation"; 1="mutation + deletion or homozygous deletion"',
-  description = paste("Was biallelic inactivation observed for", 
-                      gsub("^.*_(.*)_.*$","\\1", names(bi)[2:length(bi)]), sep = " "),
-  stringsAsFactors = F )
-
-# write to local
-name <- paste0(technique,"_", "dictionary",".txt")
-path     <- file.path(local,name)
-write.table(dict, path, row.names = F, col.names = T, sep = "\t", quote = F)
-system(  paste('aws s3 cp', file.path(local, name), file.path(s3clinical, "ProcessedData", "Integrated", name), '--sse', sep = " "))
-return_code <- system('echo $?', intern = T)
-# if(return_code == "0") system(paste0("rm -r ", local))
-# rm(list = ls())
+# ## now make a sparse dictionary
+# dict <- data.frame(
+#   names       = names(bi)[2:length(bi)],
+#   key_val     = '0="no inactivation"; 1="mutation + deletion or homozygous deletion"',
+#   description = paste("Was biallelic inactivation observed for", 
+#                       gsub("^.*_(.*)_.*$","\\1", names(bi)[2:length(bi)]), sep = " "),
+#   stringsAsFactors = F )
 
 
