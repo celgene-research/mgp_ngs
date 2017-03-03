@@ -174,6 +174,8 @@ name <- "PER_PATIENT_VISIT.csv"
     filter(SPECTRUM_SEQ != "") %>%
     arrange(SPECTRUM_SEQ)
   
+  pervisit <- local_collapse_dt(pervisit, "SPECTRUM_SEQ")
+  
   df <- data.frame(Patient = pervisit$PUBLIC_ID,
                    stringsAsFactors = F)
   
@@ -254,6 +256,32 @@ name <- "PER_PATIENT_VISIT.csv"
 
   curated.pervisit <- df
   
+  z_score <- function(x){
+    pop.mean <- mean(x, na.rm = T)
+    pop.sd   <- sd(x, na.rm = T)
+    (x - pop.mean) / pop.sd }
+  
+  # check blood values for extreme outliers
+  tmp <- curated.pervisit %>%
+    select(Sample_Sequence, CBC_Absolute_Neutrophil:IG_IgE) %>%
+    mutate_at(vars(CBC_Absolute_Neutrophil:IG_IgE), as.numeric) %>%
+    gather(key, value, -Sample_Sequence) %>%
+    group_by(key) %>%
+    mutate(z = z_score(value)) %>%
+    ungroup()
+  
+  # ggplot(tmp, aes(z)) + geom_freqpoly(binwidth = 2 ) + scale_y_log10() 
+  # 10 looks like a pretty conservative z-score cutoff, this removes 17 values
+  tmp %>% filter(abs(z)>10)
+  
+  # go ahead and NA those values and reshape back to original table
+  tmp <- tmp %>% 
+    mutate(value = ifelse(abs(z)>10,NA,value) ) %>%
+    select(-z) %>%
+    spread(key, value)
+  
+  df <- toolboxR::append_df(df, tmp, id = "Sample_Sequence",  mode = "replace")
+
   # We want to bind this visit data to a File_Name so that it can be incorporated
   # into the integrated per-file table
   # Make a mapping table from inv from BM sample type if present, else PB 
@@ -395,7 +423,7 @@ name <- "PER_PATIENT.csv"
   name <- gsub("csv", "txt", name)
   path <- file.path(local,name)
   write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
-  rm(df)
+  
 
 ### cleanup -------------------------
 rm(inv, famhx, medhx, respo, survival, treat, perpatient)
