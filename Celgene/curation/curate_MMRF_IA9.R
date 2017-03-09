@@ -356,77 +356,28 @@ name <- "PER_PATIENT.csv"
   # Previously we subtracted IC day, but have since removed this adjustment.
   
   lookup_by_publicid <- lookup.values("public_id")
-  lookup_by_PUBLIC_ID <- lookup.values("PUBLIC_ID")
-  df[['ttos']]          <- as.integer(unlist(lapply(df$Patient, lookup_by_publicid, dat = survival, field = "ttos")))
-  df[['D_PT_lstalive']] <- as.integer(unlist(lapply(df$Patient, lookup_by_PUBLIC_ID, dat = perpatient, field = "D_PT_lstalive")))
-  df[['D_PT_lvisitdy']] <- as.integer(unlist(lapply(df$Patient, lookup_by_PUBLIC_ID, dat = perpatient, field = "D_PT_lvisitdy")))
-  df[['oscdy']]         <- as.integer(unlist(lapply(df$Patient, lookup_by_publicid, dat = survival, field = "oscdy")))
-  df[['ttpfs']]   <- as.numeric(unlist(lapply(df$Patient, lookup_by_publicid, dat = survival, field = "ttfpd")))
+  df[['D_OS']]       <- unlist(lapply(df$Patient, lookup_by_publicid, dat = survival, field = "ttcos"))
+  df[['D_OS_FLAG']]  <- unlist(lapply(df$Patient, lookup_by_publicid, dat = survival, field = "censos"))
+  df[['D_PFS']]      <- unlist(lapply(df$Patient, lookup_by_publicid, dat = survival, field = "ttcpfs"))
+  df[['D_PFS_FLAG']] <- unlist(lapply(df$Patient, lookup_by_publicid, dat = survival, field = "censpfs"))
+  df[['D_PD']]       <- unlist(lapply(df$Patient, lookup_by_publicid, dat = survival, field = "ttfpd"))
+  df[['D_PD_FLAG']]  <- unlist(lapply(df$Patient, lookup_by_publicid, dat = survival, field = "pdflag"))
   
-  # Report ttos if it is a valid number, else the max of several visit day fields  
-  df[['D_OS']] <- as.integer(unlist(apply(df, MARGIN = 1, function(x){
-    if(!is.na(x['ttos'])){return(x['ttos'])
-    }else if(any(!(is.na(x['D_PT_lstalive'])), !(is.na(x['D_PT_lvisitdy'])), !(is.na(x['oscdy'])))){
-      bar <- max(
-        suppressWarnings(as.numeric(x['D_PT_lstalive'])),
-        suppressWarnings(as.numeric(x['D_PT_lvisitdy'])),
-        suppressWarnings(as.numeric(x['oscdy'])),
-        na.rm = T)
-      if(bar < 0 ){return(NA)
-      }else{return(bar)}
-    }else{return(NA)}
-  })))
-  
-  # For the OS Flag, it turns out "death day" is a more consistent field than the 
-  #  D_PT_DISCREAS flag, which was missing for a few patients that had a death date. 
-  #  Flag the patient if they are deceased; 0=no (deathdy == NA); 1=yes (deathdy != NA)
-  df[["D_OS_FLAG"]] <- ifelse( is.na( as.numeric(unlist(
-    lapply(df$Patient, lookup_by_publicid, dat = survival, field = "deathdy")))),
-    0,1)
-  
-  # Progression Free time: time to progression for those who progressed; (ttfpd =	Time to first PD)
-  #  time to last contact or oscdy for those who still have not progressed (mmrf.PER_PATIENT$D_PT_lvisitdy)
-  # or did not progress before death from another cause.
-  df[["D_PFS"]] <- apply(df, MARGIN = 1, function(x){
-    last.days <- as.numeric(c( x[['D_PT_lstalive']], x[['D_PT_lvisitdy']], x[['oscdy']]))
-    
-    # Report observed progression if valid
-    if( !is.na(x[['ttpfs']]) ){
-      return(x[['ttpfs']])
-      
-      #else use larger of last visit/alive
-    } else if( any(!is.na(last.days )) ){
-      m <- max(last.days , na.rm = T)
-      if( m < 0 ){m <- NA}
-      return(m)
-      
-    } else{return(NA)}
-  })
-  
-  # We've also added a check switch the PFD_FLAG if cod="disease progression" since this appears to not
-  # always have been flagged appropriately
-  # 1=progressive disease
-  df[["D_PFS_FLAG"]]       <- ifelse(!is.na(  unlist(lapply(df$Patient, lookup_by_publicid, dat = survival, field = "ttfpd"))  ) ,1,0)
-  df[["D_Cause_of_Death"]] <-  unlist(lapply(df$Patient, lookup_by_PUBLIC_ID, dat = perpatient, field = "D_PT_CAUSEOFDEATH"))
-  df[df$D_Cause_of_Death == "Disease Progression", "D_PFS_FLAG"] <- "1"
-  
-  df[["D_Reason_for_Discontinuation"]] <-  unlist(lapply(df$Patient, lookup_by_publicid, dat = perpatient, field = "D_PT_PRIMARYREASON"))
-  df[["D_Discontinued"]] <-  unlist(lapply(df$Patient, lookup_by_publicid, dat = perpatient, field = "D_PT_discont"))
-  df[["D_Complete"]] <-  unlist(lapply(df$Patient, lookup_by_publicid, dat = perpatient, field = "D_PT_complete"))
+  df[["D_Cause_of_Death"]]             <-  perpatient$D_PT_CAUSEOFDEATH
+  df[["D_Reason_for_Discontinuation"]] <-  perpatient$D_PT_PRIMARYREASON
+  df[["D_Discontinued"]]               <-  perpatient$D_PT_discont
+  df[["D_Complete"]]                   <-  recode(perpatient$D_PT_complete, "2" = 0)
   
   # filter response table using line =1 (first line treatment only), trtbresp=1 (Treatment best response) then find that response
   best_response_table <- respo[respo$trtbresp == 1 & respo$line == 1 ,]
   df[["D_Best_Response_Code"]] <-  unlist(lapply(df$Patient, lookup_by_publicid, dat = best_response_table, field = "bestrespcd"))
-  df[["D_Best_Response"]] <-  unlist(lapply(df$Patient, lookup_by_publicid, dat = best_response_table, field = "bestresp"))
+  df[["D_Best_Response"]]      <-  unlist(lapply(df$Patient, lookup_by_publicid, dat = best_response_table, field = "bestresp"))
   
   name <- paste("curated", name, sep = "_")
   name <- gsub("csv", "txt", name)
   path <- file.path(local,name)
   write.table(df, path, row.names = F, col.names = T, sep = "\t", quote = F)
   
-
-### cleanup -------------------------
-rm(inv, famhx, medhx, respo, survival, treat, perpatient)
 
 # put curated files back as ProcessedData on S3
 processed <- file.path(s3,"ClinicalData/ProcessedData",paste0(study,"_IA9"))
