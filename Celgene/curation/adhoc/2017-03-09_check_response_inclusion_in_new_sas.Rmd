@@ -1,0 +1,45 @@
+---
+title: "Comparison of Response columns between 2016-11-23 and 2017-03-06 versions"
+author: "Dan Rozelle"
+date: "March 9, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr, warn.conflicts = F, quietly = T)
+source("../curation_scripts.R")
+```
+
+> Hi Fadi and Dan,
+>  
+> Regarding the current version of the clinical data ? besides the PFS (death vs PFS status flag) issue that is being fixed,  Zhihong also noticed that in the data we received, the best overall response, which was available in the last transfer, no longer exist in this transfer.
+>  
+> Understand the best response data are not most for the analysis, however do you know the reason why the data are removed? Just want to make sure existing data are consistent between versions and do not change randomly.
+> 
+
+Hi Zhinuan and Zhihong,
+
+I'm unable to identify the differences you've mentioned. When I import both of the SAS export versions we've sent for analysis I only note a few changes in n for the MMRF which correspond to additional data that we have parsed. If you could provide a few more details I'd be more than happy to follow-up. 
+
+```{r, echo=TRUE}
+# previous export to sas version 2016-11-23
+old <- toolboxR::GetS3Table(file.path(s3,"ClinicalData/ProcessedData/Integrated/sas/archive/per.patient.nd.tumor.all_2016-11-23.txt"), sep = ",", header = F) %>%
+  transmute(Patient = V1, Study = V2 ,D_Best_Response_Code = V120, D_Best_Response = V121) %>%
+  mutate(Study = recode(as.integer(Study), "DFCI", "MMRF", "UAMS") ) %>%
+  filter(!is.na(Patient)) %>%
+  mutate(D_Best_Response = gsub("^$", NA, D_Best_Response))
+
+new <- toolboxR::GetS3Table(file.path(s3,"ClinicalData/ProcessedData/Integrated/sas/per.patient.clinical.nd.tumor_2017-03-06.txt"), sep = ",", header = F) %>%
+  transmute(Patient = V1, Study = V2, D_Best_Response_Code = V22, D_Best_Response = V23) %>%
+  filter(!is.na(Patient))
+
+old.responses.n <- broom::tidy(table(old$D_Best_Response, old$Study)) %>% rename(old.n = Freq)
+new.responses.n <- broom::tidy(table(new$D_Best_Response, new$Study)) %>% rename(new.n = Freq)
+
+merge(old.responses.n, new.responses.n, by = c("Var1", "Var2")) %>% rename(Best_Response = Var1, Study = Var2) %>% arrange(Study, Best_Response)
+```
+
+```{r}
+sessionInfo()
+```
