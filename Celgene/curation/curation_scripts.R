@@ -71,25 +71,7 @@ Snapshot <- function( prefix ){
   
   out
 }
-#currently only works for tables (csv, tab-delim txt or xlsx)
-GetS3Table <- function(s3.path, cache = F){
-  name  <- basename(s3.path)
-  local.filename <- file.path("/tmp", name)
-  system(  paste('aws s3 cp', s3.path, local.filename, sep = " "))
-  df <- toolboxR::AutoRead(local.filename)
-  if(cache == FALSE){unlink(local.filename)}
-  df
-}
 
-#currently only works for tab-delim tables
-PutS3Table <- function(object, s3.path, cache = F){
-  name  <- basename(s3.path)
-  local <- file.path("/tmp", name)
-  write.table(object, local, row.names = F, quote = F, sep = "\t")
-  
-  system(  paste('aws s3 cp', local, s3.path, "--sse", sep = " "))
-  if(cache == FALSE){unlink(local)}
-}
 
 merge_table_files <- function(df1, df2, id = "File_Name"){
   
@@ -129,6 +111,7 @@ cytogenetic_consensus_calling <- function(df){
   
   # tidy all translocation columns, filter out NA rows, sort by preferred method 
   sorted <- df %>% 
+    # reshape FISH data to long form
     select(Patient, Sample_Name, Study, matches("CYTO_t.*_FISH$"), matches("CYTO_t.*_MANTA$")) %>%
     gather( key = field, value = Value, -c(Patient, Sample_Name,Study) ) %>%
     
@@ -390,3 +373,16 @@ local_collapse_dt <- function(df, column.names, unique = F){
   as.data.frame(wide)
   
 }
+
+
+# Supports both quoted/unquoted values but value cannot include delimiters 
+parse_keyvals <- function(x){
+  
+  # assume quoted values
+  foo   <- unlist(strsplit(x, split = "; "))
+  
+  y <- gsub(  "^(.*?)=[\\\"]*(.*?)[\\\"]*$", "\\2", foo)
+  names(y) <- gsub(  "^(.*?)=[\\\"]*(.*?)[\\\"]*$", "\\1", foo)
+  y
+}
+
