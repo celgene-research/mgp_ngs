@@ -4,26 +4,91 @@ author: "Dan Rozelle"
 date: "February 22, 2017"
 output: html_document
 ---
-
+<STYLE TYPE="text/css">
+<!--
+tbody tr:nth-child(odd) {
+   background-color: #e4e4e4;
+}
+  table { 
+  
+  overflow-x:hidden;
+    font-family: Monospace; 
+    font-size: 10pt;
+    border-spacing: 0px;
+    border-collapse: collapse;
+    table-layout:fixed;
+    width:900px;
+  }
+--->
+</STYLE>
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
-source("curation_scripts.R")
-per.file.clinical <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData/Integrated/per.file.clinical.txt"))
+library(ggplot2)
+source("../curation_scripts.R")
+source("../profile_curated_data.R")
+
+per.file <- GetS3Table(s3.path =  file.path(s3, "ClinicalData/ProcessedData/Integrated", "per.file.clinical.txt"))
+dict     <- GetS3Table(s3.path = file.path(s3, "ClinicalData/ProcessedData/Integrated", "mgp_dictionary.xlsx"))
+per.patient   <- GetS3Table(s3.path =  file.path(s3, "ClinicalData/ProcessedData/Integrated", "per.patient.clinical.txt"))
+
+per.patient <- select(per.patient, -starts_with("INV"))
+dict     <- dict[,!(names(dict) %in% c(NA, ""))]
+names(per.file) <- make.names(names(per.file))
+dict$names      <- make.names(dict$names)
+
 ```
 
 ## Summary statistics
 
-
 ```{r}
-df <- per.file.clinical %>% 
-  select(Patient, Study, Sample_Name, Sample_Type_Flag, File_Name, 
-         File_Name_Actual, Sequencing_Type, Disease_Status, Disease_Type) %>% 
-  group_by(Study)
-
-
-
-  df %>% summarise_all(mean)
+knitr::kable(profile_curated_data(per.file, dict),format = "html")
 
 ```
 
+```{r}
+knitr::kable(profile_curated_data(per.patient, dict),format = "html")
+
+```
+
+```{r, echo=TRUE}
+df <- per.patient %>% 
+  select(D_OS_FLAG, D_ISS, Study) %>% 
+  filter( !is.na(D_ISS) ) %>%
+  group_by(Study, D_ISS) %>%
+  summarise(m = mean(D_OS_FLAG, na.rm = T),
+            n = n()) %>%
+  filter( !is.na(m)) 
+
+
+ggplot(df, aes(x = D_ISS, y = m, color = factor(Study))) +
+  geom_point(aes(size = n)) +
+  geom_line() +
+  labs(x = "ISS", y = "Proportion deceased (D_OS=1)") +
+  scale_x_continuous(limits = c(1,3), breaks = c(1,2,3)) +
+  scale_y_continuous(limits = c(0,1))+
+  theme_minimal()
+
+```
+
+
+```{r, echo=TRUE}
+df <- per.patient %>% 
+  select(D_PFS_FLAG, D_ISS, Study) %>% 
+  filter( !is.na(D_ISS) ) %>%
+  group_by(Study, D_ISS) %>%
+  
+  summarise(m = mean(D_PFS_FLAG, na.rm = T),
+            n = n()) %>%
+  filter( !is.na(m))
+
+
+ggplot(df, aes(x = D_ISS, y = m, color = factor(Study))) +
+  geom_point(aes(size = n)) +
+  geom_line() +
+  labs(x = "ISS", y = "Proportion progressed (D_PFS=1)") +
+  scale_x_continuous(limits = c(1,3), breaks = c(1,2,3)) +
+  scale_y_continuous(limits = c(0,1)) +
+  theme_minimal()
+
+```
