@@ -84,21 +84,21 @@ df <- GetS3Table(file.path(s3,"ClinicalData/OriginalData/Joint",
 
 # Split table into sequencing types, filter to remove NA rows (everything should now be either 0/1)
 wes <- df %>% 
-  select(starts_with("WES"), Translocation_Summary, Dataset) %>% 
+  select(sample_id, starts_with("WES"), Translocation_Summary, Dataset) %>% 
   rename(id = WES_prep_id) %>%
   filter( id != "NA") %>%
   gather( key = field, value = Value, ends_with("MMSET"):ends_with("MAFB") ) %>%
   separate( field, c("Sequencing_Type", "Result"), "_")
 
 wgs <- df %>% 
-  select(starts_with("WGS"), Translocation_Summary, Dataset) %>% 
+  select(sample_id, starts_with("WGS"), Translocation_Summary, Dataset) %>% 
   rename(id = WGS_prep_id) %>%
   filter( id != "NA") %>%
   gather( key = field, value = Value, ends_with("MMSET"):ends_with("MAFB") ) %>%
   separate( field, c("Sequencing_Type", "Result"), "_")
 
 rna <- df %>% 
-  select(starts_with("RNA"), Translocation_Summary, Dataset) %>% 
+  select(sample_id, starts_with("RNA"), Translocation_Summary, Dataset) %>% 
   rename(id = RNA_prep_id) %>%
   filter( id != "NA") %>%
   gather( key = field, value = Value, ends_with("MMSET"):ends_with("MAFB") ) %>%
@@ -115,11 +115,19 @@ df <- rbind(wes, wgs, rna) %>%
                           MAF   = "CYTO_t(14;16)_MANTA",
                           MAFA  = "CYTO_t(8;14)_MANTA",
                           MAFB  = "CYTO_t(14;20)_MANTA")) %>%
+  mutate( Translocation_Summary = recode(Translocation_Summary,
+                          MMSET = "CYTO_t(4;14)_MANTA",
+                          CCND3 = "CYTO_t(6;14)_MANTA",
+                          CCND1 = "CYTO_t(11;14)_MANTA",
+                          MAF   = "CYTO_t(14;16)_MANTA",
+                          MAFA  = "CYTO_t(8;14)_MANTA",
+                          MAFB  = "CYTO_t(14;20)_MANTA")) %>%
   # fix provided sample names to match harmonized File_Name field
   mutate(File_Name = case_when(
     .$Dataset == "UAMS" ~ gsub("_.*?_([^E].*)$", "\\1", .$id),
     .$Dataset == "DFCI" ~ gsub(".*_(.*)$", "\\1", .$id),
-    .$Dataset == "MMRF" ~ .$id ))
+    .$Dataset == "MMRF" ~ .$id )) %>%
+  mutate(Value = ifelse(Translocation_Summary==Result, 1, Value))
 
 ### Just a quick QC to check that filenames are not duplicated
 # per.file <- GetS3Table(file.path(s3,"ClinicalData/ProcessedData/Integrated",
