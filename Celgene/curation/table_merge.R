@@ -1,11 +1,10 @@
 
-table_merge <- function(per.file, per.patient){
+table_merge <- function(per.file){
   
   s3joint    <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/JointData"
 
   #######################
-  # Merge per-patient data onto per-file table, this will be redundant
-  df <-  merge_table_files(df1 = per.file, df2 = per.patient, id = c("Patient", "Study"))
+  df <-  per.file
   
   #######################
   # CNV
