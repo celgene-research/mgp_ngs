@@ -33,14 +33,15 @@ write.object <- function(x, path = local, env){
   file.path(path, paste0(x,".txt"))
 }
 
-# copies all updated s3 files in a specified directory prefix to an ./Archive subfolder
-#  and appends current date
+# copies all updated s3 files in a specified directory prefix to an ./archive subfolder
+#  and appends current date.
+#  Currently will not work for similar named files only differentiated by extension
 Snapshot <- function( prefix ){
   
   pre     <- system(paste('aws s3 ls', paste0(prefix, "/"), sep = " "), intern = T)
-  archive <- system(paste('aws s3 ls', paste0(file.path(prefix, "Archive"),"/"), sep = " "), intern = T)
+  archive <- system(paste('aws s3 ls', paste0(file.path(prefix, "archive"),"/"), sep = " "), intern = T)
   
-  
+  # summarize what is already archived
   archive.table <- data.frame(
     root    = gsub(".*[0-9] (.*)_[0-9].*","\\1",archive),
     version = gsub(".*_(.*)\\..*","\\1",archive),
@@ -48,6 +49,7 @@ Snapshot <- function( prefix ){
     group_by(root) %>%
     summarise(latest = max(version))
 
+  #summarize the current file versions to see if anything is newer than the archive version
   current.table <- data.frame(
     date  = gsub("^([0-9\\-]+).*","\\1",pre),
     root  = gsub(".* ([^0-9].*)\\..*","\\1",pre),
@@ -63,7 +65,7 @@ Snapshot <- function( prefix ){
       name   <- current.table[current.table$root == x,"path"]
       d.name <- gsub("(.*)(\\..*)",  paste0("\\1_",d,"\\2"), name)
       start  <- file.path(prefix, name)
-      end    <- file.path(prefix, "Archive", d.name)
+      end    <- file.path(prefix, "archive", d.name)
       system(paste("aws s3 cp",start, end, "--sse", sep = " "))
       d.name
     }
@@ -386,3 +388,17 @@ parse_keyvals <- function(x){
   y
 }
 
+# keep copies of processed data on AWS desktop for easier reading
+sync_data_desktop <- function(root.path = "s3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData", 
+                              local.path = "~/Desktop/ProcessedData/"){
+  
+  if(!dir.exists(local.path)){stop("local drive not mounted")}
+  
+  system(  paste('aws s3 sync', 
+                 root.path,
+                 local.path,
+                 '--exclude "*archive/*"',
+                 '--exclude "*sas/*"',
+                 # '--dryrun',
+                 sep = " "))
+}
