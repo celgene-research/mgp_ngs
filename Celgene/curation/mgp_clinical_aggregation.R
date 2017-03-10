@@ -44,9 +44,10 @@ for(f in files){
   seq <- as.numeric(gsub("MMRF_[0-9]+_([0-9]+)_[BMP]+", "\\1", as.character(unmarked)))
   seq <- recode(seq, "ND", "R", "R", "R")
   per.file[is.na(per.file$Disease_Status) & per.file$Study == "MMRF","Disease_Status"] <- seq
-  saveRDS(per.file, file = "/tmp/recall/per.file.001.RData")
+  # saveRDS(per.file, file = "/tmp/recall/per.file.001.RData")
   
   per.file  <- cytogenetic_consensus_calling(per.file)
+  # saveRDS(per.file, file = "/tmp/recall/per.file.002.RData")
   
 ### PATIENT-LEVEL AGGREGATION --------------------------------------------------
 patient_level_columns <- dict[grepl("patient", dict$level)  ,"names"] 
@@ -66,12 +67,14 @@ names(per.patient) <- patient_level_columns
   per.file.clinical     <- per.file    # rename for clarity
   
   # currently table merge throws dimension error since CNV contains clinically lost patients, it's OK
-  per.file.all          <- table_merge(per.file.clinical, per.patient.clinical)
+  per.file.all          <- table_merge(per.file.clinical)
   per.file.all          <- remove_invalid_samples(per.file.all)
+  # saveRDS(per.file.all, file = "/tmp/recall/per.file.all.003.RData")
   
   # add inventory flags to per.patient after table merge since patient inventory flags
   #  are not applicable to per-file rows
   per.patient.clinical  <- add_inventory_flags(per.patient.clinical, per.file.clinical)
+  
   
   # Collapse file > sample for some analyses
   per.sample.all        <- local_collapse_dt(per.file.all, column.names = "Sample_Name")
@@ -85,6 +88,7 @@ names(per.patient) <- patient_level_columns
   # Select clinical column subsets
   per.file.clinical.nd.tumor    <- subset_clinical_columns(per.file.all.nd.tumor)
   per.sample.clinical.nd.tumor  <- subset_clinical_columns(per.sample.all.nd.tumor)
+  # saveRDS(per.file.clinical.nd.tumor, file = "/tmp/recall/per.file.clinical.nd.tumor.004.RData")
   
   # qc and summary
   inventory_counts <- get_inventory_counts(per.patient.clinical)
@@ -110,14 +114,23 @@ names(per.patient) <- patient_level_columns
 
   # df <- per.patient.clinical.nd.tumor
 
+  # export for sas, and a cleaned dictionary
+  # archive older sas versions before pushing new versions
+  system(paste('aws s3 mv',
+               's3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/Integrated/sas/',
+               "s3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/Integrated/sas/archive",
+               '--recursive --sse --exclude "archive*"', sep = " "))
   export_sas(per.patient.clinical.nd.tumor, dict, name = "per.patient.clinical.nd.tumor")
   export_sas(per.file.clinical.nd.tumor, dict, name = "per.file.clinical.nd.tumor")
 
+  sas.lookup <- dict %>% transmute(mgp.dictionary.names = names, sas.names = CleanColumnNamesForSAS(names))
+  PutS3Table(sas.lookup, file.path(s3, "ClinicalData/ProcessedData/Integrated/sas", paste0("sas.dictionary.lookup_",d,".txt")))
+  
   # NOTE: summary statistics are only from patients that have nd+tumor samples.
   clinical_summary <- summarize_clinical_parameters(per.patient.clinical.nd.tumor)
 
   # Backup the new versions with a dated archive
   Snapshot(prefix = "s3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/Integrated")
-
+  sync_data_desktop()
   
   
