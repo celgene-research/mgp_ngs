@@ -259,30 +259,16 @@ export_sas <- function(df, dict, name){
   names(df) <- CleanColumnNamesForSAS(names(df))
   dict[['clean.names']] <- CleanColumnNamesForSAS(dict$names)
   
-  ## specific column type encoding was removed because it causes
-  ##  column order to be changed when imported. 
-  ##  (factor columns first, then character, then numeric)
-  #
-  # factor_columns <- dict[dict$type == "Factor","clean.names"]
-  # for(foo in factor_columns){
-  #   df[df[[foo]] == "" & !is.na(df[[foo]]),foo] <- NA
-  #   df[[foo]] <- as.factor(df[[foo]])
-  #   }
-  # 
-  # numeric_columns <- dict[dict$type == "Numeric","clean.names"]
-  # for(foo in numeric_columns){
-  #   df[df[[foo]] == "" & !is.na(df[[foo]]),foo] <- NA
-  #   df[[foo]] <- as.numeric(df[[foo]])
-  # }
-  # 
-  # numeric_molecular_columns <- names(df)[grepl("^SNV_", names(df)) | 
-  #                                        grepl("^CNV_", names(df)) | 
-  #                                        grepl("^BI_", names(df)) ]
-  # for(foo in numeric_molecular_columns){
-  #   df[df[[foo]] == "" & !is.na(df[[foo]]),foo] <- NA
-  #   df[[foo]] <- as.numeric(df[[foo]])
-  # }
-  # 
+  df <- df %>%
+    # convert all to character vectors
+    mutate_all(as.character) %>%
+    # clear char "NA"s
+    mutate_all(funs(gsub("NA","",.   ))) %>%
+    # and actual NA values in a character vector
+    mutate_all(funs( ifelse(is.na(.),"",.)  )) %>%
+    # remove all INV counting columns
+    select(-c(starts_with("INV")))
+
   # write out text datafile for SAS
   local.path <- file.path(local, "sas")
   if(!dir.exists(local.path)){dir.create(local.path)}
