@@ -249,7 +249,7 @@ summarize_clinical_parameters <- function(df_perpatient){
   
 }
 
-export_sas <- function(df, dict, name){
+export_sas <- function(df, name){
   
   # sas column names are very restrictive, and automatically edited if nonconformant
   # 32 char limit only symbol allowed is "_"
@@ -257,7 +257,6 @@ export_sas <- function(df, dict, name){
   # strange truncation rules (first lower case letters and then trailing upper case letters?)
   
   names(df) <- CleanColumnNamesForSAS(names(df))
-  dict[['clean.names']] <- CleanColumnNamesForSAS(dict$names)
   
   df <- df %>%
     # convert all to character vectors

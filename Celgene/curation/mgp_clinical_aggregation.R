@@ -116,18 +116,18 @@ names(per.patient) <- patient_level_columns
 
   # export for sas, and a cleaned dictionary
   # archive older sas versions before pushing new versions
-  system(paste('aws s3 mv',
-               's3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/Integrated/sas/',
-               "s3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/Integrated/sas/archive",
-               '--recursive --sse --exclude "archive*"', sep = " "))
-  export_sas(per.patient.clinical.nd.tumor, dict, name = "per.patient.clinical.nd.tumor")
-  export_sas(per.file.clinical.nd.tumor, dict, name = "per.file.clinical.nd.tumor")
-
-  sas.lookup <- dict %>% transmute(mgp.dictionary.names = names, sas.names = CleanColumnNamesForSAS(names))
-  PutS3Table(sas.lookup, file.path(s3, "ClinicalData/ProcessedData/Integrated/sas", paste0("sas.dictionary.lookup_",d,".txt")))
-  
-  # NOTE: summary statistics are only from patients that have nd+tumor samples.
-  clinical_summary <- summarize_clinical_parameters(per.patient.clinical.nd.tumor)
+  # system(paste('aws s3 mv',
+  #              's3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/Integrated/sas/',
+  #              "s3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/Integrated/sas/archive",
+  #              '--recursive --sse --exclude "archive*"', sep = " "))
+  # export_sas(per.patient.clinical.nd.tumor,  name = "per.patient.clinical.nd.tumor")
+  # export_sas(per.file.clinical.nd.tumor, name = "per.file.clinical.nd.tumor")
+  # 
+  # sas.lookup <- dict %>% transmute(mgp.dictionary.names = names, sas.names = CleanColumnNamesForSAS(names))
+  # PutS3Table(sas.lookup, file.path(s3, "ClinicalData/ProcessedData/Integrated/sas", paste0("sas.dictionary.lookup_",d,".txt")))
+  # 
+  # # NOTE: summary statistics are only from patients that have nd+tumor samples.
+  # clinical_summary <- summarize_clinical_parameters(per.patient.clinical.nd.tumor)
 
   # Backup the new versions with a dated archive
   Snapshot(prefix = "s3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/Integrated")
