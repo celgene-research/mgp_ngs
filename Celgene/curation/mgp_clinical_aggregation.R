@@ -11,7 +11,7 @@ local <- CleanLocalScratch()
 # copy curated files locally
 system(  paste('aws s3 cp', file.path(s3, "ClinicalData/ProcessedData", "DFCI")     , 
                local, '--recursive --exclude "*" --include "curated*"', sep = " "))
-system(  paste('aws s3 cp', file.path(s3, "ClinicalData/ProcessedData", "MMRF_IA9") , 
+system(  paste('aws s3 cp', file.path(s3, "ClinicalData/ProcessedData", "MMRF_IA10") , 
                local, '--recursive --exclude "*" --include "curated*"', sep = " "))
 system(  paste('aws s3 cp', file.path(s3, "ClinicalData/ProcessedData", "UAMS")     , 
                local, '--recursive --exclude "*" --include "curated*"', sep = " "))
