@@ -5,7 +5,6 @@ local <- CleanLocalScratch()
 per.patient <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData/Integrated/per.patient.clinical.nd.tumor.txt"))
 per.file <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData/Integrated/per.file.clinical.nd.tumor.txt"))
 
-
 unified <- per.file %>%
   group_by(Study, Patient) %>%
   summarise_all(.funs = funs(Simplify(.))) %>%
