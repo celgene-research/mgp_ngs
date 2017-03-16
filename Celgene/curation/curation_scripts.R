@@ -402,3 +402,16 @@ sync_data_desktop <- function(root.path = "s3://celgene.rnd.combio.mmgp.external
                  # '--dryrun',
                  sep = " "))
 }
+
+# 
+# mutate_cond Create a simple function for data frames or data tables that can 
+# be incorporated into pipelines. This function is like mutate but only acts on 
+# the rows satisfying the condition:
+# 
+#  usage: DF %>% mutate_cond(measure == 'exit', qty.exit = qty, cf = 0, delta.watts = 13)
+#  
+mutate_cond <- function(.data, condition, ..., envir = parent.frame()) {
+  condition <- eval(substitute(condition), .data, envir)
+  .data[condition, ] <- .data[condition, ] %>% mutate(...)
+  .data
+}
