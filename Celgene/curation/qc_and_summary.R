@@ -87,7 +87,7 @@ remove_unsequenced_patients <- function(p,f){
   unsequenced_patients <- unique(p$Patient)[!unique(p$Patient) %in% unique(f$Patient)]
   warning(paste(length(unsequenced_patients), "patients did not have sequence data and were removed", sep = " "))
   
-  write.object("unsequenced_patients", env = environment())
+  # write.object("unsequenced_patients", env = environment())
   p[!p$Patient %in% unsequenced_patients,]
 }
 
@@ -248,54 +248,3 @@ summarize_clinical_parameters <- function(df_perpatient){
   df
   
 }
-
-export_sas <- function(df, name){
-  
-  # sas column names are very restrictive, and automatically edited if nonconformant
-  # 32 char limit only symbol allowed is "_"
-  # export to sas automatically replaces each symbol with "_", truncates to 32 but has
-  # strange truncation rules (first lower case letters and then trailing upper case letters?)
-  
-  names(df) <- CleanColumnNamesForSAS(names(df))
-  
-  df <- df %>%
-    # convert all to character vectors
-    mutate_all(as.character) %>%
-    # clear char "NA"s
-    mutate_all(funs(gsub("NA","",.   ))) %>%
-    # and actual NA values in a character vector
-    mutate_all(funs( ifelse(is.na(.),"",.)  )) %>%
-    # remove all INV counting columns
-    select(-c(starts_with("INV")))
-
-  # write out text datafile for SAS
-  local.path <- file.path(local, "sas")
-  if(!dir.exists(local.path)){dir.create(local.path)}
-  
-  root <- paste0(name, "_", d)
-  local.data.path <- file.path(local.path, paste0(root,".txt"))
-  local.code.path <- file.path(local.path, paste0(root,".sas"))
-  
-  foreign::write.foreign(df,
-                         datafile = local.data.path,
-                         codefile = local.code.path,
-                         package="SAS")
-  
-  # edit sas import table such that empty columns have character length = 1
-  system( paste('sed -i "s/\\$ 0$/\\$ 1/" ', local.code.path, sep = " "))
-  
-  system(paste("aws s3 cp", 
-               local.data.path, 
-               file.path(s3, "ClinicalData/ProcessedData/Integrated", "sas", paste0(root,".txt")),
-               "--sse", sep = " "))
-  system(paste("aws s3 cp", 
-               local.code.path, 
-               file.path(s3, "ClinicalData/ProcessedData/Integrated", "sas", paste0(root,".sas")),
-               "--sse", sep = " "))
-  
-}
-
-
-
-
-
