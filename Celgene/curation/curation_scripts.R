@@ -1,12 +1,149 @@
 
 # global vars
 d  <- format(Sys.Date(), "%Y-%m-%d")
+local <- CleanLocalScratch()
 s3 <- "s3://celgene.rnd.combio.mmgp.external"
 # devtools::install_github("dkrozelle/toolboxR", force = TRUE)
 library(toolboxR)
 library(dplyr) # don't load plyr, it will conflict
 library(tidyr)
 library(data.table)
+
+
+# This script is meant to facilitate generation of all downstream tables derived
+# from a basic per.patient and per.file table. This includes joining to molecular 
+# data tables to create "all" versions, filtering for "nd.tumor" versions, collapsing 
+# to per.sample versions, and generating a single unified output table for sas.
+# 
+# This is run without any parameter, just make sure you PutS3Table() any changes to 
+# <per.file.clinical.txt> or <per.patient.clinical.txt> before running.
+
+table_process <- function(){
+
+  source("qc_and_summary.R")
+  per.file    <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData/Integrated", "per.file.clinical.txt"))
+  per.patient <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData/Integrated", "per.patient.clinical.txt"))
+  
+  ### Merge and filter tables ----------------------------------------------------
+  
+  per.patient           <- remove_unsequenced_patients(per.patient, per.file)
+  per.patient.clinical  <- per.patient # rename for clarity
+  per.file.clinical     <- per.file    # rename for clarity
+  
+  # currently table merge throws dimension error since CNV contains clinically lost patients, it's OK
+  per.file.all          <- table_merge(per.file.clinical)
+  per.file.all          <- remove_invalid_samples(per.file.all)
+  
+  # update inventory flags to per.patient after table merge since patient inventory flags
+  #  are not applicable to per-file rows
+  per.patient.clinical  <- add_inventory_flags(per.patient.clinical, per.file.clinical)
+  
+  # Collapse file > sample for some analyses
+  per.sample.all        <- local_collapse_dt(per.file.all, column.names = "Sample_Name")
+  per.sample.clinical   <- subset_clinical_columns(per.sample.all)
+  
+  # Filter for ND-tumor sample only
+  per.file.all.nd.tumor         <- subset(per.file.all,   Sample_Type_Flag == 1 & Disease_Status == "ND")
+  per.sample.all.nd.tumor       <- subset(per.sample.all, Sample_Type_Flag == 1 & Disease_Status == "ND")
+  per.patient.clinical.nd.tumor <- subset(per.patient.clinical, INV_Has.ND.NotNormal.sample == 1)
+  
+  # Select clinical column subsets
+  per.file.clinical.nd.tumor    <- subset_clinical_columns(per.file.all.nd.tumor)
+  per.sample.clinical.nd.tumor  <- subset_clinical_columns(per.sample.all.nd.tumor)
+  
+  # make a unified table (file and patient variables) for nd.tumor data
+  unified.clinical.nd.tumor <- per.file.clinical.nd.tumor %>%
+    group_by(Study, Patient) %>%
+    summarise_all(.funs = funs(Simplify(.))) %>%
+    ungroup() %>%
+    select(Patient, Sample_Type, Sequencing_Type, Disease_Status, Tissue_Type:CYTO_t.14.20._CONSENSUS) %>%
+    full_join(per.patient.clinical.nd.tumor, ., by = "Patient") %>%
+    select(-c(starts_with("INV"))) %>%
+    filter(Disease_Type == "MM" | is.na(Disease_Type))
+  
+  
+  # write un-dated PER-FILE and PER-PATIENT files to S3
+  write_to_s3integrated <- function(object, name){
+    PutS3Table(object = object, s3.path = file.path(s3,"ClinicalData/ProcessedData/Integrated", name))
+  }
+  write_to_s3integrated(per.file.clinical              ,name = "per.file.clinical.txt")
+  write_to_s3integrated(per.file.clinical.nd.tumor     ,name = "per.file.clinical.nd.tumor.txt")
+  write_to_s3integrated(per.file.all                   ,name = "per.file.all.txt")
+  write_to_s3integrated(per.file.all.nd.tumor          ,name = "per.file.all.nd.tumor.txt")
+  
+  write_to_s3integrated(per.sample.clinical            ,name = "per.sample.clinical.txt")
+  write_to_s3integrated(per.sample.clinical.nd.tumor   ,name = "per.sample.clinical.nd.tumor.txt")
+  write_to_s3integrated(per.sample.all                 ,name = "per.sample.all.txt")
+  write_to_s3integrated(per.sample.all.nd.tumor        ,name = "per.sample.all.nd.tumor.txt")
+  
+  write_to_s3integrated(per.patient.clinical           ,name = "per.patient.clinical.txt")
+  write_to_s3integrated(per.patient.clinical.nd.tumor  ,name = "per.patient.clinical.nd.tumor.txt")
+  
+  write_to_s3integrated(unified.clinical.nd.tumor      ,name = "unified.clinical.nd.tumor.txt")
+
+  RPushbullet::pbPost("note", title = "table_process done")  
+}
+
+export_to_sas <- function(df, dict){
+  
+  name <- "unified.nd.tumor"
+  # this has been adjusted to maintain a very specific export format, edit with care
+  # 
+  # sas column names are very restrictive, and automatically edited if nonconformant
+  # 32 char limit only symbol allowed is "_"
+  # export to sas automatically replaces each symbol with "_", truncates to 32 but has
+  # strange truncation rules (first lower case letters and then trailing upper case letters?)
+  
+  # clean table names and dictionary names
+  names(df)  <- CleanColumnNamesForSAS(names(df))
+  dict$names <- CleanColumnNamesForSAS(dict$names)
+  types <- dict[  match(names(df), dict$names), "class"]
+  if(any( is.na(types)) ) warning(paste("Column(s):\"", names(df)[is.na(types)], "\" are not defined class in dict", sep = " "))
+  
+  df <- df %>%
+    
+    # convert to appropriate variable type
+    mutate_if(types == "numeric",   as.numeric)   %>%
+    mutate_if(types == "character", as.character) %>%
+    mutate_if(types == "character", funs( gsub("NA", "", .) ))  %>%
+    mutate_if(types == "character", funs( ifelse(is.na(.),"", .) )  ) %>%
+    
+    # remove all INV counting columns
+    select(-c(starts_with("INV")))
+  
+  # write out text datafile for SAS
+  local.path <- file.path(local, "sas")
+  if(!dir.exists(local.path)){dir.create(local.path)}
+  
+  root <- paste0(name, "_", d)
+  local.data.path <- file.path(local.path, paste0(root,".txt"))
+  local.code.path <- file.path(local.path, paste0(root,".sas"))
+  
+  foreign::write.foreign(df,
+                         datafile = local.data.path,
+                         codefile = local.code.path,
+                         package="SAS")
+  
+  # edit sas import table such that empty columns have character length = 1
+  system( paste('sed -i "s/\\$ 0$/\\$ 1/" ', local.code.path, sep = " "))
+  
+  # push previous tables to archive
+  system(paste("aws s3 mv", 
+               file.path(s3, "ClinicalData/ProcessedData/Integrated", "sas"),
+               file.path(s3, "ClinicalData/ProcessedData/Integrated", "sas/archive/"),
+               '--recursive --exclude "*" --include "unified*" --exclude "*archive*" --sse', sep = " "))
+  # write to s3
+  system(paste("aws s3 cp", 
+               local.data.path, 
+               file.path(s3, "ClinicalData/ProcessedData/Integrated", "sas", paste0(root,".txt")),
+               "--sse", sep = " "))
+  system(paste("aws s3 cp", 
+               local.code.path, 
+               file.path(s3, "ClinicalData/ProcessedData/Integrated", "sas", paste0(root,".sas")),
+               "--sse", sep = " "))
+  
+}
+
 
 # this function does not allow specification of directory to 
 # prevent inadvertant file deletion 
@@ -397,8 +534,9 @@ sync_data_desktop <- function(root.path = "s3://celgene.rnd.combio.mmgp.external
   system(  paste('aws s3 sync', 
                  root.path,
                  local.path,
-                 '--exclude "*archive/*"',
+                 # '--exclude "*archive/*"',
                  '--exclude "*sas/*"',
+                 '--delete',
                  # '--dryrun',
                  sep = " "))
 }
@@ -414,4 +552,46 @@ mutate_cond <- function(.data, condition, ..., envir = parent.frame()) {
   condition <- eval(substitute(condition), .data, envir)
   .data[condition, ] <- .data[condition, ] %>% mutate(...)
   .data
+}
+
+table_merge <- function(per.file){
+  
+  s3joint    <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/JointData"
+  
+  #######################
+  df <-  per.file
+  
+  #######################
+  # CNV
+  print("CNV Merge........................................", quote = F)
+  new <- GetS3Table(file.path(s3joint,"curated_cnv_ControlFreec_2017-02-21.txt"))
+  new <- filter(new, new$File_Name %in% per.file$File_Name)
+  df <-  merge_table_files(df, new, id = "File_Name")
+  
+  #######################
+  # Biallelic Inactivation Flags
+  print("BI Merge.........................................", quote = F)
+  new <- GetS3Table(file.path(s3joint,"curated_BiallelicInactivation_Flag.txt"))
+  new <- filter(new, new$File_Name %in% per.file$File_Name)
+  df <-  merge_table_files(df, new, id = "File_Name")
+  
+  #######################
+  # SNV
+  print("SNV Merge........................................", quote = F)
+  new <- GetS3Table(file.path(s3joint,"curated_SNV_BinaryConsensus_2017-02-13.txt"))
+  new <- filter(new, new$File_Name %in% per.file$File_Name)
+  df <-  merge_table_files(df, new, id = "File_Name")
+  
+  return(df)
+}
+
+subset_clinical_columns <- function(df){
+  # remove genomic columns
+  remove_prefix <- c("SNV", "CNV", "BI")
+  n <- names(df)
+  for(p in remove_prefix){
+    n <- n[ !grepl(p, n) ]
+  }
+  df <- df[, n]
+  df
 }
