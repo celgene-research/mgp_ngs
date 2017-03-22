@@ -5,13 +5,15 @@ source("curation_scripts.R")
 source("qc_and_summary.R")
 source("table_merge.R")
 
+source("curate_MMRF_IA10.R") # run during debugging
+
 # locations
 local <- CleanLocalScratch()
 
 # copy curated files locally
 system(  paste('aws s3 cp', file.path(s3, "ClinicalData/ProcessedData", "DFCI")     , 
                local, '--recursive --exclude "*" --include "curated*"', sep = " "))
-system(  paste('aws s3 cp', file.path(s3, "ClinicalData/ProcessedData", "MMRF_IA10") , 
+system(  paste('aws s3 cp', file.path(s3, "ClinicalData/ProcessedData", "MMRF_IA10c") , 
                local, '--recursive --exclude "*" --include "curated*"', sep = " "))
 system(  paste('aws s3 cp', file.path(s3, "ClinicalData/ProcessedData", "UAMS")     , 
                local, '--recursive --exclude "*" --include "curated*"', sep = " "))
@@ -38,13 +40,17 @@ for(f in files){
 }
   per.file[per.file == "NA"] <- NA
   per.file  <- remove_invalid_samples(per.file)
+  saveRDS(per.file, file = "/tmp/recall/per.file.001.RData")
   
   # temporary fix to add disease.status fields to MMRF samples with unannotated visit.
-  unmarked <- per.file[is.na(per.file$Disease_Status) & per.file$Study == "MMRF","Sample_Name"]
+  unmarked <- per.file[is.na(per.file$Disease_Status) & grepl("^MMRF", per.file$Sample_Name),"Sample_Name"]
   seq <- as.numeric(gsub("MMRF_[0-9]+_([0-9]+)_[BMP]+", "\\1", as.character(unmarked)))
   seq <- recode(seq, "ND", "R", "R", "R")
-  per.file[is.na(per.file$Disease_Status) & per.file$Study == "MMRF","Disease_Status"] <- seq
-  # saveRDS(per.file, file = "/tmp/recall/per.file.001.RData")
+  per.file[is.na(per.file$Disease_Status) & grepl("^MMRF", per.file$Sample_Name),"Disease_Status"] <- seq
+  # saveRDS(per.file, file = "/tmp/recall/per.file.001b.RData")
+    
+  # temporary fix to add sequencing type for some MMRF files
+  per.file[is.na(per.file$Sequencing_Type),"Sequencing_Type"] <- gsub(".*\\/([WGSWESRNASeq\\-]+)\\/.*","\\1",per.file[is.na(per.file$Sequencing_Type),"File_Path"])
   
   per.file  <- cytogenetic_consensus_calling(per.file)
   # saveRDS(per.file, file = "/tmp/recall/per.file.002.RData")
@@ -132,5 +138,7 @@ names(per.patient) <- patient_level_columns
   # Backup the new versions with a dated archive
   Snapshot(prefix = "s3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/Integrated")
   sync_data_desktop()
+
+  RPushbullet::pbPost("note", "mgp_clinical_agg done")
   
   
