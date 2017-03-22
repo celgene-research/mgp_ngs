@@ -1,0 +1,99 @@
+---
+title: "Correcting DFCI disease status and PFS flags"
+author: "Dan Rozelle"
+date: "March 21, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("../curation_scripts.R")
+```
+
+
+#### From Mehmet Samur on 2017-03-16
+> Please mark following WES samples from DFCI as relapsed samples!!! I just found out that they are not newly diagnosed as I was told before!!!  [Any sequencing coming from these samples are after induction]
+
+#### From Mehmet Samur on 2017-03-16
+> Dan could you also mark following samples as relapsed.
+> 
+> - PD7179
+> - PD7180
+> 
+> We are down to 58 I guess. Can you do me a favor and check for all those 58 samples what does condition field says in the metadata? If for those 58 samples we only have 2 sequencing file (tumor and normal) they should be newly diagnosed and normal DNA from the same individual. 
+
+```{r}
+(relapse.patients <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData/DFCI", "2017-03-16_corrected.dfci.relapse.patient.ids.txt"), header = F) %>% .[["V1"]])
+
+per.file <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData/Integrated", "per.file.clinical.txt"))
+
+per.file <- per.file %>% 
+  # set all dfci patient samples in list to Relapse ("R")
+  mutate_cond(Patient %in% relapse.patients,
+              Disease_Status = "R") %>%
+  # MMRF_2549_1_BM and _PB are listed as "R" in Seqqc and "ND" in per-patient-visit, ia9 had "ND"
+  mutate_cond(Sample_Name %in% c("MMRF_2549_1_BM", "MMRF_2549_1_PB", "MMRF_1309_1_BM"),
+              Disease_Status = "ND")
+
+# for traceability, I'm also incorporating original sample timepoint names as "Visit_Name"
+per.file <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData/DFCI", "curated_DFCI_WES_Cyto.txt")) %>%
+  transmute(Sample_Name = Sample,
+            Visit_Name  = Type) %>%
+  # only add data that already has rows in per.file
+  filter(Sample_Name %in% per.file[['Sample_Name']]) %>%
+  append_df(per.file, ., id = "Sample_Name")
+
+# get updated ND/R counts by study
+per.file %>%
+  filter(Study == "DFCI") %>%
+  group_by(Disease_Status) %>%
+  summarise(unique.patient.count = length(unique(Patient)))
+
+# summarize where the samples from each patient are found
+per.file %>%
+  filter(Study == "DFCI") %>%
+  
+  mutate(name.label = paste0(Visit_Name, " (", Sample_Name, ")")) %>%
+  select(Patient, name.label, Disease_Status ) %>%
+  
+  group_by(Patient, Disease_Status) %>%
+  summarise(value = Simplify(name.label)) %>%
+  spread(key = Disease_Status, value) %>%
+  knitr::kable()
+
+
+```
+
+#### From Mehmet Samur on 2017-03-16
+> Alright, while I'm cleaning all the mess here at DFCI let me also clear the survival info for 4 samples you asked yesterday.
+> 
+> - PD5870, PD5858 and PD5864 does not have PFS info. So they should be coded as NA
+> - PD5876 OS data seems not real. Needs to to excluded from OS analysis.
+>
+
+```{r}
+
+bad.pfs.patients <- c("PD5870", "PD5858" , "PD5864") 
+bad.os.patients  <- c("PD5876") 
+
+per.patient <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData/Integrated", "per.patient.clinical.txt"))
+
+per.patient <- per.patient %>%
+  mutate_cond(Patient %in% bad.pfs.patients, 
+              D_PFS = NA,
+              D_PFS_FLAG = NA) %>%
+  mutate_cond(Patient %in% bad.os.patients, 
+              D_OS = NA,
+              D_OS_FLAG = NA) 
+
+per.patient %>%
+  filter(Patient %in% c(bad.pfs.patients, bad.os.patients)) %>%
+  select(Patient, D_OS:D_PFS_FLAG)%>%
+  knitr::kable()
+
+# PutS3Table(per.file, file.path(s3, "ClinicalData/ProcessedData/Integrated", "per.file.clinical.txt"))
+# PutS3Table(per.patient, file.path(s3, "ClinicalData/ProcessedData/Integrated", "per.patient.clinical.txt"))
+# table_process()
+timestamp()
+sessionInfo()
+```
