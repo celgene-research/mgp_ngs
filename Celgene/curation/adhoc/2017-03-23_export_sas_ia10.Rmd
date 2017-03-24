@@ -1,0 +1,108 @@
+---
+title: "SAS table export"
+author: "Dan Rozelle"
+date: "March 23, 2017"
+output: html_document
+---
+  
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("../curation_scripts.R")
+```
+```{r}
+# this has been adjusted to maintain a very specific export format, edit with care
+# 
+# It attempts to retain similarity in variable names and types to <SAS.TEMPLATE_2016-11-23.sas>
+#
+previous_columns <- scan("previous_columns.txt", what = character())
+
+df    <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData/Integrated", 
+                                   "unified.clinical.nd.tumor.txt"), check.names = F)
+dict  <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData/Integrated", 
+                                   "mgp_dictionary.xlsx"))
+
+# sas column names are very restrictive, and automatically edited if nonconformant
+# 32 char limit only symbol allowed is "_"
+# export to sas automatically replaces each symbol with "_", truncates to 32 but has
+# strange truncation rules (first lower case letters and then trailing upper case letters?)
+
+# clean table names and dictionary names
+names(df)  <- CleanColumnNamesForSAS(names(df))
+dict$names <- CleanColumnNamesForSAS(dict$names)
+
+# Compare with previous export and add back columns that have no info now but 
+# might will in future analyses
+p <- "CYTO|FLO|MISC|History"
+df[,grep(p, setdiff(previous_columns, names(df)), value = T)] <-  NA
+
+# get a column with type definitions
+types      <- dict[  match(names(df), dict$names), "class"]
+if(any( is.na(types)) ) warning(paste("Column(s):\"", names(df)[is.na(types)], "\" are not defined class in dict", sep = " "))
+
+# coerce each variable
+df <- df %>%
+  # convert to appropriate variable type
+  mutate_if(types == "numeric",   as.numeric)   %>%
+  mutate_if(types == "factor",   as.factor)   %>%
+  mutate_if(types == "character" | types == "date", as.character) %>%
+  
+  # leave NA values explicit and they will be suppressed in export
+  mutate_if(types == "character", funs( gsub("^NA$", "", .) ))  %>%
+  mutate_if(types == "character", funs( ifelse(is.na(.),"", .) )  ) %>%
+  
+  # remove all INV counting columns
+  select(-c(starts_with("INV"))) %>%
+  
+  # remove new variables not required for analysis
+  select(-c(Disease_Type)) %>%
+  select(-ends_with("Date"))
+
+# sort columns in dictionary order
+tmp <- df[,dict$names[dict$names %in% names(df)]]
+if( all(dim(tmp) == dim(df)) ){df <- tmp
+}else{ stop("sorted columns didn't retain the same dimensions")}
+
+# export as SAS format
+name <- "unified.nd.tumor"
+root <- paste0(name, "_", d)
+local.data.path <- file.path(local, paste0(root,".txt"))
+local.code.path <- file.path(local, paste0(root,".sas"))
+
+foreign::write.foreign(df,
+                       datafile = local.data.path,
+                       codefile = local.code.path,
+                       package="SAS")
+
+# edit sas code table such that empty columns retain character length = 1
+system( paste('sed -i "s/\\$ 0$/\\$ 1/" ', local.code.path, sep = " "))
+
+
+# new columns
+setdiff(names(df), previous_columns)
+# lost columns
+setdiff(previous_columns, names(df))
+
+```
+
+```{bash}
+cat /tmp/curation/*sas
+```
+
+```{r}
+# push previous tables to archive
+system(paste("aws s3 mv",
+             file.path(s3, "ClinicalData/ProcessedData/Integrated", "sas"),
+             file.path(s3, "ClinicalData/ProcessedData/Integrated", "sas/archive/"),
+             '--recursive --exclude "*" --include "unified*" --exclude "*archive*" --sse', sep = " "))
+# write to s3
+system(paste("aws s3 cp",
+             local.data.path,
+             file.path(s3, "ClinicalData/ProcessedData/Integrated", "sas", paste0(root,".txt")),
+             "--sse", sep = " "))
+system(paste("aws s3 cp",
+             local.code.path,
+             file.path(s3, "ClinicalData/ProcessedData/Integrated", "sas", paste0(root,".sas")),
+             "--sse", sep = " "))
+timestamp()
+sessionInfo()
+```

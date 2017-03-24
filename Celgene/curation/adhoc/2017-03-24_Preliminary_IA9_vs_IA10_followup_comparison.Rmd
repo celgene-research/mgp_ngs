@@ -1,0 +1,52 @@
+---
+title: "Preliminary IA9 vs IA10 followup comparison"
+author: "Dan Rozelle"
+date: "March 24, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+source("../curation_scripts.R")
+```
+
+```{r}
+integrated         <- "ClinicalData/ProcessedData/Integrated"
+# lets just make a few basic comparisons between the IA9 and IA10 unified tables
+nine    <- GetS3Table(file.path(s3, integrated, "archive/unified.clinical.nd.tumor_IA9_2017-03-23.txt"), check.names = F) %>%
+  mutate(IA = "IA9")
+ten     <- GetS3Table(file.path(s3, integrated, "unified.clinical.nd.tumor.txt"), check.names = F)%>%
+  mutate(IA = "IA10")
+
+# number of patients added
+new.patient <- setdiff(ten$Patient, nine$Patient)
+length(new.patient)
+
+# number of new patients with response info
+ten %>% filter(Patient %in% new.patient) %>% filter( !is.na(D_PFS) ) %>% nrow()
+
+df <- rbind(nine, ten) %>%
+  filter(Study == "MMRF") %>%
+  select(Study, Patient, IA, D_OS, D_PFS) %>%
+  gather(variable, value, -c(Study, Patient, IA))  %>%
+  group_by(Patient) %>%
+  mutate( IA = factor(IA),
+          IA = factor(IA, levels(IA)[c(2,1)]),
+          both.studies = length(Patient) > 2) %>%
+  filter( !is.na(value))
+
+ggplot(df, aes(x = IA, y = value )) +
+  stat_boxplot(outlier.alpha = 0) +
+  geom_jitter(aes(color = both.studies), width = 0.3, alpha = 0.5) +
+  facet_grid(.~variable) +
+  labs(y = "response time (days)") +
+  theme_bw() +
+  theme( axis.title.x = element_blank())
+
+```
+
+```{r}
+timestamp()
+sessionInfo()
+```
