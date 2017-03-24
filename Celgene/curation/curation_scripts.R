@@ -1,7 +1,6 @@
 
 # global vars
 d  <- format(Sys.Date(), "%Y-%m-%d")
-local <- CleanLocalScratch()
 s3 <- "s3://celgene.rnd.combio.mmgp.external"
 # devtools::install_github("dkrozelle/toolboxR", force = TRUE)
 library(toolboxR)
@@ -51,12 +50,18 @@ table_process <- function(){
   per.file.clinical.nd.tumor    <- subset_clinical_columns(per.file.all.nd.tumor)
   per.sample.clinical.nd.tumor  <- subset_clinical_columns(per.sample.all.nd.tumor)
   
+  # if you just want to generate a new unified table you can uncomment
+  # per.file.clinical.nd.tumor    <- GetS3Table(file.path(s3, 
+  # "ClinicalData/ProcessedData/Integrated", "per.file.clinical.nd.tumor.txt"))
+  # per.patient.clinical.nd.tumor <- GetS3Table(file.path(s3, 
+  # "ClinicalData/ProcessedData/Integrated", "per.patient.clinical.nd.tumor.txt"))
+  
   # make a unified table (file and patient variables) for nd.tumor data
   unified.clinical.nd.tumor <- per.file.clinical.nd.tumor %>%
     group_by(Study, Patient) %>%
     summarise_all(.funs = funs(Simplify(.))) %>%
     ungroup() %>%
-    select(Patient, Sample_Type, Sequencing_Type, Disease_Status, Tissue_Type:CYTO_t.14.20._CONSENSUS) %>%
+    select(Patient, Study_Phase, Visit_Name, Sample_Name, Sample_Type, Sample_Type_Flag, Sequencing_Type, Disease_Status, Tissue_Type:CYTO_t.14.20._CONSENSUS) %>%
     full_join(per.patient.clinical.nd.tumor, ., by = "Patient") %>%
     select(-c(starts_with("INV"))) %>%
     filter(Disease_Type == "MM" | is.na(Disease_Type))
@@ -84,65 +89,7 @@ table_process <- function(){
   RPushbullet::pbPost("note", title = "table_process done")  
 }
 
-export_to_sas <- function(df, dict){
-  
-  name <- "unified.nd.tumor"
-  # this has been adjusted to maintain a very specific export format, edit with care
-  # 
-  # sas column names are very restrictive, and automatically edited if nonconformant
-  # 32 char limit only symbol allowed is "_"
-  # export to sas automatically replaces each symbol with "_", truncates to 32 but has
-  # strange truncation rules (first lower case letters and then trailing upper case letters?)
-  
-  # clean table names and dictionary names
-  names(df)  <- CleanColumnNamesForSAS(names(df))
-  dict$names <- CleanColumnNamesForSAS(dict$names)
-  types <- dict[  match(names(df), dict$names), "class"]
-  if(any( is.na(types)) ) warning(paste("Column(s):\"", names(df)[is.na(types)], "\" are not defined class in dict", sep = " "))
-  
-  df <- df %>%
-    
-    # convert to appropriate variable type
-    mutate_if(types == "numeric",   as.numeric)   %>%
-    mutate_if(types == "character", as.character) %>%
-    mutate_if(types == "character", funs( gsub("NA", "", .) ))  %>%
-    mutate_if(types == "character", funs( ifelse(is.na(.),"", .) )  ) %>%
-    
-    # remove all INV counting columns
-    select(-c(starts_with("INV")))
-  
-  # write out text datafile for SAS
-  local.path <- file.path(local, "sas")
-  if(!dir.exists(local.path)){dir.create(local.path)}
-  
-  root <- paste0(name, "_", d)
-  local.data.path <- file.path(local.path, paste0(root,".txt"))
-  local.code.path <- file.path(local.path, paste0(root,".sas"))
-  
-  foreign::write.foreign(df,
-                         datafile = local.data.path,
-                         codefile = local.code.path,
-                         package="SAS")
-  
-  # edit sas import table such that empty columns have character length = 1
-  system( paste('sed -i "s/\\$ 0$/\\$ 1/" ', local.code.path, sep = " "))
-  
-  # push previous tables to archive
-  system(paste("aws s3 mv", 
-               file.path(s3, "ClinicalData/ProcessedData/Integrated", "sas"),
-               file.path(s3, "ClinicalData/ProcessedData/Integrated", "sas/archive/"),
-               '--recursive --exclude "*" --include "unified*" --exclude "*archive*" --sse', sep = " "))
-  # write to s3
-  system(paste("aws s3 cp", 
-               local.data.path, 
-               file.path(s3, "ClinicalData/ProcessedData/Integrated", "sas", paste0(root,".txt")),
-               "--sse", sep = " "))
-  system(paste("aws s3 cp", 
-               local.code.path, 
-               file.path(s3, "ClinicalData/ProcessedData/Integrated", "sas", paste0(root,".sas")),
-               "--sse", sep = " "))
-  
-}
+
 
 
 # this function does not allow specification of directory to 
@@ -153,7 +100,8 @@ CleanLocalScratch <- function(){
   dir.create(path)
   path
 }
-
+# run on source
+local <- CleanLocalScratch()
 
 write.object <- function(x, path = local, env){
   if( is.environment(env)){  
@@ -472,7 +420,8 @@ lookup.values <- function(id) {
 CleanColumnNamesForSAS <- function(n){
   
   # substitute non-alphanumeric characters
-  n <- gsub("[^[:alnum:]]+", "_", n)
+  # n <- gsub("[^[:alnum:]]+", "_", n) # replace and reduce
+  n <- gsub("[^[:alnum:]]", "_", n) # simple replacement
   
   
   n <- sapply(n, function(x){
@@ -535,7 +484,7 @@ sync_data_desktop <- function(root.path = "s3://celgene.rnd.combio.mmgp.external
                  root.path,
                  local.path,
                  # '--exclude "*archive/*"',
-                 '--exclude "*sas/*"',
+                 # '--exclude "*sas/*"',
                  '--delete',
                  # '--dryrun',
                  sep = " "))
