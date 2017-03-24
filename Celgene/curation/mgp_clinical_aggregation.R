@@ -1,11 +1,14 @@
 ## drozelle@ranchobiosciences.com
 ## 2016-10-17
+# 
+# 2017-03-22 This script was last used to incorporate MMRF IA10 data, but for future releases I
+# plan to just edit the output from this aggregation script instead of starting format
+# scratch source material every time
+# 
 
 source("curation_scripts.R")
 source("qc_and_summary.R")
 source("table_merge.R")
-
-source("curate_MMRF_IA10.R") # run during debugging
 
 # locations
 local <- CleanLocalScratch()
@@ -13,7 +16,7 @@ local <- CleanLocalScratch()
 # copy curated files locally
 system(  paste('aws s3 cp', file.path(s3, "ClinicalData/ProcessedData", "DFCI")     , 
                local, '--recursive --exclude "*" --include "curated*"', sep = " "))
-system(  paste('aws s3 cp', file.path(s3, "ClinicalData/ProcessedData", "MMRF_IA10c") , 
+system(  paste('aws s3 cp', file.path(s3, "ClinicalData/ProcessedData", "MMRF_IA9") , 
                local, '--recursive --exclude "*" --include "curated*"', sep = " "))
 system(  paste('aws s3 cp', file.path(s3, "ClinicalData/ProcessedData", "UAMS")     , 
                local, '--recursive --exclude "*" --include "curated*"', sep = " "))
