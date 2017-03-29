@@ -1,0 +1,32 @@
+---
+title: "Counting corrected DFCI disease status"
+author: "Dan Rozelle"
+date: "March 16, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("../curation_scripts.R")
+```
+
+```{r}
+
+per.patient <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData/Integrated/per.patient.clinical.txt"))
+per.file <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData/Integrated/per.file.clinical.txt"))
+
+bad <- scan("dfci_relapse_patients.txt", character())
+bad
+
+corrected <- per.file %>%
+  filter( Study == "DFCI" ) %>%
+  mutate(corrected.disease.status = ifelse( Patient %in% bad , "R", "ND")) %>%
+  select(Patient, Sample_Name, Disease_Status, corrected.disease.status)
+  
+corrected %>%
+  group_by(corrected.disease.status) %>%
+  summarise( unique.patient.count = length(unique(Patient)))
+
+as.data.frame(corrected)
+
+```

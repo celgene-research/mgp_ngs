@@ -8,17 +8,12 @@
 
 source("curation_scripts.R")
 source("qc_and_summary.R")
-source("table_merge.R")
 
 # locations
 local <- CleanLocalScratch()
 
 # copy curated files locally
-system(  paste('aws s3 cp', file.path(s3, "ClinicalData/ProcessedData", "DFCI")     , 
-               local, '--recursive --exclude "*" --include "curated*"', sep = " "))
 system(  paste('aws s3 cp', file.path(s3, "ClinicalData/ProcessedData", "MMRF_IA9") , 
-               local, '--recursive --exclude "*" --include "curated*"', sep = " "))
-system(  paste('aws s3 cp', file.path(s3, "ClinicalData/ProcessedData", "UAMS")     , 
                local, '--recursive --exclude "*" --include "curated*"', sep = " "))
 system(  paste('aws s3 cp', file.path(s3, "ClinicalData/ProcessedData", "JointData"), 
                local, '--recursive --exclude "*" --include "curated*"', sep = " "))
@@ -75,6 +70,7 @@ names(per.patient) <- patient_level_columns
   per.patient.clinical  <- per.patient # rename for clarity
   per.file.clinical     <- per.file    # rename for clarity
   
+  
   # currently table merge throws dimension error since CNV contains clinically lost patients, it's OK
   per.file.all          <- table_merge(per.file.clinical)
   per.file.all          <- remove_invalid_samples(per.file.all)
@@ -99,48 +95,27 @@ names(per.patient) <- patient_level_columns
   per.sample.clinical.nd.tumor  <- subset_clinical_columns(per.sample.all.nd.tumor)
   # saveRDS(per.file.clinical.nd.tumor, file = "/tmp/recall/per.file.clinical.nd.tumor.004.RData")
   
-  # qc and summary
-  inventory_counts <- get_inventory_counts(per.patient.clinical)
-  report_unique_patient_counts(per.file.clinical)
+  # # qc and summary
+  # inventory_counts <- get_inventory_counts(per.patient.clinical)
+  # report_unique_patient_counts(per.file.clinical)
 
   # write un-dated PER-FILE and PER-PATIENT files to S3
   
   write_to_s3integrated <- function(object, name){
-    PutS3Table(object = object, s3.path = file.path(s3,"ClinicalData/ProcessedData/Integrated", name))
+    PutS3Table(object = object, s3.path = file.path(s3,"ClinicalData/ProcessedData/Integrated/archive", name))
   }
-  write_to_s3integrated(per.file.clinical              ,name = "per.file.clinical.txt")
-  write_to_s3integrated(per.file.clinical.nd.tumor     ,name = "per.file.clinical.nd.tumor.txt")
-  write_to_s3integrated(per.file.all                   ,name = "per.file.all.txt")
-  write_to_s3integrated(per.file.all.nd.tumor          ,name = "per.file.all.nd.tumor.txt")
-  
-  write_to_s3integrated(per.sample.clinical            ,name = "per.sample.clinical.txt")
-  write_to_s3integrated(per.sample.clinical.nd.tumor   ,name = "per.sample.clinical.nd.tumor.txt")
-  write_to_s3integrated(per.sample.all                 ,name = "per.sample.all.txt")
-  write_to_s3integrated(per.sample.all.nd.tumor        ,name = "per.sample.all.nd.tumor.txt")
-  
-  write_to_s3integrated(per.patient.clinical           ,name = "per.patient.clinical.txt")
-  write_to_s3integrated(per.patient.clinical.nd.tumor  ,name = "per.patient.clinical.nd.tumor.txt")
-
-  # df <- per.patient.clinical.nd.tumor
-
-  # export for sas, and a cleaned dictionary
-  # archive older sas versions before pushing new versions
-  # system(paste('aws s3 mv',
-  #              's3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/Integrated/sas/',
-  #              "s3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/Integrated/sas/archive",
-  #              '--recursive --sse --exclude "archive*"', sep = " "))
-  # export_sas(per.patient.clinical.nd.tumor,  name = "per.patient.clinical.nd.tumor")
-  # export_sas(per.file.clinical.nd.tumor, name = "per.file.clinical.nd.tumor")
+  # write_to_s3integrated(per.file.clinical              ,name = "per.file.clinical.txt")
+  write_to_s3integrated(per.file.clinical.nd.tumor     ,name = "per.file.clinical.nd.tumor_IA9_2017-03-23.txt")
+  # write_to_s3integrated(per.file.all                   ,name = "per.file.all.txt")
+  # write_to_s3integrated(per.file.all.nd.tumor          ,name = "per.file.all.nd.tumor.txt")
   # 
-  # sas.lookup <- dict %>% transmute(mgp.dictionary.names = names, sas.names = CleanColumnNamesForSAS(names))
-  # PutS3Table(sas.lookup, file.path(s3, "ClinicalData/ProcessedData/Integrated/sas", paste0("sas.dictionary.lookup_",d,".txt")))
+  # write_to_s3integrated(per.sample.clinical            ,name = "per.sample.clinical.txt")
+  # write_to_s3integrated(per.sample.clinical.nd.tumor   ,name = "per.sample.clinical.nd.tumor.txt")
+  # write_to_s3integrated(per.sample.all                 ,name = "per.sample.all.txt")
+  # write_to_s3integrated(per.sample.all.nd.tumor        ,name = "per.sample.all.nd.tumor.txt")
   # 
-  # # NOTE: summary statistics are only from patients that have nd+tumor samples.
-  # clinical_summary <- summarize_clinical_parameters(per.patient.clinical.nd.tumor)
-
-  # Backup the new versions with a dated archive
-  Snapshot(prefix = "s3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/Integrated")
-  sync_data_desktop()
+  # write_to_s3integrated(per.patient.clinical           ,name = "per.patient.clinical.txt")
+  write_to_s3integrated(per.patient.clinical.nd.tumor  ,name = "per.patient.clinical.nd.tumor_IA9_2017-03-23.txt")
 
   RPushbullet::pbPost("note", "mgp_clinical_agg done")
   

@@ -1,0 +1,52 @@
+---
+title: "OS/PFS matching consistency"
+author: "Dan Rozelle"
+date: "March 13, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("../curation_scripts.R")
+```
+
+Now that we've sorted out MMRF, it looks like there are still problems with DFCI PFS calling consistency.
+
+> There are a number of patients that still have issues:
+>    40 patients have died but not progressed (i.e. OS=1 but PFS=0)
+>    2 patients (MMRF_2300 and PD5876) progressed after they died
+
+```{r}
+
+per.patient <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData/Integrated/per.patient.clinical.nd.tumor.txt"))
+per.file <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData/Integrated/per.file.clinical.nd.tumor.txt"))
+
+
+unified <- per.file %>%
+  group_by(Study, Patient) %>%
+  summarise_all(.funs = funs(Simplify(.))) %>%
+  ungroup() %>%
+  select(Patient, Sample_Type, Sequencing_Type, Disease_Status, Tissue_Type:CYTO_t.14.20._CONSENSUS) %>%
+  full_join(per.patient, ., by = "Patient") %>%
+  select(-c(starts_with("INV"))) %>%
+  filter(Disease_Type == "MM" | is.na(Disease_Type))
+
+os1pfs0 <- unified %>%
+  filter(D_OS_FLAG == 1 & D_PFS_FLAG == 0) %>%
+  select(Patient, Study, D_OS, D_OS_FLAG, D_PFS, D_PFS_FLAG)
+
+# I'm seeing 18 unmatched patients, interested to see what others your people came up with
+os1pfs0
+
+pfs.after.os <- unified %>%
+  filter(D_OS < D_PFS) %>%
+  select(Patient, Study, D_OS, D_OS_FLAG, D_PFS, D_PFS_FLAG)
+
+# I see PD5876, but MMRF_2300 looks fine
+pfs.after.os
+
+mmrf2300 <- unified %>%
+  filter(Patient == "MMRF_2300") %>%
+  select(Patient, Study, D_OS, D_OS_FLAG, D_PFS, D_PFS_FLAG)
+mmrf2300
+```

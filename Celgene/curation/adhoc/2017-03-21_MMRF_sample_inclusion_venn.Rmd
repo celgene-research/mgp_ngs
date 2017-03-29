@@ -1,0 +1,34 @@
+---
+title: "Where am I getting MMRF sample names from?"
+author: "Dan Rozelle"
+date: "March 21, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("../curation_scripts.R")
+```
+
+```{r}
+per.file    <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData/Integrated/per.file.clinical.txt"))
+
+per.patient <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData/MMRF_IA10c/curated_MMRF_PER_PATIENT.txt"))
+per.visit   <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData/MMRF_IA10c/curated_MMRF_PER_PATIENT_VISIT.txt"))
+seqqc      <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData/MMRF_IA10c/curated_MMRF_CoMMpass_IA10_Seq_QC_Summary.txt")) %>% filter(Excluded_Flag == 0)
+inv         <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData/MMRF_IA10c/curated_mmrf.file.inventory.txt"))
+
+
+# check agreement by Sample_Sequence
+l <- list(visit = per.visit$Sample_Sequence, 
+          seqqc = seqqc$Sample_Sequence, 
+          inv   = inv$Sample_Sequence)
+venn::venn(l,cexil = 1.4, cexsn = 1.2)
+
+# check agreement by File_Name
+l <- list(visit = per.visit$File_Name, 
+          seqqc = seqqc$File_Name, 
+          inv   = inv$File_Name)
+venn::venn(l,cexil = 1.4, cexsn = 1.2)
+
+```

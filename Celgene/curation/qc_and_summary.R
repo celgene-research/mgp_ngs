@@ -87,7 +87,7 @@ remove_unsequenced_patients <- function(p,f){
   unsequenced_patients <- unique(p$Patient)[!unique(p$Patient) %in% unique(f$Patient)]
   warning(paste(length(unsequenced_patients), "patients did not have sequence data and were removed", sep = " "))
   
-  write.object("unsequenced_patients", env = environment())
+  # write.object("unsequenced_patients", env = environment())
   p[!p$Patient %in% unsequenced_patients,]
 }
 
@@ -114,10 +114,10 @@ report_unique_patient_counts <- function(df, sink_file = file.path(local, "uniqu
 }
 
 add_inventory_flags <- function(df_perpatient, df_perfile){
-  # df_perpatient <- per.patient
-  # df_perfile <- per.file
+  # df_perpatient <- per.patient.clinical
+  # df_perfile <- per.file.clinical
   
-  check_by_patient <- check.value("Patient")
+  check_by_patient <- toolboxR::check.value("Patient")
   
   df_perpatient[["INV_Has.sample"]] <- ifelse(df_perpatient$Patient %in% df_perfile$Patient, 1,0)
   
@@ -210,9 +210,9 @@ add_inventory_flags <- function(df_perpatient, df_perfile){
   df_perpatient
 }
 
-
-get_inventory_counts <- function(df_perpatient){
-  df <- aggregate.data.frame(df_perpatient[,grepl("Has",names(df_perpatient))], by = list(df_perpatient$Study), function(x){
+# it is expected that you supply a per-patient table to obtain unique patient counts
+get_inventory_counts <- function(df){
+  df <- aggregate.data.frame(df[,grepl("Has",names(df))], by = list(df$Study), function(x){
     sum(x == "1")
   })
   df <- as.data.frame(t(df), stringsAsFactors = F)
@@ -223,7 +223,7 @@ get_inventory_counts <- function(df_perpatient){
   
   df[['Category']] <- row.names(df)
   
-  PutS3Table(df, file.path(s3, "ClinicalData/ProcessedData/Integrated", "report_inventory_counts.txt"))
+  # PutS3Table(df, file.path(s3, "ClinicalData/ProcessedData/Integrated", "report_inventory_counts.txt"))
   
   df$Category <- NULL
   df
@@ -248,69 +248,3 @@ summarize_clinical_parameters <- function(df_perpatient){
   df
   
 }
-
-export_sas <- function(df, dict, name){
-  
-  # sas column names are very restrictive, and automatically edited if nonconformant
-  # 32 char limit only symbol allowed is "_"
-  # export to sas automatically replaces each symbol with "_", truncates to 32 but has
-  # strange truncation rules (first lower case letters and then trailing upper case letters?)
-  
-  names(df) <- CleanColumnNamesForSAS(names(df))
-  dict[['clean.names']] <- CleanColumnNamesForSAS(dict$names)
-  
-  ## specific column type encoding was removed because it causes
-  ##  column order to be changed when imported. 
-  ##  (factor columns first, then character, then numeric)
-  #
-  # factor_columns <- dict[dict$type == "Factor","clean.names"]
-  # for(foo in factor_columns){
-  #   df[df[[foo]] == "" & !is.na(df[[foo]]),foo] <- NA
-  #   df[[foo]] <- as.factor(df[[foo]])
-  #   }
-  # 
-  # numeric_columns <- dict[dict$type == "Numeric","clean.names"]
-  # for(foo in numeric_columns){
-  #   df[df[[foo]] == "" & !is.na(df[[foo]]),foo] <- NA
-  #   df[[foo]] <- as.numeric(df[[foo]])
-  # }
-  # 
-  # numeric_molecular_columns <- names(df)[grepl("^SNV_", names(df)) | 
-  #                                        grepl("^CNV_", names(df)) | 
-  #                                        grepl("^BI_", names(df)) ]
-  # for(foo in numeric_molecular_columns){
-  #   df[df[[foo]] == "" & !is.na(df[[foo]]),foo] <- NA
-  #   df[[foo]] <- as.numeric(df[[foo]])
-  # }
-  # 
-  # write out text datafile for SAS
-  local.path <- file.path(local, "sas")
-  if(!dir.exists(local.path)){dir.create(local.path)}
-  
-  root <- paste0(name, "_", d)
-  local.data.path <- file.path(local.path, paste0(root,".txt"))
-  local.code.path <- file.path(local.path, paste0(root,".sas"))
-  
-  foreign::write.foreign(df,
-                         datafile = local.data.path,
-                         codefile = local.code.path,
-                         package="SAS")
-  
-  # edit sas import table such that empty columns have character length = 1
-  system( paste('sed -i "s/\\$ 0$/\\$ 1/" ', local.code.path, sep = " "))
-  
-  system(paste("aws s3 cp", 
-               local.data.path, 
-               file.path(s3, "ClinicalData/ProcessedData/Integrated", "sas", paste0(root,".txt")),
-               "--sse", sep = " "))
-  system(paste("aws s3 cp", 
-               local.code.path, 
-               file.path(s3, "ClinicalData/ProcessedData/Integrated", "sas", paste0(root,".sas")),
-               "--sse", sep = " "))
-  
-}
-
-
-
-
-

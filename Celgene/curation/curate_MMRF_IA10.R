@@ -1,10 +1,9 @@
 ## drozelle@ranchobiosciences.com
 ## MMRF file curation
 
-# This script was first updated for use on IA10, but then after several changes
-# were made during this process I thought it'd be usefult to have an identically
-# formatted IA9 version, so I went back through and revised backwards to use
-# IA9 sources and export to IA9 S3 buckets.
+#
+# 2017-03-14 update to release IA10
+# 
 
 source("curation_scripts.R")
 
@@ -13,13 +12,7 @@ d        <- format(Sys.Date(), "%Y-%m-%d")
 s3       <- "s3://celgene.rnd.combio.mmgp.external"
 ia10.in  <- "ClinicalData/OriginalData/MMRF_IA10c"
 ia10.out <- "ClinicalData/ProcessedData/MMRF_IA10c"
-
-ia9.in  <- "ClinicalData/OriginalData/MMRF_IA9"
-ia9.out <- "ClinicalData/ProcessedData/MMRF_IA9"
-
 local    <- CleanLocalScratch()
-
-
 
 ### code to write raw a inventory is only run periodically
 ### NOTE: this is not filtered/deduplicated in any way
@@ -58,10 +51,7 @@ inv <- inv %>%
   full_join(srr.mapping, by = "File_Name_Actual") %>%
   mutate_cond(is.na(File_Name), 
               File_Name = gsub("^(MMRF.*?)\\..*", "\\1",  File_Name_Actual))
-###
-### remove new IA10 files
-inv <- filter(inv, !grepl("IA10", File_Path))
-###
+
 # fix case issues
 inv$File_Name            <- gsub("POS", "pos", inv$File_Name)
 inv$File_Name            <- gsub("WHOLE",    "Whole",    inv$File_Name)
@@ -70,7 +60,7 @@ inv[['Study']]           <- study
 
 # mutate_cond(measure == 'exit', qty.exit = qty, cf = 0, delta.watts = 13)
 inv[['Study_Phase']] <- NA
-inv[grepl("^MMRF", inv$File_Name_Actual),"Study_Phase"] <- gsub(".*MMRF\\/([IA0-9]+)\\/MMRF.*", "\\1", inv[grepl("^MMRF", inv$File_Name_Actual),]$File_Path)
+  inv[grepl("^MMRF", inv$File_Name_Actual),"Study_Phase"] <- gsub(".*MMRF\\/([IA0-9]+)\\/MMRF.*", "\\1", inv[grepl("^MMRF", inv$File_Name_Actual),]$File_Path)
 inv[['Patient']]         <- gsub("^(MMRF_\\d+)_\\d+_.*", "\\1",  inv$File_Name)
 inv[['Sample_Sequence']] <- gsub("^(MMRF.*)_[BMP]+_.*", "\\1", inv$File_Name)
 inv[['Sample_Name']]     <- gsub("^(MMRF.*[BMP]+)_.*", "\\1",  inv$File_Name)
@@ -85,12 +75,12 @@ inv$Cell_Type            <- gsub("WBC|Whole", "PBMC", inv$Cell_Type)
 
 curated.inv <- inv
 name <- paste("curated", name, sep = "_")
-PutS3Table(inv, file.path(s3, ia9.out, name))
+PutS3Table(inv, file.path(s3, ia10.out, name))
 
 ### IA10_Seq_QC_Summary -------------------------
 # apply higher level sample  variables using IA9 Seq QC table
-name <- "MMRF_CoMMpass_IA9_Seq_QC_Summary.xlsx"
-df   <- GetS3Table(file.path(s3, ia9.in, name)) %>%
+name <- "MMRF_CoMMpass_IA10_Seq_QC_Summary.xlsx"
+df   <- GetS3Table(file.path(s3, ia10.in, "README_FILES", name)) %>%
   transmute(Study = study,
             File_Name = `QC Link SampleName`,
             Sample_Name      = gsub("^(MMRF.*[BMP]+)_.*", "\\1", File_Name),
@@ -125,12 +115,12 @@ df[df$Excluded_Flag == 0,"Excluded_Specify"] <- NA
 curated.seqqc <- df
 name <- paste("curated", name, sep = "_")
 name <- gsub("xlsx", "txt", name)
-PutS3Table(df, file.path(s3, ia9.out, name))
+PutS3Table(df, file.path(s3, ia10.out, name))
 
 ### PER_PATIENT_VISIT -------------------------
 # curate per_visit entries with samples taken for the sample-level table
 name      <- "PER_PATIENT_VISIT.csv"
-curated.per.visit <- GetS3Table(file.path(s3, ia9.in, name)) %>%
+curated.per.visit <- GetS3Table(file.path(s3, ia10.in, "clinical_data_tables/CoMMpass_IA10c_FlatFiles", name)) %>%
   filter(SPECTRUM_SEQ != "") %>%
   local_collapse_dt("SPECTRUM_SEQ") %>%
   
@@ -238,14 +228,15 @@ curated.per.visit <- curated.inv %>%
 
 name <- paste("curated", study,name, sep = "_")
 name <- gsub("csv", "txt", name)
-PutS3Table(curated.per.visit, file.path(s3, ia9.out, name))
+PutS3Table(curated.per.visit, file.path(s3, ia10.out, name))
 
 ### PER_PATIENT -------------------------
 # curate PER_PATIENT entries, requires some standalone tables for calculations
 name      <- "PER_PATIENT.csv"
-per.patient <- GetS3Table(file.path(s3, ia9.in, name))
-survival    <- GetS3Table(file.path(s3, ia9.in, "STAND_ALONE_SURVIVAL.csv"))
-respo       <- GetS3Table(file.path(s3, ia9.in, "STAND_ALONE_TRTRESP.csv"))
+in.file <- file.path(s3, ia10.in, "clinical_data_tables/CoMMpass_IA10c_FlatFiles")
+per.patient <- GetS3Table(file.path(s3, ia10.in, "clinical_data_tables/CoMMpass_IA10c_FlatFiles", name))
+survival <- GetS3Table(file.path(in.file,"STAND_ALONE_SURVIVAL.csv"))
+respo    <- GetS3Table(file.path(in.file,"STAND_ALONE_TRTRESP.csv"))
 
 df <- per.patient %>%
   transmute(Patient  = PUBLIC_ID,
@@ -275,4 +266,4 @@ df[["D_Best_Response"]]      <-  unlist(lapply(df$Patient, lookup_by_publicid, d
 
 name <- paste("curated", study,name, sep = "_")
 name <- gsub("csv", "txt", name)
-PutS3Table(df, file.path(s3, ia9.out, name))
+PutS3Table(df, file.path(s3, ia10.out, name))
