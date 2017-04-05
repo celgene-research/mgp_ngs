@@ -1,0 +1,41 @@
+---
+title: "more IA troubleshooting"
+author: "Dan Rozelle"
+date: "March 28, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("../curation_scripts.R")
+```
+
+```{r}
+# I'm just going to confirm that all MMRF RNA-Seq files have a Study_Phase
+per.file <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData/Integrated/per.file.clinical.txt")) %>% 
+  filter(Study == "MMRF" & Sequencing_Type == "RNA-Seq") %>% 
+  select(Patient, Study_Phase, File_Name, File_Name_Actual) %>%
+  as.data.frame()
+
+table( !is.na(per.file$Study_Phase) )
+
+# attemoting to recreate your code logic
+clinicalData <- per.file
+rownames(clinicalData) <- clinicalData$File_Name
+
+# I don't have the countData file easily accessible so I'm just using example data
+test.names <- c(row.names(clinicalData)[1:5], "bad.name")
+# RNASampleIA <- clinicalData[colnames(MMRF.countData.salmon),"Study_Phase"]
+
+RNASampleIA <- clinicalData[test.names,"Study_Phase"]
+table(is.na(RNASampleIA))
+
+# now print the filenames that don't match up
+# colnames(MMRF.countData.salmon)[!(colnames(MMRF.countData.salmon) %in% row.names(clinicalData))]
+test.names[!(test.names %in% row.names(clinicalData))]
+
+# Generally, I'd suggest a lookup similar to this instead of relying on row.name index lookup
+data.frame(File_Name = test.names,
+           IA        = per.file[match(test.names, per.file$File_Name), "Study_Phase"])
+
+```
