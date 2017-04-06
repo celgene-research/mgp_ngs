@@ -1,0 +1,58 @@
+---
+title: "remove excluded MMRF file rows"
+author: "Dan Rozelle"
+date: "March 27, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("../curation_scripts.R")
+```
+
+Looking into MMRF samples that don't have IA assignment.
+
+```{r}
+
+per.file <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData/Integrated/per.file.clinical.txt"))
+
+as.data.frame(aggregated_IA.list <- per.file %>%
+                select(1:10) %>%
+                filter(Study == "MMRF") %>%
+                group_by(Patient) %>%
+                summarise(IA = Simplify(Study_Phase)) )
+
+aggregated_IA.list %>% filter(is.na(IA))
+
+validator <- GetS3Table(file.path(s3, "ClinicalData/OriginalData/MMRF_IA10c/README_FILES/PackageBuildValidator.txt"),
+                        header = F) %>%
+  rename(Patient = V1,
+         File_Name = V4 ) %>%
+  mutate(Sequencing_Type  = case_when(
+    grepl("^RNA", .$V5)   ~ "RNA-Seq",
+    grepl("^Exome", .$V5) ~ "WES",
+    grepl("^LI", .$V5)    ~ "WGS",
+    TRUE ~ as.character(NA)),
+    Excluded_Flag    = as.numeric(grepl("^Exclude|RNA-No|LI-Neither|Exome-Neither",
+                                        .$V5)))
+
+excluded.files <- validator %>% filter(Excluded_Flag == 1) %>% .[['File_Name']]
+included.files <- validator %>% filter(Excluded_Flag == 0) %>% select(File_Name, Sequencing_Type)
+
+# if the append function does not return a warning in safemode, then there are no changes
+tmp <- append_df(per.file, included.files, "File_Name", mode = "safe")
+
+# print excluded files that are still in the per.file table (only MMRF_1017)
+per.file %>% filter(File_Name %in% excluded.files) %>% select(Patient, File_Name)
+
+# remove these entries and re-process the table_merge
+per.file <- per.file %>% filter(!(File_Name %in% excluded.files))
+PutS3Table(per.file, file.path(s3, "ClinicalData/ProcessedData/Integrated/per.file.clinical.txt"))
+# table_process()
+
+```
+
+```{r}
+timestamp()
+sessionInfo()
+```
