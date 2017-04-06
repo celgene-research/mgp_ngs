@@ -42,4 +42,16 @@ PutS3Table(unmatched, file.path(s3, "ClinicalData/ProcessedData/JointData", "unm
 
 
 
+# 2017-04-06 forgot to add column name prefixes
+name <- "curated_RNAseq_MMRF_DFCI_Normalized_BatchCorrected_2017-03-30.txt"
+system(paste('aws s3 cp',
+             file.path(s3,"ClinicalData/ProcessedData/JointData", name),
+             local, sep = " "))
+# fix the stupid row.names
+system(paste('sed -ir "1s/ENSG/RNA_ENSG/g"', file.path(local,name)))
+
+system(paste('aws s3 cp',
+             file.path(local,name),
+             file.path(s3,"ClinicalData/ProcessedData/JointData", name),
+             '--sse', sep = " "))
 
