@@ -18,7 +18,7 @@ library(data.table)
 # <per.file.clinical.txt> or <per.patient.clinical.txt> before running.
 
 table_process <- function(){
-
+  
   source("qc_and_summary.R")
   per.file    <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData/Integrated", "per.file.clinical.txt"))
   per.patient <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData/Integrated", "per.patient.clinical.txt"))
@@ -29,8 +29,9 @@ table_process <- function(){
   per.patient.clinical  <- per.patient # rename for clarity
   per.file.clinical     <- per.file    # rename for clarity
   
-  # currently table merge throws dimension error since CNV contains clinically lost patients, it's OK
   per.file.all          <- table_merge(per.file.clinical)
+  
+  # kill here
   per.file.all          <- remove_invalid_samples(per.file.all)
   
   # update inventory flags to per.patient after table merge since patient inventory flags
@@ -85,7 +86,7 @@ table_process <- function(){
   write_to_s3integrated(per.patient.clinical.nd.tumor  ,name = "per.patient.clinical.nd.tumor.txt")
   
   write_to_s3integrated(unified.clinical.nd.tumor      ,name = "unified.clinical.nd.tumor.txt")
-
+  
   RPushbullet::pbPost("note", title = "table_process done")  
 }
 
@@ -133,7 +134,7 @@ Snapshot <- function( prefix ){
     stringsAsFactors = F ) %>%
     group_by(root) %>%
     summarise(latest = max(version))
-
+  
   #summarize the current file versions to see if anything is newer than the archive version
   current.table <- data.frame(
     date  = gsub("^([0-9\\-]+).*","\\1",pre),
@@ -226,14 +227,14 @@ cytogenetic_consensus_calling <- function(df){
   conflicted.samples <- sorted  %>%
     filter( length(unique(Value)) >1 ) %>%
     spread(key = Technique, value = Value)
-
+  
   # report conflicted result counts
   x <- ungroup(conflicted.samples) %>% count(Study) %>% unite(x, c(Study, n), sep = " = ")
   message(paste("<conflicted.samples.txt>",
                 "Samples with results conflicted between techniques:", 
                 paste(x$x, collapse = ", "), 
                 sep = " "))
-   
+  
   # remove redundant or less preferred translocation calls
   preferred <- sorted  %>%
     # only retain the most preferred value
@@ -448,17 +449,19 @@ local_collapse_dt <- function(df, column.names, unique = F){
   
   # filter to remove all NA, blank, or non-duplicated rows
   # remove sample-variable sets that are already unique
-  already.unique <- long[(value != "NA"), n := .N, by = c(column.names, "variable")][n==1, 1:3]
-  duplicated     <- long[(value != "NA"), n := .N, by = c(column.names, "variable")][n>1, 1:3]
+  already.unique <- long[(value != "NA"), n := .N, by = c(column.names, "variable")][n==1]
+  duplicated     <- long[(value != "NA"), n := .N, by = c(column.names, "variable")][n>1]
   
-  # summarize remaining fields to simplify
-  dedup          <- duplicated[, .(value = toolboxR::Simplify(value)), by = c(column.names, "variable")]
+  if(nrow(duplicated) > 0){
+    # summarize remaining fields to simplify
+    dedup          <- duplicated[, .(value = toolboxR::Simplify(value)), by = c(column.names, "variable", "n")]
+    # join and spread
+    long <- rbind(already.unique, dedup)
+  }else{long <- already.unique}
   
-  # join and spread
-  long <- rbind(already.unique, dedup)
-  wide <- data.table::dcast(long, get(column.names) ~ variable, value.var = "value" )
-  wide <- dplyr::rename_(wide, .dots=setNames("column.names", column.names))
-  as.data.frame(wide)
+  wide <- data.table::dcast(long,  paste0(paste(column.names, collapse = " + "), " ~ variable") 
+                            , value.var = "value")
+  # wide <- dplyr::rename_(wide, .dots=setNames("column.names", column.names))
   
 }
 
@@ -504,34 +507,50 @@ mutate_cond <- function(.data, condition, ..., envir = parent.frame()) {
 }
 
 table_merge <- function(per.file){
+  # this function performs a cbind operation of molecular data
+  # CNV, BI, SNV, and RNA-Seq counts to the per.file table
+  
   
   s3joint    <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/JointData"
+  system(paste('aws s3 cp', s3joint, local, '--recursive --exclude "*" --include "curated*" --exclude "archive*"', sep = " "))
   
   #######################
-  df <-  per.file
+  df    <-  as.data.table(per.file)
+  setkey(df, File_Name)
   
   #######################
-  # CNV
-  print("CNV Merge........................................", quote = F)
-  new <- GetS3Table(file.path(s3joint,"curated_cnv_ControlFreec_2017-02-21.txt"))
-  new <- filter(new, new$File_Name %in% per.file$File_Name)
-  df <-  merge_table_files(df, new, id = "File_Name")
+  files <- list.files(local, pattern = "^curated", full.names = T)
+  new        <- lapply(files, fread)
+  names(new) <- gsub("curated_(.*?)_.*", "\\1", tolower(basename(files)))
+  
+  # Check that all tables have a File_Name column
+  if( !all(sapply(new, function(x){"File_Name" %in% names(x)})) ){
+    stop("At least one curated table is missing the File_Name column")}
+  
+  lapply(new, setkey, File_Name)
   
   #######################
-  # Biallelic Inactivation Flags
-  print("BI Merge.........................................", quote = F)
-  new <- GetS3Table(file.path(s3joint,"curated_BiallelicInactivation_Flag.txt"))
-  new <- filter(new, new$File_Name %in% per.file$File_Name)
-  df <-  merge_table_files(df, new, id = "File_Name")
   
-  #######################
-  # SNV
-  print("SNV Merge........................................", quote = F)
-  new <- GetS3Table(file.path(s3joint,"curated_SNV_BinaryConsensus_2017-02-13.txt"))
-  new <- filter(new, new$File_Name %in% per.file$File_Name)
-  df <-  merge_table_files(df, new, id = "File_Name")
+  all <- df
+  for( i in new ){
+    all <- merge(all, i, all.x=TRUE)  
+  }  
   
-  return(df)
+  # verify all column added
+  sum(sapply(c(list(per.file = df), new), dim)[2,]) - length(new)
+  
+  # verify no new rows added to curated per.file table
+  dim(df)[1] == dim(all)[1]
+  
+  # export table of rows that were not incorporated
+  lapply(1:length(new), function(i){
+    unmatched <- new[[i]][!File_Name %in% df$File_Name]
+    name      <- paste0("unmatched_during_table_merge_", names(new)[i], ".txt")
+    PutS3Table(unmatched, file.path(s3, "ClinicalData/ProcessedData/JointData", name))
+    dim(unmatched)[1]
+  })
+  
+  return(all)
 }
 
 subset_clinical_columns <- function(df){
