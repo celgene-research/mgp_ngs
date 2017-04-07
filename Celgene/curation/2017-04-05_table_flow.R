@@ -61,7 +61,6 @@ for( i in nd.tumor.dts ){
 }
 dim(per.file.all.nd.tumor)
 
-
 # collapse each individual table to per.patient
 ###########################################
 collapsed.dts <- lapply(nd.tumor.dts, function(dt){
@@ -103,6 +102,12 @@ PutS3Table(per.patient.unified.all.nd.tumor,
 # and also put a version with just the clinical data (derived from per.patient + collapsed per.file)
 x <- per.patient.unified.all.nd.tumor
 per.patient.unified.clinical.nd.tumor <- x[,!grep("^SNV|^CNV|^BI|^RNA|^CYTO|^File_Name_", names(x), value = T), with=F]
+
+
+
+PutS3Table(per.file.all.nd.tumor, 
+           file.path(s3, "ClinicalData/ProcessedData/Integrated/per.file.all.nd.tumor.txt"))
+
 
 # PutS3Table(per.patient.unified.clinical.nd.tumor,
            # file.path(s3, "ClinicalData/ProcessedData/Integrated/per.patient.unified.clinical.nd.tumor.txt"))
