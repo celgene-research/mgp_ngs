@@ -80,4 +80,11 @@ dts.complete <- lapply(names(dts), function(type){
   dt
 })
 
+RPushbullet::pbPost('note', 'done')
+
+# count appended values in third column to guage collapse efficiency
+sapply(complete.dts, function(dt){
+  sum(grepl("; ", dt[[3]]))
+})
+
 
