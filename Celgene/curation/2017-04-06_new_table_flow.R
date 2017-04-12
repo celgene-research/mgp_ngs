@@ -1,5 +1,5 @@
 source("curation_scripts.R")
-PRINTING = TRUE # turn off print to S3 when iterating
+PRINTING = FALSE # turn off print to S3 when iterating
 
 system(paste('aws s3 cp',
              file.path(s3, "ClinicalData/ProcessedData/Master/"),
@@ -31,8 +31,8 @@ if(PRINTING) PutS3Table(per.file.all, file.path(s3, "ClinicalData/ProcessedData/
 
 # filter EACH table for nd.tumor only
 ################################################
-nd.tumor.files    <- dts[['metadata']][Disease_Status == "ND" & Sample_Type_Flag == 1, File_Name]
-nd.tumor.patients <- dts[['metadata']][Disease_Status == "ND" & Sample_Type_Flag == 1, Patient]
+nd.tumor.files    <- dts[['metadata']][Disease_Status == "ND" & Sample_Type_Flag == 1 & Disease_Type == "MM", File_Name]
+nd.tumor.patients <- dts[['metadata']][Disease_Status == "ND" & Sample_Type_Flag == 1 & Disease_Type == "MM", Patient]
 
 nd.tumor.dts <- lapply(names(dts), function(type){
   dt <- dts[[type]]
