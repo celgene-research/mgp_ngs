@@ -1,0 +1,167 @@
+---
+title: "compare cluster constituents"
+author: "Dan Rozelle"
+date: "April 11, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("curation_scripts.R")
+```
+
+ < 2017-04-07_subset_for_clustering.R>
+ in order to facilitate ideal clustering input I've been asked to generate
+ a subset of patient-level data that includes only patients with:
+ 
+>    Clinical outcome data (D_PFS and D_OS)
+>    SNP
+>    CNV
+>    CYTO ( Translocations )
+>    RNA  ( Normalized RNA-Seq trascript counts)
+   
+ Since I now have these data as individual patient-level summaries for nd.tumor
+ data I can simply merge these tables together and retain only intersect rows.
+ 
+
+```{r}
+# import all of the master curated tables for annotating the c800 set
+system(paste('aws s3 cp',
+             file.path(s3, "ClinicalData/ProcessedData/Master/"),
+             local,
+             '--recursive', sep = " "))
+
+# import individual cluster files
+files <- list.files(local, full.names = T)
+# remove unnecessary tables before import
+files <- grep("curated*",files,value = T)
+
+master        <- lapply(files, fread)
+names(master) <- gsub("curated_([a-z]+)\\.txt", "\\1", tolower(basename(files)))
+names(master)
+# metadata master is a per-file and contains all files we are tracking, 
+# including excluded and invalid samples.
+nrow(master[['metadata']])
+
+###
+# import the 580 cluster patients I previously filtered
+system(paste('aws s3 cp',
+             file.path(s3, "ClinicalData/ProcessedData/Cluster/"),
+             local,
+             '--recursive --exclude "per.patient.all*"', 
+             sep = " "))
+
+# import individual cluster files
+files <- list.files(local, full.names = T)
+# remove unnecessary tables before import
+files <- grep("clinical|cnv|rnaseq|snv|translocation|meta",files,value = T)
+
+c579        <- lapply(files, fread)
+names(c579) <- gsub(".*patient\\.([a-z]+)\\..*", "\\1", tolower(basename(files)))
+names(c579)
+# add a c579 designator
+c579[['metadata']][,c579 := 1]
+nrow(c579[['metadata']])
+
+```
+
+
+On Apr 7, 2017, at 4:04 PM, Wardell, Christopher <CPWardell@uams.edu> wrote:
+
+> Thanks for the data.  I?ve been looking at it and realized that the so-called unified dataset that we?re working on isn?t the same as your 594 samples. 
+>  
+> Can we work out where the differences are?
+>  
+> I?ve attached a spread sheet showing how we split our data up;
+>  
+> Start with 1313 WES samples
+> Keep only samples with copy number data (the ?CopyNumber.Pass? column), which is 1106 samples
+> We found that patients aged 75 or older perform poorly, so removed them: 916 samples
+> Required ISS stage data: 831 samples
+> Survival data required: 800 samples
+>  
+> There is a column called ?TRAINTEST? which tells you which group each sample belongs to.  There will be 600 training samples, 200 test samples and the rest are > removed (there may be some NA values in there).
+>  
+> Can you tell me how you got to the 594 samples?  I guess we might need to start exchanging knitr documents to make this really exact.
+>
+
+```{r}
+traintest <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData/Cluster800", 
+                                  "2017-04-07_TrainTest_from_ChrisWardell.txt")) %>%
+  filter(TRAINTEST != "0") %>% mutate(c800 = 1)
+
+nrow(traintest)
+```
+
+```{r}
+# compare total overlap by patient identifier
+venn::venn(list(c579 = c579[['metadata']]$Patient, c800 = traintest$Patient), cexil = 1.8, cexsn = 1.5)
+
+df <- merge(select(c579[['metadata']],Patient, c579 ),
+            select(traintest,       Patient, c800 ),
+            by = "Patient", all = T)
+
+classifiers <- master[['metadata']] %>%
+  left_join(master[['clinical']] %>% select(-Study), by = "Patient")%>%
+  group_by(Patient) %>%
+  summarize(
+    study       = unique(Study[!is.na(Study)]),
+    excluded.patient = all(Excluded_Flag == 1),
+    has.nd      = any(Disease_Status == "ND"),
+    has.tumor   = any(Sample_Type == "NotNormal"),
+    over.75     = any(D_Age >= 75),
+    has.D_PFS   = any( !is.na(D_PFS)),
+    has.D_OS    = any( !is.na(D_OS) ),
+    has.D_ISS   = any( !is.na(D_ISS)))
+
+
+
+has.cnv  <- master[['cnv']][,c("Patient", "File_Name")] %>% 
+  rename(cnv.file = File_Name) %>% setkey(Patient)%>%
+  local_collapse_dt(column.names = "Patient")
+has.snv  <- master[['cnv']][,c("Patient", "File_Name")] %>% 
+  rename(snv.file = File_Name) %>% setkey(Patient)%>%
+  local_collapse_dt(column.names = "Patient")
+has.rna  <- master[['rnaseq']][,c("Patient", "File_Name")] %>% 
+  rename(rnaseq.file = File_Name) %>% setkey(Patient)%>%
+  local_collapse_dt(column.names = "Patient")
+has.trsl <- master[['translocations']][,c("Patient", "File_Name")] %>% 
+  rename(translocation.file = File_Name) %>% setkey(Patient) %>%
+  local_collapse_dt(column.names = "Patient")
+
+merge_all <- function(dt1, dt2){merge(dt1, dt2,  all.x = TRUE)}
+out <- Reduce(merge_all, list(df, classifiers, has.cnv, has.snv, has.trsl, has.rna)) %>%
+  mutate(has.sample = TRUE,
+         has.cnv = !is.na(cnv.file),
+         has.snv = !is.na(snv.file),
+         has.rna = !is.na(rnaseq.file),
+         has.trs = !is.na(translocation.file),
+         membership = case_when(
+           is.na(.$c579) &   .$c800 == 1 ~ "c800",
+             .$c579 == 1 & is.na(.$c800) ~ "c579",
+             .$c579 == 1 & .$c800 == 1   ~ "both",
+            
+          
+                                   TRUE ~ as.character(NA))
+         ) 
+# proportion of patients with a certain data type, split into three groups
+out %>% group_by(membership) %>%  summarise_if(is.logical, mean, na.rm = T) %>% as.data.frame()
+# count of patients with a certain data type, split into three groups
+out %>% group_by(membership) %>%  summarise_if(is.logical, sum, na.rm = T) %>% as.data.frame()
+
+# proportion of patients from c579 group
+out %>% group_by(c579) %>%  summarise_if(is.logical, mean, na.rm = T) %>% filter( !is.na(c579)) %>% as.data.frame()
+# count of patients from c579 group
+out %>% group_by(c579) %>%  summarise_if(is.logical, sum, na.rm = T) %>% filter( !is.na(c579)) %>% as.data.frame()
+
+# proportion of patients from c800 group
+out %>% group_by(c800) %>%  summarise_if(is.logical, mean, na.rm = T) %>% filter( !is.na(c800)) %>% as.data.frame()
+# count of patients from c800 group
+out %>% group_by(c800) %>%  summarise_if(is.logical, sum, na.rm = T) %>% filter( !is.na(c800)) %>% as.data.frame()
+
+```
+
+```{r}
+timestamp()
+sessionInfo()
+```
