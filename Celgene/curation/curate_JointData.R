@@ -29,19 +29,24 @@ print("CNV Curation........................................")
 
   # import call file and rename columns for integrated dictionary
   cnv <- GetS3Table(file.path(s3,"ClinicalData/OriginalData/Joint",
-                              "2017-02-21_cody_copy_number_table_all.txt"))  
+                              "2017-02-21_cody_copy_number_table_all.txt"),
+                    reader = "fread", remove.empty.columns = T, remove.empty.rows = T)
   names(cnv) <- paste("CNV", names(cnv), "ControlFreec", sep = "_")
-  cnv <- cnv %>% rename(File_Name = CNV_X_ControlFreec)
+  cnv <- cnv %>% rename(File_Name = CNV_V1_ControlFreec)
   
   # remove files that didn't pass Cody's filter (0=Fail; 1=Pass)
   pass.filter <- GetS3Table(file.path(s3,"ClinicalData/OriginalData/Joint",
-                                      "2017-02-21_cody_cnv_samples_passfilter.txt")) 
+                                      "2017-02-21_cody_cnv_samples_passfilter.txt")) %>%
+    filter(Pass == 1) %>% .[['File_Name']]
+
   # 267 failed; 1174 passed
   # pass.filter %>% group_by(Pass) %>% count()
   
-  removed <- cnv[cnv$File_Name %in% pass.filter[pass.filter$Pass == "0", "File_Name"],]
+  removed <- cnv[ ! File_Name %in% pass.filter ]
   PutS3Table(removed, file.path(s3,"ClinicalData/ProcessedData/JointData",
                        "2017-02-21_cnvs_NOT_passing_codys_filter.txt")) 
+  
+  cnv     <- cnv[ File_Name %in% pass.filter ]
   
   # edit filenames to match File_Name patterns in per-file table
   # DFCI == _EGAR00001321522_EGAS00001001147_B01MYABXX_1_57 => B01MYABXX_1_57
@@ -51,29 +56,10 @@ print("CNV Curation........................................")
     grepl("^_E", cnv$File_Name) ~ gsub("^_E.*?_([^E].*)$" , "\\1", cnv$File_Name),
     grepl("^HU", cnv$File_Name) ~ gsub("HUMAN_37_pulldown_" , "", cnv$File_Name),
                            TRUE ~ cnv$File_Name )
+ 
+    PutS3Table(cnv, file.path(s3,"ClinicalData/ProcessedData/JointData",
+                                "curated_cnv_ControlFreec_2017-04-14_passing_filter.txt")) 
   
-  # confirm that all valid filenames are matched
-  # cnv$File_Name[!(cnv$File_Name %in% per.file$File_Name)]
-  
-  PutS3Table(cnv, file.path(s3,"ClinicalData/ProcessedData/JointData",
-                                "curated_cnv_ControlFreec_2017-02-21.txt")) 
-  
-# # compile a cnv dictionary
-# cnv_locations <- data.frame(t(readxl::read_excel(file.path(local,"copy_number_table.xlsx"),
-#                           sheet = 1, col_names = F )[1:2,]))
-# # trim top two lines
-# cnv_locations <- cnv_locations[3:nrow(cnv_locations),]
-# 
-# cnv_locations['names'] <-   paste("CNV",cnv_locations$X2,"ControlFreec", sep = "_")
-# cnv_locations['key_val'] <- '0"=homozygous deletion"; 1="loss"; 2="normal"; -2="copy number neutral loss of heterozygosity"; 3="gain"; 4="amplification"'
-# cnv_locations['description'] <- paste("chromosome_hg19 start position", cnv_locations$X1, sep = " ")
-# 
-# cnv_locations[,c("X1", "X2")] <- NULL
-# 
-# # write to local
-# path <- file.path(local,"cnv_dictionary.txt")
-# write.table(cnv_locations, path, row.names = F, col.names = T, sep = "\t", quote = F)
-
 
 # Trsl --------------------------------------------------------------------
 ## Translocations using MANTA from Brian (BWalker2@uams.edu)
