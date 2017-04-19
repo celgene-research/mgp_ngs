@@ -8,6 +8,21 @@ library(dplyr) # don't load plyr, it will conflict
 library(tidyr)
 library(data.table)
 
+# this function does not allow specification of directory to 
+# prevent inadvertant file deletion 
+CleanLocalScratch <- function(){
+  path = "/tmp/curation"
+  if(dir.exists(path)){system(paste('rm -r', path, sep = " "))}
+  dir.create(path)
+  path
+}
+# run on source
+local <- CleanLocalScratch()
+
+copy.s3.to.local <- function (s3.path, aws.args = "", local.path = local){
+  system(paste("aws s3 cp", s3.path, local.path, aws.args, sep = " "))
+}
+
 
 # This script is meant to facilitate generation of all downstream tables derived
 # from a basic per.patient and per.file table. This includes joining to molecular 
@@ -93,16 +108,7 @@ table_process <- function(){
 
 
 
-# this function does not allow specification of directory to 
-# prevent inadvertant file deletion 
-CleanLocalScratch <- function(){
-  path = "/tmp/curation"
-  if(dir.exists(path)){system(paste('rm -r', path, sep = " "))}
-  dir.create(path)
-  path
-}
-# run on source
-local <- CleanLocalScratch()
+
 
 write.object <- function(x, path = local, env){
   if( is.environment(env)){  
@@ -435,9 +441,10 @@ CleanColumnNamesForSAS <- function(n){
 }
 
 
-local_collapse_dt <- function(df, column.names, unique = F){
+local_collapse_dt <- function(df, column.names, unique = F, conserve.na.columns = T){
   
   dt   <- data.table::as.data.table(df)
+  if(conserve.na.columns) dt <- rbindlist(list(dt, as.list(rep("dummy", ncol(dt)))))
   
   # suppress the coersion warning since it is expected
   # <simpleWarning in melt.data.table(dt, id.vars = "Sample_Name", na.rm = TRUE):
@@ -445,12 +452,14 @@ local_collapse_dt <- function(df, column.names, unique = F){
   # the same type. By order of hierarchy, the molten data value column will be of
   # type 'character'. All measure variables not of type 'character' will be coerced
   # to. Check DETAILS in ?melt.data.table for more on coercion.>
-  suppressWarnings(long <- data.table::melt(dt, id.vars = column.names, na.rm = TRUE))
+  suppressWarnings(long <- data.table::melt(dt, id.vars = column.names, na.rm = FALSE))
+
+  long <- long[, n := length(value), by = c(column.names, "variable")][!is.na(value)]
   
   # filter to remove all NA, blank, or non-duplicated rows
   # remove sample-variable sets that are already unique
-  already.unique <- long[(value != "NA"), n := .N, by = c(column.names, "variable")][n==1]
-  duplicated     <- long[(value != "NA"), n := .N, by = c(column.names, "variable")][n>1]
+  already.unique <- long[n==1]
+  duplicated     <- long[n>1]
   
   if(nrow(duplicated) > 0){
     # summarize remaining fields to simplify
@@ -462,7 +471,9 @@ local_collapse_dt <- function(df, column.names, unique = F){
   wide <- data.table::dcast(long,  paste0(paste(column.names, collapse = " + "), " ~ variable") 
                             , value.var = "value")
   # wide <- dplyr::rename_(wide, .dots=setNames("column.names", column.names))
-  
+
+  # remove any dummy column conservation rows
+  return(wide[get(column.names[1]) != "dummy"])
 }
 
 
@@ -563,3 +574,12 @@ subset_clinical_columns <- function(df){
   df <- df[, n]
   df
 }
+
+dict <- function(update = T){
+  if(update) {
+    d <- toolboxR::auto_read(file.path("~/mgp_ngs/Celgene/curation/mgp_dictionary.txt"))
+    toolboxR::PutS3Table(object = d, 
+                         s3.path = file.path(s3, "ClinicalData/ProcessedData/Integrated/mgp_dictionary.txt"))
+    }
+  toolboxR::GetS3Table(file.path(s3, "ClinicalData/ProcessedData/Integrated/mgp_dictionary.txt"))
+  }
