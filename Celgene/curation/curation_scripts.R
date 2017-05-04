@@ -3,6 +3,14 @@
 d  <- format(Sys.Date(), "%Y-%m-%d")
 s3 <- "s3://celgene.rnd.combio.mmgp.external"
 
+options(stringsAsFactors = FALSE)
+# ,
+# error = function() { 
+#   
+#   if(!interactive()) RPushbullet::pbPost("note", "Error", geterrmessage()))
+# })
+
+
 # attach important packages
 # devtools::install_github("dkrozelle/toolboxR", force = TRUE)
 library(toolboxR)
@@ -21,54 +29,90 @@ CleanLocalScratch <- function(){
 # run on source
 local <- CleanLocalScratch()
 
-copy.s3.to.local <- function (s3.path, aws.args = "", local.path = local){
-  system(paste("aws s3 cp", s3.path, local.path, aws.args, sep = " "))
-}
-
-# copies all updated s3 files in a specified directory prefix to an ./archive subfolder
-#  and appends current date.
-#  Currently will not work for similar named files only differentiated by extension
-archive <- function( prefix ){
+# moves files from an s3 directory that are not the most current to 
+# an /archive subfolder
+# 
+# NOTE: Currently will not work for similar named files only differentiated by extension
+archive <- function(path, aws.args = NULL){
   
-  pre     <- system(paste('aws s3 ls', paste0(prefix, "/"), sep = " "), intern = T)
-  archive <- system(paste('aws s3 ls', paste0(file.path(prefix, "archive"),"/"), sep = " "), intern = T)
-  
-  # summarize what is already archived
-  archive.table <- data.frame(
-    root    = gsub(".*[0-9] (.*)_[0-9].*","\\1",archive),
-    version = gsub(".*_(.*)\\..*","\\1",archive),
-    stringsAsFactors = F ) %>%
+  # TODO: prevent recursion to lower directories
+  stale.versions <- system(paste('aws s3 ls', paste0(path, "/")), intern = T) %>% 
+    as.data.frame() %>%
+    transmute(name = gsub("^.* ", "", .),
+              root = gsub("^(.*)\\.([0-9\\-]{10})\\..*", "\\1", name),
+              date = gsub("^(.*)\\.([0-9\\-]{10})\\..*", "\\2", name)) %>%
     group_by(root) %>%
-    summarise(latest = max(version))
+    arrange(desc(date)) %>%
+    filter(!grepl("[0-9]{4}\\-[0-9]{2}\\-[0-9]{2}", date)) %>%
+    slice(-1)
   
-  #summarize the current file versions to see if anything is newer than the archive version
-  current.table <- data.frame(
-    date  = gsub("^([0-9\\-]+).*","\\1",pre),
-    root  = gsub(".* ([^0-9].*)\\..*","\\1",pre),
-    path  = gsub(".* ([^0-9].*\\..*)","\\1",pre),
-    stringsAsFactors = F   ) %>%
-    filter(grepl("^2", date))
+  null <- lapply(stale.versions$name, function(n){
+    from <- file.path(path,n)
+    to   <- file.path(path, "archive", n)
+    system(paste('aws s3 mv', 
+                 from, to, 
+                 '--sse', aws.args))
+  })
+}
+
+order_by_dictionary <- function(df){
+  dict <- get_dict() %>% filter(names %in% names(df))  
   
-  out <- unlist(lapply(current.table$root, function(x){
-    version <- current.table[current.table$root == x,"date"]
-    archive <- archive.table[archive.table$root == x,"latest"]
-    if( (length(archive) == 0) || (version >= archive) ){
-      
-      name   <- current.table[current.table$root == x,"path"]
-      d.name <- gsub("(.*)(\\..*)",  paste0("\\1_",d,"\\2"), name)
-      start  <- file.path(prefix, name)
-      end    <- file.path(prefix, "archive", d.name)
-      system(paste("aws s3 cp",start, end, "--sse", sep = " "))
-      d.name
-    }
-  }))
+  if( any(!names(df) %in% dict$names) ){
+    message(
+      paste( names(df)[!names(df) %in% dict$names], "not in dictionary" )
+    )
+  }
   
-  out
+  df[,dict$names]
+}
+
+
+call_sample_core_translocations     <- function(translocations){}
+call_patient_core_translocations    <- function(translocations, metadata){}
+
+call_secondary_structural_variation <- function(translocations,metadata){
+  #
+  #  non-exclusive deletions and amplifications, call a per-file consensus based
+  #  on multiple possible data sources.
+  #
+  #   amp(1q) | ND=0, R=1 by FISH | ND=NA, R=NA by MANTA | called as ND=0, R=1
+  #   amp(1q) | ND=0, R=1 by FISH | ND=1,  R=NA by MANTA | called as ND=1, R=1
+  # currently we only have FISH calls for these, so I'm going to cheat and just transfer those
+  # values as the de facto consensus. But I do want to see if they'll cause any clashes
+  # then I collapse to nd.tumor patient level
+  
+  consensus.data <- right_join(metadata, translocations,
+                               by = c("Patient", "File_Name")) %>%
+    filter(Disease_Status == "ND", Sample_Type_Flag == 1, 
+           (Disease_Type == "MM" | is.na(Disease_Type)) ) %>%
+    
+    select(File_Name, Patient, grep("amp|del|MYC|plus", names(.)), -starts_with("Sample")) %>%
+    gather(var, val, -File_Name, -Patient) %>%
+    mutate(type      = gsub("CYTO_(.*)_.*", "\\1", var),
+           technique = gsub("CYTO_.*_(.*)$", "\\1",var)) %>%
+    filter( !is.na(val) )   %>%
+    
+    # used to identify any conflicted values
+    # group_by(Patient, type) %>%
+    # mutate() %>%
+    # arrange(n)
+    
+    mutate(type = paste("CYTO", type, "CONSENSUS", sep = "_")) %>%
+    spread(type,val)
+  
+  
+  append_df(translocations, consensus.data, id = "File_Name", mode = "safe")
+  
 }
 
 
 
-cytogenetic_consensus_calling <- function(df){
+
+
+
+
+cytogenetic_consensus_calling <- function(translocations, metadata){
   
   # this revised script performs 3 sequential functions
   # 1. call consensus translocations using multiple techniques (FISH or MANTA). 
@@ -211,7 +255,7 @@ local_collapse_dt <- function(df, column.names, unique = F, conserve.na.columns 
   # type 'character'. All measure variables not of type 'character' will be coerced
   # to. Check DETAILS in ?melt.data.table for more on coercion.>
   suppressWarnings(long <- data.table::melt(dt, id.vars = column.names, na.rm = FALSE))
-
+  
   long <- long[, n := length(value), by = c(column.names, "variable")][!is.na(value)]
   
   # filter to remove all NA, blank, or non-duplicated rows
@@ -229,7 +273,7 @@ local_collapse_dt <- function(df, column.names, unique = F, conserve.na.columns 
   wide <- data.table::dcast(long,  paste0(paste(column.names, collapse = " + "), " ~ variable") 
                             , value.var = "value")
   # wide <- dplyr::rename_(wide, .dots=setNames("column.names", column.names))
-
+  
   # remove any dummy column conservation rows
   return(wide[get(column.names[1]) != "dummy"])
 }
@@ -253,11 +297,328 @@ sync_data_desktop <- function(root.path = "s3://celgene.rnd.combio.mmgp.external
                  sep = " "))
 }
 
-dict <- function(update = T){
+get_dict <- function(update = T){
   if(update) {
     d <- toolboxR::auto_read(file.path("~/mgp_ngs/Celgene/curation/mgp_dictionary.txt"))
     toolboxR::PutS3Table(object = d, 
                          s3.path = file.path(s3, "ClinicalData/ProcessedData/Resources/mgp_dictionary.txt"))
-    }
-  toolboxR::GetS3Table(file.path(s3, "ClinicalData/ProcessedData/Resources/mgp_dictionary.txt"))
   }
+  toolboxR::GetS3Table(file.path(s3, "ClinicalData/ProcessedData/Resources/mgp_dictionary.txt"))
+}
+
+table_flow <- function(write.to.s3 = TRUE){
+  PRINTING = write.to.s3 # turn off print to S3 when iterating
+  
+  # import JointData tables ------------------------------------------------------
+  CleanLocalScratch()
+  system(paste('aws s3 cp',
+               file.path(s3, "ClinicalData/ProcessedData/JointData/"),
+               local,
+               '--recursive --exclude "*" --include "curated*"',
+               '--exclude "archive*"', 
+               sep = " "))
+  
+  files      <- list.files(local, full.names = T)
+  dts        <- lapply(files, fread)
+  dt.names   <- gsub("curated_(.*?)[_\\.].*txt", "\\1", tolower(basename(files)))
+  if( any(duplicated(dt.names)) )stop("multiple file of the same type were imported")
+  names(dts) <- dt.names
+  
+  ### Filter excluded files ------------------------------------------------------
+  valid.files <- dts$metadata[Excluded_Flag == 0 | is.na(Excluded_Flag) ,
+                              .(Patient, File_Name)]
+  
+  master.dts <- lapply(names(dts), function(type){
+    dt <- dts[[type]]
+    if("File_Name" %in% names(dt)){dt <- dt[File_Name %in% valid.files$File_Name]
+    }else if("Patient" %in% names(dt)){dt <- dt[Patient %in% valid.files$Patient]
+    }else{stop("table doesn't have a filterable column")}
+    
+    n    <- paste("curated", type, d, "txt", sep = ".")
+    path <- file.path(s3, "ClinicalData/ProcessedData/Master", n)
+    if(PRINTING) PutS3Table(dt, path)
+    dt
+  })
+  
+  names(master.dts) <- dt.names
+  # count excluded rows removed 
+  sapply(dts, dim) - sapply(master.dts, dim)
+  
+  ### Filter ND_Tumor_MM files ---------------------------------------------------
+  nd.tumor.files <- master.dts$metadata[Disease_Status     == "ND" & 
+                                          Sample_Type_Flag == 1    & 
+                                          Disease_Type     == "MM" ,
+                                        .(Patient, File_Name)]
+  nd.tumor.dts <- lapply(names(master.dts), function(type){
+    dt <- master.dts[[type]]
+    # if has a file_name use that, else use patient
+    if( "File_Name" %in% names(dt) ){
+      level <- "per.file"
+      dt    <- dt[File_Name %in% nd.tumor.files$File_Name]
+    }else{
+      level <- "per.patient"
+      dt    <- dt[Patient %in% nd.tumor.files$Patient]
+    }
+    n <- paste(level, type, "nd.tumor", d, "txt", sep = ".")
+    path <- file.path(s3, "ClinicalData/ProcessedData/ND_Tumor_MM", n)
+    if(PRINTING) PutS3Table(dt, path)
+    dt
+  })
+  names(nd.tumor.dts) <- dt.names
+  
+  # compare changes after removing relapse files/patients
+  sapply(master.dts, dim) - sapply(nd.tumor.dts, dim)
+  
+  
+  ### collapse individual tables to per.patient ----------------------------------
+  collapsed.dts <- lapply(names(nd.tumor.dts), function(type){
+    
+    dt <- local_collapse_dt(nd.tumor.dts[[type]], column.names = "Patient") 
+    
+    n    <- paste("per.patient", type, "nd.tumor", d, "txt", sep = ".")
+    path <- file.path(s3, "ClinicalData/ProcessedData/ND_Tumor_MM", n)
+    if(PRINTING) PutS3Table(dt, path)
+    dt
+  })
+  names(collapsed.dts) <- dt.names
+  # compare changes after collapse to patients
+  sapply(master.dts, dim) - sapply(collapsed.dts, dim)
+  
+  ### join into unified table -------------------------
+  null <- lapply(collapsed.dts, function(dt){setkey(dt, Patient)})
+  
+  dt <- collapsed.dts$metadata
+  dt <- merge(dt, collapsed.dts$clinical, all = T)
+  dt <- merge(dt, collapsed.dts$blood, all = T)
+  dt <- merge(dt, collapsed.dts$translocations, all = T)
+  
+  # sort by dictionary
+  dict      <- get_dict()
+  matched   <- dict$names[dict$names %in% names(dt)]
+  unmatched <- names(dt)[!names(dt) %in% dict$names]
+  
+  setcolorder(dt, c(matched, unmatched))
+  n    <- paste("per.patient", "unified", "nd.tumor", d, "txt", sep = ".")
+  path <- file.path(s3, "ClinicalData/ProcessedData/ND_Tumor_MM", n)
+  if(PRINTING) PutS3Table(dt, path)
+  
+  
+  # move stale versions to archive subfolder
+  archive(file.path(s3, "ClinicalData/ProcessedData/Master"))
+  archive(file.path(s3, "ClinicalData/ProcessedData/ND_Tumor_MM"))
+  
+  RPushbullet::pbPost("note", "table_flow() has completed")
+}
+
+run_master_inventory <- function(write.to.s3 = TRUE){
+  PRINTING = write.to.s3 # turn off print to S3 when iterating
+  
+  # 2017-04-18 Dan Rozelle
+  # 
+  # The inventory script uses /Master clinical, metadata, and molecular tables 
+  # which have been filtered to remove excluded samples and patients. It write both
+  # patient-level inventory matices and study-level count aggregates to a dated 
+  # ClinicalData/ProcessedData/Reports file.
+  
+  # import master tables ------------------------------------------------------
+  
+  CleanLocalScratch()
+  system(paste('aws s3 cp',
+               file.path(s3, "ClinicalData/ProcessedData/JointData/"),
+               local,
+               '--recursive --exclude "*" --include "curated*"',
+               '--exclude "archive*"', 
+               sep = " "))
+  f        <- list.files(local, full.names = T)
+  dts      <- lapply(f, fread)
+  dt.names <- gsub("curated[_\\.]([a-z]+).*", "\\1", tolower(basename(f)))
+  if( any(duplicated(dt.names)) )stop("multiple file of the same type were imported")
+  names(dts) <- dt.names
+  names(dts)
+  
+  nd <- dts$metadata[Disease_Status == "ND" & Sample_Type_Flag == "1" & Disease_Type == "MM" ,File_Name]
+  
+  # generate lookup tables for each parameter
+  has.demog <- dts$clinical[do.call("|", list(!is.na(D_Gender),   !is.na(D_Age))) ,.(Patient)]
+  has.pfsos <- dts$clinical[do.call("|", list(!is.na(D_PFS), !is.na(D_OS))) ,.(Patient)]
+  has.iss   <- dts$clinical[!is.na(D_ISS) , .(Patient)]
+  under75   <- dts$clinical[!is.na(D_Age)  & D_Age < 75, .(Patient)]
+  has.blood <- dts$blood[File_Name %in% nd][do.call("|", list(!is.na(DIAG_Beta2Microglobulin),      !is.na(DIAG_Albumin))) ,.(Patient)]
+  
+  has.nd.bi    <- dts$biallelicinactivation[File_Name %in% nd][do.call("|", list(!is.na(BI_TP53_Flag), !is.na(BI_NRAS_Flag))) ,.(Patient)]
+  has.nd.cnv   <- dts$cnv[File_Name %in% nd][do.call("|", list(!is.na(CNV_TP53_ControlFreec), !is.na(CNV_NRAS_ControlFreec))) ,.(Patient)]
+  has.nd.rna   <- dts$rnaseq[File_Name %in% nd][do.call("|", list(!is.na(RNA_ENSG00000141510.16), !is.na(RNA_ENSG00000213281.4))) ,.(Patient)]
+  has.nd.snv   <- dts$snv[File_Name %in% nd][do.call("|", list(!is.na(SNV_TP53_BinaryConsensus), !is.na(SNV_NRAS_BinaryConsensus))) ,.(Patient)]
+  has.nd.trsl  <- dts$translocations[File_Name %in% nd][CYTO_Translocation_Consensus %in% c("None", "4", "6", "11", "12", "16", "20")  ,.(Patient)]
+  
+  # patient-level inventory table  ---------------------------------------------
+  inv <- dts$metadata %>% 
+    group_by(Study, Patient) %>%
+    summarise( 
+      INV_Has.ND         = any(Disease_Status == "ND"),
+      INV_Has.R          = any(Disease_Status == "R"),
+      INV_Has.TumorSample     = any(Sample_Type_Flag == "1"),
+      INV_Has.NormalSample    = any(Sample_Type_Flag == "0"),
+      INV_Has.ND.TumorSample  = any(paste0(Disease_Status,Sample_Type_Flag) == "ND1"),
+      INV_Has.WES        = any(Sequencing_Type == "WES"),
+      INV_Has.WGS        = any(Sequencing_Type == "WGS"),
+      INV_Has.RNASeq     = any(Sequencing_Type == "RNA-Seq"),
+      INV_Has.ND.WES     = any(paste0(Disease_Status,Sequencing_Type) == "NDWES"),
+      INV_Has.ND.WGS     = any(paste0(Disease_Status,Sequencing_Type) == "NDWGS"),
+      INV_Has.ND.RNASeq  = any(paste0(Disease_Status,Sequencing_Type) == "NDRNA-Seq"),
+      INV_Has.R.WES      = any(paste0(Disease_Status,Sequencing_Type) == "RWES"),
+      INV_Has.R.WGS      = any(paste0(Disease_Status,Sequencing_Type) == "RWGS"),
+      INV_Has.R.RNASeq   = any(paste0(Disease_Status,Sequencing_Type) == "RRNA-Seq"),
+      
+      INV_Has.Tumor.ND.WES    = any(paste0(Sample_Type_Flag, Disease_Status,Sequencing_Type) == "1NDWES"),
+      INV_Has.Tumor.ND.WGS    = any(paste0(Sample_Type_Flag, Disease_Status,Sequencing_Type) == "1NDWGS"),
+      INV_Has.Tumor.ND.RNASeq = any(paste0(Sample_Type_Flag, Disease_Status,Sequencing_Type) == "1NDRNA-Seq"),
+      INV_Has.Tumor.R.WES    = any(paste0(Sample_Type_Flag, Disease_Status,Sequencing_Type)  == "1RWGS"),
+      INV_Has.Tumor.R.WGS    = any(paste0(Sample_Type_Flag, Disease_Status,Sequencing_Type)  == "1RWES"),
+      INV_Has.Tumor.R.RNASeq = any(paste0(Sample_Type_Flag, Disease_Status,Sequencing_Type)  == "1RRNA-Seq"),
+      
+      INV_Has.demog          = any(Patient %in% has.demog$Patient ),
+      INV_Has.pfsos          = any(Patient %in% has.pfsos$Patient ),
+      INV_Has.iss            = any(Patient %in% has.iss$Patient   ),
+      INV_Under75            = any(Patient %in% under75$Patient   ),
+      
+      INV_Has.blood          = any(Patient %in% has.blood$Patient ),
+      INV_Has.nd.bi             = any(Patient %in% has.nd.bi$Patient    ),
+      
+      INV_Has.nd.cnv            = any(Patient %in% has.nd.cnv$Patient   ),
+      INV_Has.nd.rna            = any(Patient %in% has.nd.rna$Patient   ),
+      INV_Has.nd.snv            = any(Patient %in% has.nd.snv$Patient   ),
+      INV_Has.nd.Translocations = any(Patient %in%  has.nd.trsl$Patient ),
+      
+      Cluster.A2    = (INV_Has.ND.TumorSample & 
+                         INV_Has.pfsos &
+                         INV_Has.nd.cnv & 
+                         INV_Has.nd.rna &
+                         INV_Has.nd.snv & 
+                         INV_Has.nd.Translocations ),
+      Cluster.B     = (Cluster.A2 &
+                         INV_Has.iss &
+                         INV_Under75 & 
+                         INV_Has.blood)  )%>%
+    mutate_if(is.logical, as.numeric)
+  
+  n <- paste("counts.by.individual", d, "txt", sep = "." )
+  if(PRINTING) PutS3Table(inv, file.path(s3, "ClinicalData/ProcessedData/Reports", n))
+  
+  # study-level matrix --------------------------------------------------------
+  per.study.counts <- inv %>% group_by(Study) %>% summarise_if(is.numeric, sum)
+  
+  aggs <- lapply(list("blood", "clinical", "translocations"), function(type){
+    dt <- dts[[type]]
+    
+    if("File_Name" %in% names(dt)){ 
+      dt <- right_join(select(dts$metadata, File_Name, Study), 
+                 dt, by = "File_Name") %>%
+        group_by(Study) %>%
+        summarise_all( funs(INV = sum(!is.na(.)) ))
+    }else{
+      dt <- right_join(select(dts$metadata, Patient, Study), 
+                     dt, by = "Patient") %>%
+        group_by(Study)%>%
+        summarise_all( funs(INV = sum(!is.na(.)) ))
+    }
+    names(dt) <- gsub("(.*)_(INV)", "\\2_\\1", names(dt))
+    dt
+  })
+   
+  df <- do.call(cbind, c(list(per.study.counts), aggs))
+  df <- as.data.frame(t(df), stringsAsFactors = F)
+  names(df) <- df[1,]
+  df <- df[2:nrow(df),]
+  df["Total"] <- apply(df, MARGIN = 1, function(x){sum(as.integer(x))})
+  df[['Category']] <- row.names(df)
+  
+  n <- paste("counts.by.study", d, "txt", sep = "." )
+  if(PRINTING) PutS3Table(df, file.path(s3, "ClinicalData/ProcessedData/Reports", n), row.names = F, quote = F)
+  
+  # move stale versions to archive subfolder
+  archive(file.path(s3, "ClinicalData/ProcessedData/Reports"))
+  
+  RPushbullet::pbPost("note", "table_flow() has completed")
+  
+  list(per.patient.counts = inv, 
+       per.study.counts = df)
+}
+export_sas <- function(table.path){
+  
+  # this has been adjusted to maintain a very specific export format, edit with care
+  # It attempts to retain similarity in variable names and types to <SAS.TEMPLATE_2016-11-23.sas>
+  
+  df    <- GetS3Table(table.path, check.names = F)
+  
+  # sas column names are very restrictive, and automatically edited if nonconformant
+  # 32 char limit only symbol allowed is "_"
+  # export to sas automatically replaces each symbol with "_", truncates to 32 but has
+  # strange truncation rules (first lower case letters and then trailing upper case letters?)
+  # also, use previsouly established names at all cost, this pisses off Biostats ppl
+  # clean table names and dictionary names
+  
+  # names(df)  <- CleanColumnNamesForSAS(names(df))
+  
+  dict  <- get_dict %>% filter( sas.name != "")
+  
+  name2sasname <- setNames(dict$sas.name, dict$names)
+  # select only columns that have sas export names defined in dict
+  df <- df[, names(df) %in% names(name2sasname) ]
+  names(df) <- name2sasname[names(df)]
+  names(df)
+  
+  dict$names <- CleanColumnNamesForSAS(dict$names)
+  
+  # Compare with previous export and add back columns that have no info now but 
+  # might will in future analyses
+  p <- "CYTO|FLO|MISC|History"
+  df[,grep(p, setdiff(previous_columns, names(df)), value = T)] <-  NA
+  
+  # get a column with type definitions
+  types      <- dict[  match(names(df), dict$names), "class"]
+  if(any( is.na(types)) ) warning(paste("Column(s):\"", names(df)[is.na(types)], "\" are not defined class in dict", sep = " "))
+  
+  # coerce each variable
+  df <- df %>%
+    # convert to appropriate variable type
+    mutate_if(types == "numeric",   as.numeric)   %>%
+    mutate_if(types == "factor",   as.factor)   %>%
+    mutate_if(types == "character" | types == "date", as.character) %>%
+    
+    # leave NA values explicit and they will be suppressed in export
+    mutate_if(types == "character", funs( gsub("^NA$", "", .) ))  %>%
+    mutate_if(types == "character", funs( ifelse(is.na(.),"", .) )  ) %>%
+    
+    # remove all INV counting columns
+    select(-c(starts_with("INV"))) %>%
+    
+    # remove new variables not required for analysis
+    select(-c(Disease_Type)) %>%
+    select(-ends_with("Date"))
+  
+  # sort columns in dictionary order
+  tmp <- df[,dict$names[dict$names %in% names(df)]]
+  if( all(dim(tmp) == dim(df)) ){df <- tmp
+  }else{ stop("sorted columns didn't retain the same dimensions")}
+  
+  # export as SAS format
+  name <- "unified.nd.tumor"
+  root <- paste0(name, "_", d)
+  local.data.path <- file.path(local, paste0(root,".txt"))
+  local.code.path <- file.path(local, paste0(root,".sas"))
+  
+  foreign::write.foreign(df,
+                         datafile = local.data.path,
+                         codefile = local.code.path,
+                         package="SAS")
+  
+  # edit sas code table such that empty columns retain character length = 1
+  system( paste('sed -i "s/\\$ 0$/\\$ 1/" ', local.code.path, sep = " "))
+  
+  
+  # new columns
+  setdiff(names(df), previous_columns)
+  # lost columns
+  setdiff(previous_columns, names(df))
+}

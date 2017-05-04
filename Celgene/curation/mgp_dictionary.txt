@@ -1,142 +1,135 @@
-names	level	class	restrictions	units	description	MMRF Source	DFCI_Source	DFCI2009_Source	UAMS_Source	LOHR_Source	sensitive	active
-Patient	biallelicinactivation; blood; clinical; cnv; metadata; rnaseq; snv; translocations	character			Normalized patient identification number. 	PER_PATIENT.PUBLIC_ID (format “MMRF_0000”)	"Example: ""PD0000"""	example: ”DFCI_000_000AA”	"example: ""UAMS_0000"""	"example:  ""MMRC_0000"""	0	1
-File_Name	biallelicinactivation; blood; cnv; metadata; rnaseq; snv; translocations	character			trimmed filename for uniquely matching study files						0	1
-Study	metadata	factor	DFCI; LOHR; MMRF; UAMS		Study cohort this patient belongs to	“MMRF”	"""DFCI"""	DFCI.2009	"""UAMS"""	"""LOHR"""	0	1
-Study_Phase	metadata	character			Study phase. So far this is only applicable to MMRF (eg. IA8, IA9)	Parsed from IA package structure	NA	NA	NA	NA	0	1
-Visit_Name	metadata	character			Text description of the visit type e.g. “Baseline”, “Confirm Progression”, etc.						0	1
-Sample_Name	metadata	character			Sample identifier. NOTE: this has been adjusted for MMRF from previous versions (e.g. was MMRF_0000_1). BM/PB was added to clarify ambiguous samples taken at the same visit point.	format=”MMRF_0000_0_BM”. Substring from File_Name on SeqQC file.	format=”PD0000a”		non-standard formats include ”10-069-B-R138-DNA”, “18530470”, “12-0601-P-PB-WCP-DNA”		0	1
-Sample_Type_Flag	metadata	numeric	0=Normal; 1=NotNormal		Flag for Normal vs NotNormal sample type						0	1
-Sample_Type	metadata	character	Normal; NotNormal		Text descriptor for sample type						0	1
-File_Name_Actual	metadata	character			Actual filename of sequencing file.						0	1
-File_Path	metadata	character			s3 file path for file						0	1
-Sequencing_Type	metadata	character	WES; WGS; RNA-Seq; Targeted		What molecular technique was performed to generate this file.	MMRF_CoMMpass_IA9_Seq_QC_Summary.xlsx::MMRF_Release_Status					0	1
-Excluded_Flag	metadata	numeric	0=NotExcluded; 1=Excluded		Flag from QC describing if this file should be excluded from further analysis.	MMRF_CoMMpass_IA9_Seq_QC_Summary.xlsx::MMRF_Release_Status					0	1
-Excluded_Specify	metadata	character			String description with details of why file was flagged for exclusion	MMRF_CoMMpass_IA9_Seq_QC_Summary.xlsx::MMRF_Release_Status	samples flagged in “DFCI_WES_Cyto.xlsx”				0	1
-Disease_Status	metadata	factor	ND=NewDiagnosis; R=Relapse		Simplified disease presentation status at sample collection, New diagnosis or Relapse				NA	NA	0	1
-Tissue_Type	metadata	character	PB; BM		Source tissue derivation. PB=PeripheralBlood; BM=BoneMarrow						0	1
-Cell_Type	metadata	character	CD138pos; PBMC		Sample generated from selected cell type. PBMC=”Peripheral Blood Mononuclear Cells”; CD138pos=”CD138 surface marker positive cells”						0	1
-NMF_Signature_Cluster		factor	A; B		Non-negative matrix factorization (NMF) mutation signature group							
-INV_Has.Blood	metadata	numeric	0=no; 1=yes		Inventory binary; does this patient have any information in the blood chemistry table							
-INV_Has.BI	metadata	numeric	0=no; 1=yes		Inventory binary; does this patient have any information in the biallelic inactivation table							
-INV_Has.Clinical	metadata	numeric	0=no; 1=yes		Inventory binary; does this patient have any information in the clinical table							
-INV_Has.CNV	metadata	numeric	0=no; 1=yes		Inventory binary; does this patient have any information in the cnv table							
-INV_Has.RNASeq	metadata	numeric	0=no; 1=yes		Inventory binary; does this patient have any information in the rna table							
-INV_Has.SNV	metadata	numeric	0=no; 1=yes		Inventory binary; does this patient have any information in the snv table							
-INV_Has.Translocations	metadata	numeric	0=no; 1=yes		Inventory binary; does this patient have any information in the translocation table							
-Disease_Type	clinical	character	MM; PCL		What disease has this patient been diagnosed with. Patients with CD138 selected cells from Peripheral Blood are considered Plasma Cell Leukemia. Included in file and patient tables for filtering. MM=”Multiple Myeloma”; PCL=”Plasma Cell Leukemia”.						0	1
-D_Gender	clinical	factor	Male; Female		Gender string	PER_PATIENT. DEMOG_GENDER	NA	"recode(Sex, ""1""=""Male"", ""2""=""Female"")"	Gender column. M=Male; F=Female	M=Male; F=Female	0	1
-D_Race	clinical	factor	ASIAN; AMERICANINDIAN; BLACKORAFRICAN; PACIFICISLANDER; WHITE; OTHER		Race	PER_PATIENT.D_PT_race	NA		NA	"Race. ""Caucasian""=""WHITE""; ""African American""=""BLACKORAFRICAN""; ""Asian""=""ASIAN""; ""Hispanic""=""OTHER"""	0	1
-D_Age	clinical	numeric		years	Age at diagnosis	PER_PATIENT.D_PT_age	NA	Age.at.diagnosis	Age column	Race	0	1
-D_Medical_History	clinical	character			Specify. This field is not restricted to a curated set of responses, however specific values are flagged for an additional column in this table based on <MEDHX_conditions.of.interest.txt>	STAND_ALONE_MEDHX.medx	NA		NA	NA	0	1
-D_Family_Cancer_History	clinical	character	Yes; No		Is there a family history of cancer?	STAND_ALONE_FAMHX.FAMHX_ISTHEREAFAMIL	NA		NA	NA	0	1
-D_PrevBoneMarrowTransplant	metadata	numeric	0=no; 1=yes		Has a bone marrow transplant been performed before the study day that this’ sample was collected?	PER-PATIENT-VISIT::VISITDY >= min(PER-PATIENT-VISIT::BMT_DAYOFTRANSPL for same PUBLIC_ID)					0	1
-Sample_Study_Day	metadata	numeric			day of study that the sample was taken						0	1
-D_Diagnosis_Date	clinical	date	“YYYY-mm-dd”		YYYY-mm-dd formatted diagnosis date						1	1
-D_Relapse_Date	clinical	date	“YYYY-mm-dd”		YYYY-mm-dd formatted date of first relapse						1	1
-D_Death_Date	clinical	date	“YYYY-mm-dd”								1	1
-D_Last_Visit_Date	clinical	date	“YYYY-mm-dd”		YYYY-mm-dd formatted date of last visit						1	1
-D_ISS	clinical	factor	1; 2; 3		"International Staging System (ISS) criteria. 1=""Stage I: Beta-2-macroglobulin < 3.5 mg/dL and albumin =3.5 g/dL""; 2=""Stage II: Neither stage I nor stage III""; 3=""Stage III: Beta-2-macroglobulin > 5.5 mg/L"""	PER_PATIENT.D_PT_iss	DFCI_WES_clinical_info_new.xlsx::ISS	2017-02-01_DFCI_RNASeq_Clinical.xls::ISS	ISS column. `Stage I` = 1, `Stage II` = 2, `Stage III` = 3	NA	0	1
-D_OS	clinical	numeric		days	Overall Survival time: time to death for those who died; time to last contact for those who are still alive.	STAND_ALONE_SURVIVAL::ttcos	DFCI_WES_clinical_info_new.xlsx::Days_survived	2017-02-01_DFCI_RNASeq_Clinical.xls::DiagToDeath	OS_months/12*365.25	NA	0	1
-D_OS_FLAG	clinical	numeric	0=no; 1=yes		"Is the patient deceased? It turns out ""death day"" is a more consistent field for MMRF than the D_PT_DISCREAS flag, which was missing for a few patients that had a death date."	STAND_ALONE_SURVIVAL::censos	DFCI_WES_clinical_info_new.xlsx::Death	2017-02-01_DFCI_RNASeq_Clinical.xls::Death	OS_status	NA	0	1
-D_PFS	clinical	numeric		days	Time to censored progression-free survivial (ttcpfs). From UAMS trial: Disease progression will be determined according to the Modified International Uniform Response criteria of Response and Progression (based on Blade et al, 1998; Durie et al, 2006; Rajkumar et al, 2011). Progression-free survival for induction chemotherapy comparisons is defined as the time from the date of initial randomisation to the trial to the date of  or dprogressioneath from any cause. Participants who do not progress will be censored at the last date they were known to be alive and progression-free. Participants discontinuing protocol treatment, receiving non-protocol treatment or suffering a second malignancy will still be followed for progression-free survival unless they explicitly withdraw consent. Progression-free survival for VCD randomisation comparisons is defined similarly from the date of VCD randomisation. Any participants who have been found to progress prior to entering the VCD randomisation will be censored at the date of VCD randomisation. Progression-free survival for maintenance randomisation comparisons is defined similarly from the date of maintenance randomisation. Any participants who have been found to progress prior to entering the maintenance randomisation will be censored at the date of maintenance randomisation.	STAND_ALONE_SURVIVAL::ttcpfs	DFCI_WES_clinical_info_new.xlsx::	2017-02-01_DFCI_RNASeq_Clinical.xls::DiagToRelapse	PFS_months/12*365.25	NA	0	1
-D_PFS_FLAG	clinical	numeric	0=no; 1=yes		Flag for censored progression-free survivial. Has the patient been assessed for progressive disease or died from any cause.	STAND_ALONE_SURVIVAL::censpfs	DFCI_WES_clinical_info_new.xlsx::Relapse.1	2017-02-01_DFCI_RNASeq_Clinical.xls::Relapse	PFS_status	NA	0	1
-D_PD	clinical	numeric			Time to first PD line 1	STAND_ALONE_SURVIVAL::ttfpd	NA	NA	NA	NA	0	1
-D_PD_FLAG	clinical	numeric	0=no; 1=yes		Flag if patient had a PD	STAND_ALONE_SURVIVAL::pdflag	NA	NA	NA	NA	0	1
-D_Cause_of_Death	clinical	character			Cause of death	PER_PATIENT.D_PT_CAUSEOFDEATH	NA		NA	NA	0	1
-D_Reason_for_Discontinuation	clinical	character			Primary Reason for Discontinuation	PER_PATIENT.D_PT_PRIMARYREASON	NA		NA	NA	0	1
-D_Discontinued	clinical	numeric	0=no; 1=yes		Study discontinuation flag	PER_PATIENT.D_PT_discont	NA		NA	NA	0	1
-D_Complete	clinical	numeric	0=no; 1=yes		Study complete flag	PER_PATIENT.D_PT_complete	NA		NA	NA	0	1
-D_Best_Response_Code	clinical	numeric	"1=""CR, Complete Response""; 2=""sCR, Stringent Complete Response""; 3=""VGPR, Very Good Partial Response""; 4=""PR, Partial Response""; 5=""SD, Stable Disease""; 6=""PD, Progressive Disease"""		Best observed therapy response from line 1 treatment regimen (numerically coded)	STAND_ALONE_TRTRESP.bestrespcd	NA		NA	NA	0	1
-D_Best_Response	clinical	character			Best observed therapy response from line 1 treatment regimen	STAND_ALONE_TRTRESP.bestresp	NA		NA	NA	0	1
-CBC_Absolute_Neutrophil	blood	numeric		count x10^9/L	Absolute Neutrophil count	PER_PATIENT_VISIT.D_LAB_cbc_abs_neut	NA		NA	NA	0	1
-CBC_Platelet	blood	numeric		count x10^9/L	Platelet count. Observed range: 10-700 x10^9/L	PER_PATIENT_VISIT.D_LAB_cbc_platelet	NA		NA	Platelets..10.9.L.	0	1
-CBC_WBC	blood	numeric		count x10^9/L	White Blood Count	PER_PATIENT_VISIT.D_LAB_cbc_wbc	NA		NA	NA	0	1
-DIAG_Hemoglobin	blood	numeric		mmol/L	Hemogobin (mw=16 kg/mole). Observed Range: 2.7-10.2mmol/L. Convert g/dL * 0.625 = mmol/L	PER_PATIENT_VISIT.D_LAB_cbc_hemoglobin	NA		NA	Hemoglobin (g/dL) *0.62	0	1
-DIAG_Albumin	blood	numeric		g/L	Albumin. Observed range 16-54 g/L.	PER_PATIENT_VISIT.D_LAB_chem_albumin	NA		Serum.albumin	Serum.albumin..g.dL.	0	1
-DIAG_Calcium	blood	numeric		mmol/L	Calcium (mw=40.1 g/mole)	PER_PATIENT_VISIT.D_LAB_chem_calcium	NA		Corrected.Calcium	Serum.calcium..mg.dL.	0	1
-DIAG_Creatinine	blood	numeric		umol/L	Serum Creatinine (mw=113.12 g/mole)	PER_PATIENT_VISIT.D_LAB_chem_creatinine	NA		Serum.creatinine	Serum.creatinine..mg.dL.	0	1
-DIAG_LDH	blood	numeric		ukat/L	LDH	PER_PATIENT_VISIT.D_LAB_chem_ldh	NA		NA	Serum.LDH..U.L.	0	1
-DIAG_Beta2Microglobulin	blood	numeric		mcg/mL	Beta 2 Microglobulin. Obervsed range: 0.2-36 mcg/mL	PER_PATIENT_VISIT.D_LAB_serum_beta2_microglobulin	NA		B2.microglobulin	Beta2.microglobulin..ug.dL.	0	1
-CHEM_BUN	blood	numeric		mmol/L	Blood Urea Nitrogen	PER_PATIENT_VISIT.D_LAB_chem_bun	NA		NA	NA	0	1
-CHEM_Glucose	blood	numeric		mmol/L	Glucose	PER_PATIENT_VISIT.D_LAB_chem_glucose	NA		NA	NA	0	1
-CHEM_Total_Protein	blood	numeric		g/dL	Total Protein	PER_PATIENT_VISIT.D_LAB_chem_totprot	NA		NA	NA	0	1
-CHEM_CRP	blood	numeric		mg/dL	C-Reactive Protein. Observed range 0-32 mg/dL.	PER_PATIENT_VISIT.D_LAB_serum_c_reactive_protein	NA		NA	CRP..mg.dL.	0	1
-IG_IgL_Kappa	blood	numeric		mg/dL	Serum Kappa	PER_PATIENT_VISIT.D_LAB_serum_kappa	NA		NA	Serum.free.light.chain.kappa..mg.dL.	0	1
-IG_M_Protein	blood	numeric		g/dL	Serum M Protein	PER_PATIENT_VISIT.D_LAB_serum_m_protein	NA		NA	M.spike..g.dL.	0	1
-IG_IgA	blood	numeric		g/L	Serum IgA	PER_PATIENT_VISIT.D_LAB_serum_iga	NA		NA	NA	0	1
-IG_IgG	blood	numeric		g/L	Serum IgG	PER_PATIENT_VISIT.D_LAB_serum_igg	NA		NA	NA	0	1
-IG_IgL_Lambda	blood	numeric		mg/dL	Serum Lambda	PER_PATIENT_VISIT.D_LAB_serum_lambda	NA		NA	Serum.free.light.chain.lambda..mg.dL.	0	1
-IG_IgM	blood	numeric		g/L	Serum IgM	PER_PATIENT_VISIT.D_LAB_serum_igm	NA		NA	NA	0	1
-IG_IgE	blood	numeric		mg/L	Serum IgE	PER_PATIENT_VISIT.D_LAB_serum_ige	NA		NA	NA	0	1
-FLO_Markers	blood	numeric				NA	NA		NA	NA	0	1
-FLO_Percent_Aneuploid	blood	numeric			Flow cytometer %aneuploidy population	PER_PATIENT_VISIT.D_IM_FLOWCYT_PCT_ANEUPLOID_POPUL	NA		NA	NA	0	1
-FLO_IgH	blood	numeric				NA	NA		NA	NA	0	1
-FLO_IgL	blood	numeric			Light Chain by Flow	PER_PATIENT_VISIT.D_IM_LIGHT_CHAIN_BY_FLOW	NA		NA	NA	0	1
-FLO_DNA_Index	blood	numeric			DNA Index. DNA content of cells is measured by the ability of propidium iodide to bind stoichiometrically to DNA.	PER_PATIENT_VISIT.D_IM_DNA_INDEX	NA		NA	NA	0	1
-MISC_BRAF_V600E	blood	numeric	0=no; 1=yes		BRAF Status	PER_PATIENT_VISIT.D_IM_BRAF_STATUS	NA		NA	NA	0	1
-MISC_ECOG_Status	blood	numeric	"0=""Fully Active""; 1=""Restricted in physically strenuous activity""; 2=""Ambulatory and capable of all selfcare""; 3=""Capable of only limited selfcare""; 4=""Completely disabled"""		Eastern Cooperative Oncology Group (ECOG) standard criteria for measuring how the disease impacts a patientï¿½s daily living abilities.	PER_PATIENT_VISIT.ECOG_PERFORMANCEST	NA		NA	NA	0	1
-CYTO_Karyotype_FISH	translocations	character			Text description of karyotype	PER_PATIENT_VISIT.D_CM_KARYOTYPE	Karyotype		NA	NA	0	1
-CYTO_t_4_14_FISH	translocations	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH	PER_PATIENT_VISIT.D_TRI_CF_ABNORMALITYPR3	"""4;14"" parsed from Karyotype"	"as.numeric(gsub(""9"", NA, t_4_14) )"	Translocation_consensus == 4	"FISH_Translocation == ""4;14"""	0	1
-CYTO_t_6_14_FISH	translocations	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH	PER_PATIENT_VISIT.D_TRI_CF_ABNORMALITYPR4	NA		Translocation_consensus == 6	NA	0	1
-CYTO_t_8_14_FISH	translocations	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH	PER_PATIENT_VISIT.D_TRI_CF_ABNORMALITYPR5	NA		MYC.translocation == t(8;14)	NA	0	1
-CYTO_t_11_14_FISH	translocations	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH	PER_PATIENT_VISIT.D_TRI_CF_ABNORMALITYPR6	NA		Translocation_consensus == 11	"FISH_Translocation == ""11;14"""	0	1
-CYTO_t_12_14_FISH	translocations	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH	PER_PATIENT_VISIT.D_TRI_CF_ABNORMALITYPR7	NA		NA	NA	0	1
-CYTO_t_14_16_FISH	translocations	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH	PER_PATIENT_VISIT.D_TRI_CF_ABNORMALITYPR8	"""14;16"" parsed from Karyotype"		Translocation_consensus == 16	"FISH_Translocation == ""14;16"""	0	1
-CYTO_t_14_20_FISH	translocations	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH	PER_PATIENT_VISIT.D_TRI_CF_ABNORMALITYPR9	NA		Translocation_consensus == 20	NA	0	1
-CYTO_MYC_FISH	translocations	numeric	0=no; 1=yes; 2=subclonal		Structural variant involving MYC loci at chromosome 8 observed via FISH						0	1
-CYTO_amp_1q_FISH	translocations	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH						0	1
-CYTO_1qplus_FISH	translocations	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH			as.numeric(Gain_1q)			0	1
-CYTO_del_1p_FISH	translocations	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH	PER_PATIENT_VISIT.D_TRI_CF_ABNORMALITYPR12	NA		NA	NA	0	1
-CYTO_del_1q_FISH	translocations	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH	PER_PATIENT_VISIT.D_TRI_CF_ABNORMALITYPR13	NA		NA	NA	0	1
-CYTO_del_1p32_FISH	translocations	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH						0	1
-CYTO_del_16q_FISH	translocations	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH			del16q			0	1
-CYTO_del_17_17p_FISH	translocations	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH	PER_PATIENT_VISIT.D_TRI_CF_ABNORMALITYPR2	dfci.cyto$Karyotype		NA	"FISH_Translocation == ""17"""	0	1
-CYTO_del_11q_FISH	translocations	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH						0	1
-CYTO_del_12p_FISH	translocations	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH						0	1
-CYTO_del_13q_FISH	translocations	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH						0	1
-CYTO_del_14q_FISH	translocations	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH						0	1
-CYTO_Hyperdiploid_FISH	translocations	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH	PER_PATIENT_VISIT.D_CM_ANEUPLOIDYCAT, D_TRI_trisomies	"""Hyper"" parsed from Karyotype"		NA	Hyperdiploid	0	1
-CYTO_t_4_14_MANTA	translocations	numeric	0=no; 1=yes		Structural variant observed via MANTA						0	1
-CYTO_t_6_14_MANTA	translocations	numeric	0=no; 1=yes		Structural variant observed via MANTA						0	1
-CYTO_t_8_14_MANTA	translocations	numeric	0=no; 1=yes		Structural variant observed via MANTA						0	1
-CYTO_t_11_14_MANTA	translocations	numeric	0=no; 1=yes		Structural variant observed via MANTA						0	1
-CYTO_t_12_14_MANTA	translocations	numeric	0=no; 1=yes		Structural variant observed via MANTA						0	1
-CYTO_t_14_16_MANTA	translocations	numeric	0=no; 1=yes		Structural variant observed via MANTA						0	1
-CYTO_t_14_20_MANTA	translocations	numeric	0=no; 1=yes		Structural variant observed via MANTA						0	1
-CYTO_MYC_MANTA	translocations	numeric	0=no; 1=yes		Structural variant involving MYC loci at chromosome 8 observed via FISH						0	1
-CYTO_amp_1q_MANTA	translocations	numeric	0=no; 1=yes		Structural variant observed via MANTA						0	1
-CYTO_1qplus_MANTA	translocations	numeric	0=no; 1=yes		Structural variant observed via MANTA						0	1
-CYTO_del_1p_MANTA	translocations	numeric	0=no; 1=yes		Structural variant observed via MANTA						0	1
-CYTO_del_1q_MANTA	translocations	numeric	0=no; 1=yes		Structural variant observed via MANTA						0	1
-CYTO_del_1p32_MANTA	translocations	numeric	0=no; 1=yes		Structural variant observed via MANTA						0	1
-CYTO_del_16q_MANTA	translocations	numeric	0=no; 1=yes		Structural variant observed via MANTA						0	1
-CYTO_del_17_17p_MANTA	translocations	numeric	0=no; 1=yes		Structural variant observed via MANTA						0	1
-CYTO_del_11q_MANTA	translocations	numeric	0=no; 1=yes		Structural variant observed via MANTA						0	1
-CYTO_del_13q_MANTA	translocations	numeric	0=no; 1=yes		Structural variant observed via MANTA						0	1
-CYTO_1qplus_ControlFreec	translocations	numeric	0=no; 1=yes								0	1
-CYTO_Hyperdiploid_ControlFreec	translocations	numeric	0=no; 1=yes								0	1
-CYTO_TETRAPLOID_ControlFreec	translocations	numeric	0=no; 1=yes								0	1
-CYTO_t_4_14_CONSENSUS	translocations	numeric	0=no; 1=yes; 2=subclonal		Consensus structural variant call						0	1
-CYTO_t_6_14_CONSENSUS	translocations	numeric	0=no; 1=yes; 2=subclonal		Consensus structural variant call						0	1
-CYTO_t_8_14_CONSENSUS	translocations	numeric	0=no; 1=yes; 2=subclonal		Consensus structural variant call						0	1
-CYTO_t_11_14_CONSENSUS	translocations	numeric	0=no; 1=yes; 2=subclonal		Consensus structural variant call						0	1
-CYTO_t_12_14_CONSENSUS	translocations	numeric	0=no; 1=yes; 2=subclonal		Consensus structural variant call						0	1
-CYTO_t_14_16_CONSENSUS	translocations	numeric	0=no; 1=yes; 2=subclonal		Consensus structural variant call						0	1
-CYTO_t_14_20_CONSENSUS	translocations	numeric	0=no; 1=yes; 2=subclonal		Consensus structural variant call						0	1
-CYTO_MYC_CONSENSUS	translocations	numeric	0=no; 1=yes; 2=subclonal		Consensus structural variant call						0	1
-CYTO_amp_1q_CONSENSUS	translocations	numeric	0=no; 1=yes; 2=subclonal		Consensus structural variant call						0	1
-CYTO_1qplus_CONSENSUS	translocations	numeric	0=no; 1=yes; 2=subclonal		Consensus structural variant call						0	1
-CYTO_del_1p_CONSENSUS	translocations	numeric	0=no; 1=yes; 2=subclonal		Consensus structural variant call						0	1
-CYTO_del_1q_CONSENSUS	translocations	numeric	0=no; 1=yes; 2=subclonal		Consensus structural variant call						0	1
-CYTO_del_1p32_CONSENSUS	translocations	numeric	0=no; 1=yes; 2=subclonal		Consensus structural variant call						0	1
-CYTO_del_16q_CONSENSUS	translocations	numeric	0=no; 1=yes; 2=subclonal		Consensus structural variant call						0	1
-CYTO_del_17_17p_CONSENSUS	translocations	numeric	0=no; 1=yes; 2=subclonal		Consensus structural variant call						0	1
-CYTO_del_11q_CONSENSUS	translocations	numeric	0=no; 1=yes; 2=subclonal		Consensus structural variant call						0	1
-CYTO_del_13q_CONSENSUS	translocations	numeric	0=no; 1=yes; 2=subclonal		Consensus structural variant call						0	1
-CYTO_Hyperdiploid_CONSENSUS	translocations	numeric	0=no; 1=yes; 2=subclonal		Consensus structural variant call						0	1
-CYTO_Translocation_Consensus	translocations	character	4; 6; 8; 11; 16; 20		Abbreviated column for which consensus multiple myeloma related translocation is present. ERROR2 is given when more than one translocation is reported in an individual consensus field. 						0	1
-CYTO_Primary_Etiologic_Group	translocations	numeric	"1=""CCND1-11q13""; 2=""CCND3-6p21""; 3=""4p16, MMSET, t(4;14), FGFR3""; 4=""c-MAF with t(14;16), MAFB with t(14;20), MAFA with t(8;14)""; 5=""D1 (+HRD, no translocations)""; 6=""D1+D2""; 7=""D2 (+HRD, no translocations)""; 8=""none"""		Translocation category of clinically relevant structural changes.						0	1
-BI_GENE_Flag	biallelicinactivation	numeric	0=NoInactivation; 1=Inactivation		The biallelic inactivation matrix contains binary indicators of whether both copies of a designated gene are inactivated. A zero indicates no inactivation and a 1 indicates a mutation, deletion or homozygous deletion. Columns are named BI_GENE_Flag where GENE is a given gene symbol. NOTES: variant allele frequencies are not considered. regions where there are 2 or more mutations in the same gene are not checked. this table only includes results for genes and valid samples from the copy number table. data generated by Cody Ashby TCAshby@uams.edu							
-CNV_GENE_ControlFreec	cnv	numeric	0=deletion; 1=loss; 2=normal; -2=loh; 3=gain; 4=amplification		The copy number matrix contains integer status indicators correspond to gene-level copy number status. 0 is a homozygous deletion, 1 is a loss, 2 is normal, -2 is copy number neutral loss of heterozygosity, 3 is a gain, 4 is amplification. Column are named CNV_GENE_ControlFreec where GENE is the corresponding hg19 gene symbol. This table only includes samples passing a three step criteria for filtering: 1.) t-test on regions of relative chromosomal stability (chromosome 2 and 10). If neither of them are normal (CN=2) than the sample fails. 2.) Median of the standard deviations of the data points across all chromosomes. If higher than 0.3, than the sample fails. 3.) If there are more than 600 CN segments, then the sample fails. data generated by Cody Ashby TCAshby@uams.edu							
-RNA_ENSG0000000000X.YY 	rnaseq	numeric			The RNA-Seq expression matrix contains floating point values of normalized RNA gene expression. Column are named RNA_ENSG0000000000X.YY where ENSG0000000000X is the corresponding Ensembl gene identifier and associate .YY version. Data generated by Mehmet_Samur@DFCI.HARVARD.EDU							
-SNV_GENE_BinaryConsensus	snv	numeric	0=no; 1=yes		The SNV matrix contains binary indicators of whether a sample has any SNV/indel variants within a given gene. Zero values mean that gene does not contain any mutations, 1 it does. Columns are named SNV_GENE_BinaryConsensus where GENE is a given gene symbol. Individual variants were been previously filtered for various aspects to improve reliability. This binary table includes all variants (including silent mutations) listed on 20170213.snvsindels.filtered.metadata.ndmmonly.slim.txt which was generated by Chris Wardell CPWardell@uams.edu							
+names	level	sas.name	class	restrictions	units	description	MMRF Source	DFCI_Source	DFCI2009_Source	UAMS_Source	LOHR_Source	sensitive	active
+Patient	biallelicinactivation; blood; clinical; cnv; metadata; rnaseq; snv; translocations	Patient	character			Normalized patient identification number. 	PER_PATIENT.PUBLIC_ID (format “MMRF_0000”)	"Example: ""PD0000"""	example: ”DFCI_000_000AA”	"example: ""UAMS_0000"""	"example:  ""MMRC_0000"""	0	1
+File_Name	biallelicinactivation; blood; cnv; metadata; rnaseq; snv; translocations		character			trimmed filename for uniquely matching study files						0	1
+Study	metadata	Study	factor	DFCI; LOHR; MMRF; UAMS		Study cohort this patient belongs to	“MMRF”	"""DFCI"""	DFCI.2009	"""UAMS"""	"""LOHR"""	0	1
+Study_Phase	metadata	Study_Phase	character			Study phase. So far this is only applicable to MMRF (eg. IA8, IA9)	Parsed from IA package structure	NA	NA	NA	NA	0	1
+Visit_Name	metadata	Visit_Name	character			Text description of the visit type e.g. “Baseline”, “Confirm Progression”, etc.						0	1
+Sample_Name	metadata	Sample_Name	character			Sample identifier. NOTE: this has been adjusted for MMRF from previous versions (e.g. was MMRF_0000_1). BM/PB was added to clarify ambiguous samples taken at the same visit point.	format=”MMRF_0000_0_BM”. Substring from File_Name on SeqQC file.	format=”PD0000a”		non-standard formats include ”10-069-B-R138-DNA”, “18530470”, “12-0601-P-PB-WCP-DNA”		0	1
+Sample_Type_Flag	metadata	Sample_Type_Flag	numeric	0=Normal; 1=NotNormal		Flag for Normal vs NotNormal sample type						0	1
+Sample_Type	metadata	Sample_Type	character	Normal; NotNormal		Text descriptor for sample type						0	1
+File_Name_Actual	metadata		character			Actual filename of sequencing file.						0	1
+File_Path	metadata		character			s3 file path for file						0	1
+Sequencing_Type	metadata	Sequencing_Type	character	WES; WGS; RNA-Seq; Targeted		What molecular technique was performed to generate this file.	MMRF_CoMMpass_IA9_Seq_QC_Summary.xlsx::MMRF_Release_Status					0	1
+Excluded_Flag	metadata		numeric	0=NotExcluded; 1=Excluded		Flag from QC describing if this file should be excluded from further analysis.	MMRF_CoMMpass_IA9_Seq_QC_Summary.xlsx::MMRF_Release_Status					0	1
+Excluded_Specify	metadata		character			String description with details of why file was flagged for exclusion	MMRF_CoMMpass_IA9_Seq_QC_Summary.xlsx::MMRF_Release_Status	samples flagged in “DFCI_WES_Cyto.xlsx”				0	1
+Disease_Status	metadata	Disease_Status	factor	ND=NewDiagnosis; R=Relapse		Simplified disease presentation status at sample collection, New diagnosis or Relapse				NA	NA	0	1
+Tissue_Type	metadata	Tissue_Type	character	PB; BM		Source tissue derivation. PB=PeripheralBlood; BM=BoneMarrow						0	1
+Cell_Type	metadata	Cell_Type	character	CD138pos; PBMC		Sample generated from selected cell type. PBMC=”Peripheral Blood Mononuclear Cells”; CD138pos=”CD138 surface marker positive cells”						0	1
+NMF_Signature_Cluster	metadata	NMF_Signature_Cluster	factor	A; B		Non-negative matrix factorization (NMF) mutation signature group							
+Disease_Type	clinical		character	MM; PCL		What disease has this patient been diagnosed with. Patients with CD138 selected cells from Peripheral Blood are considered Plasma Cell Leukemia. Included in file and patient tables for filtering. MM=”Multiple Myeloma”; PCL=”Plasma Cell Leukemia”.						0	1
+D_Gender	clinical	D_Gender	factor	Male; Female		Gender string	PER_PATIENT. DEMOG_GENDER	NA	"recode(Sex, ""1""=""Male"", ""2""=""Female"")"	Gender column. M=Male; F=Female	M=Male; F=Female	0	1
+D_Race	clinical	D_Race	factor	ASIAN; AMERICANINDIAN; BLACKORAFRICAN; PACIFICISLANDER; WHITE; OTHER		Race	PER_PATIENT.D_PT_race	NA		NA	"Race. ""Caucasian""=""WHITE""; ""African American""=""BLACKORAFRICAN""; ""Asian""=""ASIAN""; ""Hispanic""=""OTHER"""	0	1
+D_Age	clinical	D_Age	numeric		years	Age at diagnosis	PER_PATIENT.D_PT_age	NA	Age.at.diagnosis	Age column	Race	0	1
+D_Medical_History	clinical	D_Medical_History	character			Specify. This field is not restricted to a curated set of responses, however specific values are flagged for an additional column in this table based on <MEDHX_conditions.of.interest.txt>	STAND_ALONE_MEDHX.medx	NA		NA	NA	0	1
+D_Family_Cancer_History	clinical	D_Family_Cancer_History	character	Yes; No		Is there a family history of cancer?	STAND_ALONE_FAMHX.FAMHX_ISTHEREAFAMIL	NA		NA	NA	0	1
+D_PrevBoneMarrowTransplant	metadata		numeric	0=no; 1=yes		Has a bone marrow transplant been performed before the study day that this’ sample was collected?	PER-PATIENT-VISIT::VISITDY >= min(PER-PATIENT-VISIT::BMT_DAYOFTRANSPL for same PUBLIC_ID)					0	1
+Sample_Study_Day	metadata		numeric			day of study that the sample was taken						0	1
+D_Diagnosis_Date	clinical	D_Diagnosis_Date	date	“YYYY-mm-dd”		YYYY-mm-dd formatted diagnosis date						1	1
+D_Relapse_Date	clinical	D_Relapse_Date	date	“YYYY-mm-dd”		YYYY-mm-dd formatted date of first relapse						1	1
+D_Death_Date	clinical	D_Death_Date	date	“YYYY-mm-dd”								1	1
+D_Last_Visit_Date	clinical	D_Last_Visit_Date	date	“YYYY-mm-dd”		YYYY-mm-dd formatted date of last visit						1	1
+D_ISS	clinical	D_ISS	factor	1; 2; 3		"International Staging System (ISS) criteria. 1=""Stage I: Beta-2-macroglobulin < 3.5 mg/dL and albumin =3.5 g/dL""; 2=""Stage II: Neither stage I nor stage III""; 3=""Stage III: Beta-2-macroglobulin > 5.5 mg/L"""	PER_PATIENT.D_PT_iss	DFCI_WES_clinical_info_new.xlsx::ISS	2017-02-01_DFCI_RNASeq_Clinical.xls::ISS	ISS column. `Stage I` = 1, `Stage II` = 2, `Stage III` = 3	NA	0	1
+D_OS	clinical	D_OS	numeric		days	Overall Survival time: time to death for those who died; time to last contact for those who are still alive.	STAND_ALONE_SURVIVAL::ttcos	DFCI_WES_clinical_info_new.xlsx::Days_survived	2017-02-01_DFCI_RNASeq_Clinical.xls::DiagToDeath	OS_months/12*365.25	NA	0	1
+D_OS_FLAG	clinical	D_OS_FLAG	numeric	0=no; 1=yes		"Is the patient deceased? It turns out ""death day"" is a more consistent field for MMRF than the D_PT_DISCREAS flag, which was missing for a few patients that had a death date."	STAND_ALONE_SURVIVAL::censos	DFCI_WES_clinical_info_new.xlsx::Death	2017-02-01_DFCI_RNASeq_Clinical.xls::Death	OS_status	NA	0	1
+D_PFS	clinical	D_PFS	numeric		days	Time to censored progression-free survivial (ttcpfs). From UAMS trial: Disease progression will be determined according to the Modified International Uniform Response criteria of Response and Progression (based on Blade et al, 1998; Durie et al, 2006; Rajkumar et al, 2011). Progression-free survival for induction chemotherapy comparisons is defined as the time from the date of initial randomisation to the trial to the date of  or dprogressioneath from any cause. Participants who do not progress will be censored at the last date they were known to be alive and progression-free. Participants discontinuing protocol treatment, receiving non-protocol treatment or suffering a second malignancy will still be followed for progression-free survival unless they explicitly withdraw consent. Progression-free survival for VCD randomisation comparisons is defined similarly from the date of VCD randomisation. Any participants who have been found to progress prior to entering the VCD randomisation will be censored at the date of VCD randomisation. Progression-free survival for maintenance randomisation comparisons is defined similarly from the date of maintenance randomisation. Any participants who have been found to progress prior to entering the maintenance randomisation will be censored at the date of maintenance randomisation.	STAND_ALONE_SURVIVAL::ttcpfs	DFCI_WES_clinical_info_new.xlsx::	2017-02-01_DFCI_RNASeq_Clinical.xls::DiagToRelapse	PFS_months/12*365.25	NA	0	1
+D_PFS_FLAG	clinical	D_PFS_FLAG	numeric	0=no; 1=yes		Flag for censored progression-free survivial. Has the patient been assessed for progressive disease or died from any cause.	STAND_ALONE_SURVIVAL::censpfs	DFCI_WES_clinical_info_new.xlsx::Relapse.1	2017-02-01_DFCI_RNASeq_Clinical.xls::Relapse	PFS_status	NA	0	1
+D_PD	clinical		numeric			Time to first PD line 1	STAND_ALONE_SURVIVAL::ttfpd	NA	NA	NA	NA	0	1
+D_PD_FLAG	clinical		numeric	0=no; 1=yes		Flag if patient had a PD	STAND_ALONE_SURVIVAL::pdflag	NA	NA	NA	NA	0	1
+D_Cause_of_Death	clinical	D_Cause_of_Death	character			Cause of death	PER_PATIENT.D_PT_CAUSEOFDEATH	NA		NA	NA	0	1
+D_Reason_for_Discontinuation	clinical	D_Reason_for_Discontinuation	character			Primary Reason for Discontinuation	PER_PATIENT.D_PT_PRIMARYREASON	NA		NA	NA	0	1
+D_Discontinued	clinical	D_Discontinued	numeric	0=no; 1=yes		Study discontinuation flag	PER_PATIENT.D_PT_discont	NA		NA	NA	0	1
+D_Complete	clinical	D_Complete	numeric	0=no; 1=yes		Study complete flag	PER_PATIENT.D_PT_complete	NA		NA	NA	0	1
+D_Best_Response_Code	clinical	D_Best_Response_Code	numeric	"1=""CR, Complete Response""; 2=""sCR, Stringent Complete Response""; 3=""VGPR, Very Good Partial Response""; 4=""PR, Partial Response""; 5=""SD, Stable Disease""; 6=""PD, Progressive Disease"""		Best observed therapy response from line 1 treatment regimen (numerically coded)	STAND_ALONE_TRTRESP.bestrespcd	NA		NA	NA	0	1
+D_Best_Response	clinical	D_Best_Response	character			Best observed therapy response from line 1 treatment regimen	STAND_ALONE_TRTRESP.bestresp	NA		NA	NA	0	1
+CBC_Absolute_Neutrophil	blood	CBC_Absolute_Neutrophil	numeric		count x10^9/L	Absolute Neutrophil count	PER_PATIENT_VISIT.D_LAB_cbc_abs_neut	NA		NA	NA	0	1
+CBC_Platelet	blood	CBC_Platelet	numeric		count x10^9/L	Platelet count. Observed range: 10-700 x10^9/L	PER_PATIENT_VISIT.D_LAB_cbc_platelet	NA		NA	Platelets..10.9.L.	0	1
+CBC_WBC	blood	CBC_WBC	numeric		count x10^9/L	White Blood Count	PER_PATIENT_VISIT.D_LAB_cbc_wbc	NA		NA	NA	0	1
+DIAG_Hemoglobin	blood	DIAG_Hemoglobin	numeric		mmol/L	Hemogobin (mw=16 kg/mole). Observed Range: 2.7-10.2mmol/L. Convert g/dL * 0.625 = mmol/L	PER_PATIENT_VISIT.D_LAB_cbc_hemoglobin	NA		NA	Hemoglobin (g/dL) *0.62	0	1
+DIAG_Albumin	blood	DIAG_Albumin	numeric		g/L	Albumin. Observed range 16-54 g/L.	PER_PATIENT_VISIT.D_LAB_chem_albumin	NA		Serum.albumin	Serum.albumin..g.dL.	0	1
+DIAG_Calcium	blood	DIAG_Calcium	numeric		mmol/L	Calcium (mw=40.1 g/mole)	PER_PATIENT_VISIT.D_LAB_chem_calcium	NA		Corrected.Calcium	Serum.calcium..mg.dL.	0	1
+DIAG_Creatinine	blood	DIAG_Creatinine	numeric		umol/L	Serum Creatinine (mw=113.12 g/mole)	PER_PATIENT_VISIT.D_LAB_chem_creatinine	NA		Serum.creatinine	Serum.creatinine..mg.dL.	0	1
+DIAG_LDH	blood	DIAG_LDH	numeric		ukat/L	LDH	PER_PATIENT_VISIT.D_LAB_chem_ldh	NA		NA	Serum.LDH..U.L.	0	1
+DIAG_Beta2Microglobulin	blood	DIAG_Beta2Microglobulin	numeric		mcg/mL	Beta 2 Microglobulin. Obervsed range: 0.2-36 mcg/mL	PER_PATIENT_VISIT.D_LAB_serum_beta2_microglobulin	NA		B2.microglobulin	Beta2.microglobulin..ug.dL.	0	1
+CHEM_BUN	blood	CHEM_BUN	numeric		mmol/L	Blood Urea Nitrogen	PER_PATIENT_VISIT.D_LAB_chem_bun	NA		NA	NA	0	1
+CHEM_Glucose	blood	CHEM_Glucose	numeric		mmol/L	Glucose	PER_PATIENT_VISIT.D_LAB_chem_glucose	NA		NA	NA	0	1
+CHEM_Total_Protein	blood	CHEM_Total_Protein	numeric		g/dL	Total Protein	PER_PATIENT_VISIT.D_LAB_chem_totprot	NA		NA	NA	0	1
+CHEM_CRP	blood	CHEM_CRP	numeric		mg/dL	C-Reactive Protein. Observed range 0-32 mg/dL.	PER_PATIENT_VISIT.D_LAB_serum_c_reactive_protein	NA		NA	CRP..mg.dL.	0	1
+IG_IgL_Kappa	blood	IG_IgL_Kappa	numeric		mg/dL	Serum Kappa	PER_PATIENT_VISIT.D_LAB_serum_kappa	NA		NA	Serum.free.light.chain.kappa..mg.dL.	0	1
+IG_M_Protein	blood	IG_M_Protein	numeric		g/dL	Serum M Protein	PER_PATIENT_VISIT.D_LAB_serum_m_protein	NA		NA	M.spike..g.dL.	0	1
+IG_IgA	blood	IG_IgA	numeric		g/L	Serum IgA	PER_PATIENT_VISIT.D_LAB_serum_iga	NA		NA	NA	0	1
+IG_IgG	blood	IG_IgG	numeric		g/L	Serum IgG	PER_PATIENT_VISIT.D_LAB_serum_igg	NA		NA	NA	0	1
+IG_IgL_Lambda	blood	IG_IgL_Lambda	numeric		mg/dL	Serum Lambda	PER_PATIENT_VISIT.D_LAB_serum_lambda	NA		NA	Serum.free.light.chain.lambda..mg.dL.	0	1
+IG_IgM	blood	IG_IgM	numeric		g/L	Serum IgM	PER_PATIENT_VISIT.D_LAB_serum_igm	NA		NA	NA	0	1
+IG_IgE	blood	IG_IgE	numeric		mg/L	Serum IgE	PER_PATIENT_VISIT.D_LAB_serum_ige	NA		NA	NA	0	1
+FLO_Markers	blood	FLO_Markers	numeric				NA	NA		NA	NA	0	1
+FLO_Percent_Aneuploid	blood	FLO_Percent_Aneuploid	numeric			Flow cytometer %aneuploidy population	PER_PATIENT_VISIT.D_IM_FLOWCYT_PCT_ANEUPLOID_POPUL	NA		NA	NA	0	1
+FLO_IgH	blood	FLO_IgH	numeric				NA	NA		NA	NA	0	1
+FLO_IgL	blood	FLO_IgL	numeric			Light Chain by Flow	PER_PATIENT_VISIT.D_IM_LIGHT_CHAIN_BY_FLOW	NA		NA	NA	0	1
+FLO_DNA_Index	blood	FLO_DNA_Index	numeric			DNA Index. DNA content of cells is measured by the ability of propidium iodide to bind stoichiometrically to DNA.	PER_PATIENT_VISIT.D_IM_DNA_INDEX	NA		NA	NA	0	1
+MISC_BRAF_V600E	blood	MISC_BRAF_V600E	numeric	0=no; 1=yes		BRAF Status	PER_PATIENT_VISIT.D_IM_BRAF_STATUS	NA		NA	NA	0	1
+MISC_ECOG_Status	blood	MISC_ECOG_Status	numeric	"0=""Fully Active""; 1=""Restricted in physically strenuous activity""; 2=""Ambulatory and capable of all selfcare""; 3=""Capable of only limited selfcare""; 4=""Completely disabled"""		Eastern Cooperative Oncology Group (ECOG) standard criteria for measuring how the disease impacts a patientï¿½s daily living abilities.	PER_PATIENT_VISIT.ECOG_PERFORMANCEST	NA		NA	NA	0	1
+CYTO_Karyotype_FISH	translocations	CYTO_Karyotype_FISH	character			Text description of karyotype	PER_PATIENT_VISIT.D_CM_KARYOTYPE	Karyotype		NA	NA	0	1
+CYTO_t_4_14_FISH	translocations	CYTO_t_4_14__FISH	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH	PER_PATIENT_VISIT.D_TRI_CF_ABNORMALITYPR3	"""4;14"" parsed from Karyotype"	"as.numeric(gsub(""9"", NA, t_4_14) )"	Translocation_consensus == 4	"FISH_Translocation == ""4;14"""	0	1
+CYTO_t_6_14_FISH	translocations	CYTO_t_6_14__FISH	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH	PER_PATIENT_VISIT.D_TRI_CF_ABNORMALITYPR4	NA		Translocation_consensus == 6	NA	0	1
+CYTO_t_8_14_FISH	translocations	CYTO_t_8_14__FISH	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH	PER_PATIENT_VISIT.D_TRI_CF_ABNORMALITYPR5	NA		MYC.translocation == t(8;14)	NA	0	1
+CYTO_t_11_14_FISH	translocations	CYTO_t_11_14__FISH	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH	PER_PATIENT_VISIT.D_TRI_CF_ABNORMALITYPR6	NA		Translocation_consensus == 11	"FISH_Translocation == ""11;14"""	0	1
+CYTO_t_12_14_FISH	translocations	CYTO_t_12_14__FISH	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH	PER_PATIENT_VISIT.D_TRI_CF_ABNORMALITYPR7	NA		NA	NA	0	1
+CYTO_t_14_16_FISH	translocations	CYTO_t_14_16__FISH	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH	PER_PATIENT_VISIT.D_TRI_CF_ABNORMALITYPR8	"""14;16"" parsed from Karyotype"		Translocation_consensus == 16	"FISH_Translocation == ""14;16"""	0	1
+CYTO_t_14_20_FISH	translocations	CYTO_t_14_20__FISH	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH	PER_PATIENT_VISIT.D_TRI_CF_ABNORMALITYPR9	NA		Translocation_consensus == 20	NA	0	1
+CYTO_MYC_FISH	translocations	CYTO_MYC_FISH	numeric	0=no; 1=yes; 2=subclonal		Structural variant involving MYC loci at chromosome 8 observed via FISH						0	1
+CYTO_amp_1q_FISH	translocations	CYTO_amp_1q__FISH	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH						0	1
+CYTO_1qplus_FISH	translocations	CYTO_1qplus_FISH	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH			as.numeric(Gain_1q)			0	1
+CYTO_del_1p_FISH	translocations	CYTO_del_1p__FISH	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH	PER_PATIENT_VISIT.D_TRI_CF_ABNORMALITYPR12	NA		NA	NA	0	1
+CYTO_del_1q_FISH	translocations	CYTO_del_1q__FISH	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH	PER_PATIENT_VISIT.D_TRI_CF_ABNORMALITYPR13	NA		NA	NA	0	1
+CYTO_del_1p32_FISH	translocations	CYTO_del_1p32__FISH	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH						0	1
+CYTO_del_16q_FISH	translocations	CYTO_del_16q__FISH	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH			del16q			0	1
+CYTO_del_17_17p_FISH	translocations	CYTO_del_17_17p__FISH	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH	PER_PATIENT_VISIT.D_TRI_CF_ABNORMALITYPR2	dfci.cyto$Karyotype		NA	"FISH_Translocation == ""17"""	0	1
+CYTO_del_11q_FISH	translocations	CYTO_del_11q__FISH	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH						0	1
+CYTO_del_12p_FISH	translocations	CYTO_del_12p__FISH	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH						0	1
+CYTO_del_13q_FISH	translocations	CYTO_del_13q__FISH	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH						0	1
+CYTO_del_14q_FISH	translocations	CYTO_del_14q__FISH	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH						0	1
+CYTO_Hyperdiploid_FISH	translocations	CYTO_Hyperdiploid_FISH	numeric	0=no; 1=yes; 2=subclonal		Structural variant observed via FISH	PER_PATIENT_VISIT.D_CM_ANEUPLOIDYCAT, D_TRI_trisomies	"""Hyper"" parsed from Karyotype"		NA	Hyperdiploid	0	1
+CYTO_t_4_14_MANTA	translocations	CYTO_t_4_14__MANTA	numeric	0=no; 1=yes		Structural variant observed via MANTA						0	1
+CYTO_t_6_14_MANTA	translocations	CYTO_t_6_14__MANTA	numeric	0=no; 1=yes		Structural variant observed via MANTA						0	1
+CYTO_t_8_14_MANTA	translocations	CYTO_t_8_14__MANTA	numeric	0=no; 1=yes		Structural variant observed via MANTA						0	1
+CYTO_t_11_14_MANTA	translocations	CYTO_t_11_14__MANTA	numeric	0=no; 1=yes		Structural variant observed via MANTA						0	1
+CYTO_t_12_14_MANTA	translocations	CYTO_t_12_14__MANTA	numeric	0=no; 1=yes		Structural variant observed via MANTA						0	1
+CYTO_t_14_16_MANTA	translocations	CYTO_t_14_16__MANTA	numeric	0=no; 1=yes		Structural variant observed via MANTA						0	1
+CYTO_t_14_20_MANTA	translocations	CYTO_t_14_20__MANTA	numeric	0=no; 1=yes		Structural variant observed via MANTA						0	1
+CYTO_MYC_MANTA	translocations	CYTO_MYC_MANTA	numeric	0=no; 1=yes		Structural variant involving MYC loci at chromosome 8 observed via FISH						0	1
+CYTO_amp_1q_MANTA	translocations	CYTO_amp_1q__MANTA	numeric	0=no; 1=yes		Structural variant observed via MANTA						0	1
+CYTO_1qplus_MANTA	translocations	CYTO_1qplus_MANTA	numeric	0=no; 1=yes		Structural variant observed via MANTA						0	1
+CYTO_del_1p_MANTA	translocations	CYTO_del_1p__MANTA	numeric	0=no; 1=yes		Structural variant observed via MANTA						0	1
+CYTO_del_1q_MANTA	translocations	CYTO_del_1q__MANTA	numeric	0=no; 1=yes		Structural variant observed via MANTA						0	1
+CYTO_del_1p32_MANTA	translocations	CYTO_del_1p32__MANTA	numeric	0=no; 1=yes		Structural variant observed via MANTA						0	1
+CYTO_del_16q_MANTA	translocations	CYTO_del_16q__MANTA	numeric	0=no; 1=yes		Structural variant observed via MANTA						0	1
+CYTO_del_17_17p_MANTA	translocations	CYTO_del_17_17p__MANTA	numeric	0=no; 1=yes		Structural variant observed via MANTA						0	1
+CYTO_del_11q_MANTA	translocations	CYTO_del_11q__MANTA	numeric	0=no; 1=yes		Structural variant observed via MANTA						0	1
+CYTO_del_13q_MANTA	translocations	CYTO_del_13q__MANTA	numeric	0=no; 1=yes		Structural variant observed via MANTA						0	1
+CYTO_1qplus_ControlFreec	translocations	CYTO_1qplus_ControlFreec	numeric	0=no; 1=yes								0	1
+CYTO_Hyperdiploid_ControlFreec	translocations	CYTO_Hyperdiploid_ControlFreec	numeric	0=no; 1=yes								0	1
+CYTO_TETRAPLOID_ControlFreec	translocations	CYTO_TETRAPLOID_ControlFreec	numeric	0=no; 1=yes								0	1
+CYTO_t_4_14_CONSENSUS	translocations	CYTO_t_4_14__CONSENSUS	numeric	0=no; 1=yes; 2=subclonal		Consensus structural variant call						0	1
+CYTO_t_6_14_CONSENSUS	translocations	CYTO_t_6_14__CONSENSUS	numeric	0=no; 1=yes; 2=subclonal		Consensus structural variant call						0	1
+CYTO_t_8_14_CONSENSUS	translocations	CYTO_t_8_14__CONSENSUS	numeric	0=no; 1=yes; 2=subclonal		Consensus structural variant call						0	1
+CYTO_t_11_14_CONSENSUS	translocations	CYTO_t_11_14__CONSENSUS	numeric	0=no; 1=yes; 2=subclonal		Consensus structural variant call						0	1
+CYTO_t_12_14_CONSENSUS	translocations	CYTO_t_12_14__CONSENSUS	numeric	0=no; 1=yes; 2=subclonal		Consensus structural variant call						0	1
+CYTO_t_14_16_CONSENSUS	translocations	CYTO_t_14_16__CONSENSUS	numeric	0=no; 1=yes; 2=subclonal		Consensus structural variant call						0	1
+CYTO_t_14_20_CONSENSUS	translocations	CYTO_t_14_20__CONSENSUS	numeric	0=no; 1=yes; 2=subclonal		Consensus structural variant call						0	1
+CYTO_MYC_CONSENSUS	translocations	CYTO_MYC_CONSENSUS	numeric	0=no; 1=yes; 2=subclonal		Consensus structural variant call						0	1
+CYTO_amp_1q_CONSENSUS	translocations	CYTO_amp_1q__CONSENSUS	numeric	0=no; 1=yes; 2=subclonal		Consensus structural variant call						0	1
+CYTO_1qplus_CONSENSUS	translocations	CYTO_1qplus_CONSENSUS	numeric	0=no; 1=yes; 2=subclonal		Consensus structural variant call						0	1
+CYTO_del_1p_CONSENSUS	translocations	CYTO_del_1p__CONSENSUS	numeric	0=no; 1=yes; 2=subclonal		Consensus structural variant call						0	1
+CYTO_del_1q_CONSENSUS	translocations	CYTO_del_1q__CONSENSUS	numeric	0=no; 1=yes; 2=subclonal		Consensus structural variant call						0	1
+CYTO_del_1p32_CONSENSUS	translocations	CYTO_del_1p32__CONSENSUS	numeric	0=no; 1=yes; 2=subclonal		Consensus structural variant call						0	1
+CYTO_del_16q_CONSENSUS	translocations	CYTO_del_16q__CONSENSUS	numeric	0=no; 1=yes; 2=subclonal		Consensus structural variant call						0	1
+CYTO_del_17_17p_CONSENSUS	translocations	CYTO_del_17_17p__CONSENSUS	numeric	0=no; 1=yes; 2=subclonal		Consensus structural variant call						0	1
+CYTO_del_11q_CONSENSUS	translocations	CYTO_del_11q__CONSENSUS	numeric	0=no; 1=yes; 2=subclonal		Consensus structural variant call						0	1
+CYTO_del_13q_CONSENSUS	translocations	CYTO_del_13q__CONSENSUS	numeric	0=no; 1=yes; 2=subclonal		Consensus structural variant call						0	1
+CYTO_Hyperdiploid_CONSENSUS	translocations	CYTO_Hyperdiploid_CONSENSUS	numeric	0=no; 1=yes; 2=subclonal		Consensus structural variant call						0	1
+CYTO_Translocation_Consensus	translocations	CYTO_Translocation_Consensus	character	4; 6; 8; 11; 16; 20		Abbreviated column for which consensus multiple myeloma related translocation is present. ERROR2 is given when more than one translocation is reported in an individual consensus field. 						0	1
+CYTO_Primary_Etiologic_Group	translocations	CYTO_PRIMARY_ETIOLOGIC_GROUP	numeric	"1=""CCND1-11q13""; 2=""CCND3-6p21""; 3=""4p16, MMSET, t(4;14), FGFR3""; 4=""c-MAF with t(14;16), MAFB with t(14;20), MAFA with t(8;14)""; 5=""D1 (+HRD, no translocations)""; 6=""D1+D2""; 7=""D2 (+HRD, no translocations)""; 8=""none"""		Translocation category of clinically relevant structural changes.						0	1
+BI_GENE_Flag	biallelicinactivation		numeric	0=NoInactivation; 1=Inactivation		The biallelic inactivation matrix contains binary indicators of whether both copies of a designated gene are inactivated. A zero indicates no inactivation and a 1 indicates a mutation, deletion or homozygous deletion. Columns are named BI_GENE_Flag where GENE is a given gene symbol. NOTES: variant allele frequencies are not considered. regions where there are 2 or more mutations in the same gene are not checked. this table only includes results for genes and valid samples from the copy number table. data generated by Cody Ashby TCAshby@uams.edu							
+CNV_GENE_ControlFreec	cnv		numeric	0=deletion; 1=loss; 2=normal; -2=loh; 3=gain; 4=amplification		The copy number matrix contains integer status indicators correspond to gene-level copy number status. 0 is a homozygous deletion, 1 is a loss, 2 is normal, -2 is copy number neutral loss of heterozygosity, 3 is a gain, 4 is amplification. Column are named CNV_GENE_ControlFreec where GENE is the corresponding hg19 gene symbol. This table only includes samples passing a three step criteria for filtering: 1.) t-test on regions of relative chromosomal stability (chromosome 2 and 10). If neither of them are normal (CN=2) than the sample fails. 2.) Median of the standard deviations of the data points across all chromosomes. If higher than 0.3, than the sample fails. 3.) If there are more than 600 CN segments, then the sample fails. data generated by Cody Ashby TCAshby@uams.edu							
+RNA_ENSG0000000000X.YY 	rnaseq		numeric			The RNA-Seq expression matrix contains floating point values of normalized RNA gene expression. Column are named RNA_ENSG0000000000X.YY where ENSG0000000000X is the corresponding Ensembl gene identifier and associate .YY version. Data generated by Mehmet_Samur@DFCI.HARVARD.EDU							
+SNV_GENE_BinaryConsensus	snv		numeric	0=no; 1=yes		The SNV matrix contains binary indicators of whether a sample has any SNV/indel variants within a given gene. Zero values mean that gene does not contain any mutations, 1 it does. Columns are named SNV_GENE_BinaryConsensus where GENE is a given gene symbol. Individual variants were been previously filtered for various aspects to improve reliability. This binary table includes all variants (including silent mutations) listed on 20170213.snvsindels.filtered.metadata.ndmmonly.slim.txt which was generated by Chris Wardell CPWardell@uams.edu							
