@@ -43,7 +43,11 @@ archive <- function(path, aws.args = NULL){
               date = gsub("^(.*)\\.([0-9\\-]{10})\\..*", "\\2", name)) %>%
     group_by(root) %>%
     arrange(desc(date)) %>%
-    filter(!grepl("[0-9]{4}\\-[0-9]{2}\\-[0-9]{2}", date)) %>%
+    # remove directories
+    filter(!grepl("\\/$", root)) %>%
+    # only consider rows with valid date formats
+    filter(grepl("^[0-9]{4}\\-[0-9]{2}\\-[0-9]{2}$", date)) %>%
+    # remove the most recent result from eahc root group
     slice(-1)
   
   null <- lapply(stale.versions$name, function(n){
@@ -311,6 +315,7 @@ table_flow <- function(write.to.s3 = TRUE){
   
   # import JointData tables ------------------------------------------------------
   CleanLocalScratch()
+  archive(file.path(s3, "ClinicalData/ProcessedData/JointData"))
   system(paste('aws s3 cp',
                file.path(s3, "ClinicalData/ProcessedData/JointData/"),
                local,
@@ -320,7 +325,7 @@ table_flow <- function(write.to.s3 = TRUE){
   
   files      <- list.files(local, full.names = T)
   dts        <- lapply(files, fread)
-  dt.names   <- gsub("curated_(.*?)[_\\.].*txt", "\\1", tolower(basename(files)))
+  dt.names   <- gsub("curated\\.(.*?)[_\\.].*txt", "\\1", tolower(basename(files)))
   if( any(duplicated(dt.names)) )stop("multiple file of the same type were imported")
   names(dts) <- dt.names
   
@@ -385,7 +390,11 @@ table_flow <- function(write.to.s3 = TRUE){
   sapply(master.dts, dim) - sapply(collapsed.dts, dim)
   
   ### join into unified table -------------------------
-  null <- lapply(collapsed.dts, function(dt){setkey(dt, Patient)})
+  null <- lapply(collapsed.dts, function(dt){
+    setkey(dt, Patient)
+    if(File_Name %in% names(dt)) dt[,File_Name.x:=NULL]
+    dt
+    })
   
   dt <- collapsed.dts$metadata
   dt <- merge(dt, collapsed.dts$clinical, all = T)
@@ -424,7 +433,7 @@ run_master_inventory <- function(write.to.s3 = TRUE){
   
   CleanLocalScratch()
   system(paste('aws s3 cp',
-               file.path(s3, "ClinicalData/ProcessedData/JointData/"),
+               file.path(s3, "ClinicalData/ProcessedData/Master/"),
                local,
                '--recursive --exclude "*" --include "curated*"',
                '--exclude "archive*"', 
@@ -436,7 +445,8 @@ run_master_inventory <- function(write.to.s3 = TRUE){
   names(dts) <- dt.names
   names(dts)
   
-  nd <- dts$metadata[Disease_Status == "ND" & Sample_Type_Flag == "1" & Disease_Type == "MM" ,File_Name]
+  nd <- dts$metadata[Disease_Status == "ND" & Sample_Type_Flag == "1" & 
+                       (Disease_Type == "MM" | is.na(Disease_Type)) ,File_Name]
   
   # generate lookup tables for each parameter
   has.demog <- dts$clinical[do.call("|", list(!is.na(D_Gender),   !is.na(D_Age))) ,.(Patient)]
@@ -531,6 +541,8 @@ run_master_inventory <- function(write.to.s3 = TRUE){
   names(df) <- df[1,]
   df <- df[2:nrow(df),]
   df["Total"] <- apply(df, MARGIN = 1, function(x){sum(as.integer(x))})
+  df[grepl("^Study", row.names(df)), "Total"] <- "Total"
+  
   df[['Category']] <- row.names(df)
   
   n <- paste("counts.by.study", d, "txt", sep = "." )
@@ -539,17 +551,13 @@ run_master_inventory <- function(write.to.s3 = TRUE){
   # move stale versions to archive subfolder
   archive(file.path(s3, "ClinicalData/ProcessedData/Reports"))
   
-  RPushbullet::pbPost("note", "table_flow() has completed")
-  
   list(per.patient.counts = inv, 
        per.study.counts = df)
 }
-export_sas <- function(table.path){
+export_sas <- function(df){
   
   # this has been adjusted to maintain a very specific export format, edit with care
   # It attempts to retain similarity in variable names and types to <SAS.TEMPLATE_2016-11-23.sas>
-  
-  df    <- GetS3Table(table.path, check.names = F)
   
   # sas column names are very restrictive, and automatically edited if nonconformant
   # 32 char limit only symbol allowed is "_"
@@ -557,26 +565,29 @@ export_sas <- function(table.path){
   # strange truncation rules (first lower case letters and then trailing upper case letters?)
   # also, use previsouly established names at all cost, this pisses off Biostats ppl
   # clean table names and dictionary names
-  
-  # names(df)  <- CleanColumnNamesForSAS(names(df))
-  
-  dict  <- get_dict %>% filter( sas.name != "")
+
+  dict  <- get_dict() %>% filter( sas.name != "")
   
   name2sasname <- setNames(dict$sas.name, dict$names)
-  # select only columns that have sas export names defined in dict
+  
+  # report sas variables we are not exporting
+  missing <- paste(names(name2sasname)[!names(name2sasname) %in% names(df)],  
+                   collapse = ", ")
+  if(missing != "") message(paste("sas variables not exported:", missing))
+  
+  # select and rename only columns that have sas export names defined in dict
   df <- df[, names(df) %in% names(name2sasname) ]
   names(df) <- name2sasname[names(df)]
-  names(df)
-  
-  dict$names <- CleanColumnNamesForSAS(dict$names)
-  
-  # Compare with previous export and add back columns that have no info now but 
-  # might will in future analyses
-  p <- "CYTO|FLO|MISC|History"
-  df[,grep(p, setdiff(previous_columns, names(df)), value = T)] <-  NA
+ 
+  # 
+  # # Compare with previous export and add back columns that have no info now but 
+  # # might will in future analyses
+  # p <- "CYTO|FLO|MISC|History"
+  # df[,grep(p, setdiff(previous_columns, names(df)), value = T)] <-  NA
+  # 
   
   # get a column with type definitions
-  types      <- dict[  match(names(df), dict$names), "class"]
+  types      <- dict[  match(names(df), dict$sas.name), "class"]
   if(any( is.na(types)) ) warning(paste("Column(s):\"", names(df)[is.na(types)], "\" are not defined class in dict", sep = " "))
   
   # coerce each variable
@@ -591,20 +602,16 @@ export_sas <- function(table.path){
     mutate_if(types == "character", funs( ifelse(is.na(.),"", .) )  ) %>%
     
     # remove all INV counting columns
-    select(-c(starts_with("INV"))) %>%
-    
-    # remove new variables not required for analysis
-    select(-c(Disease_Type)) %>%
-    select(-ends_with("Date"))
+    select(-c(starts_with("INV")))
   
   # sort columns in dictionary order
-  tmp <- df[,dict$names[dict$names %in% names(df)]]
+  tmp <- df[,dict$sas.name[dict$sas.name %in% names(df)]]
   if( all(dim(tmp) == dim(df)) ){df <- tmp
   }else{ stop("sorted columns didn't retain the same dimensions")}
   
   # export as SAS format
   name <- "unified.nd.tumor"
-  root <- paste0(name, "_", d)
+  root <- paste(name, d, sep = ".")
   local.data.path <- file.path(local, paste0(root,".txt"))
   local.code.path <- file.path(local, paste0(root,".sas"))
   
@@ -616,9 +623,11 @@ export_sas <- function(table.path){
   # edit sas code table such that empty columns retain character length = 1
   system( paste('sed -i "s/\\$ 0$/\\$ 1/" ', local.code.path, sep = " "))
   
+  system(paste('aws s3 cp',
+               file.path(local),
+               file.path(s3, "ClinicalData/ProcessedData/ND_Tumor_MM/sas/"),
+               '--recursive --exclude "*" --include "unified*"',
+               '--sse', 
+               sep = " "))
   
-  # new columns
-  setdiff(names(df), previous_columns)
-  # lost columns
-  setdiff(previous_columns, names(df))
-}
+  }
