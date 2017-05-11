@@ -59,12 +59,20 @@ archive <- function(path, aws.args = NULL){
   })
 }
 
-order_by_dictionary <- function(df){
-  dict <- get_dict() %>% filter(names %in% names(df))  
+order_by_dictionary <- function(df, table = NULL, add.missing.columns = T){
+  
+  if( is.null(table) ) stop('please specify a table or use table=""')
+  dict <- get_dict() %>% filter( grepl(table, level) )  
+  
+  if( add.missing.columns ){
+    missing.cols <- dict$names[!dict$names %in% names(df)]
+    df[,missing.cols] <- NA
+  }
   
   if( any(!names(df) %in% dict$names) ){
     message(
-      paste( names(df)[!names(df) %in% dict$names], "not in dictionary" )
+      paste( paste(names(df)[!names(df) %in% dict$names], collapse = ", "), 
+             "columns are not in dictionary and will be lost" )
     )
   }
   
