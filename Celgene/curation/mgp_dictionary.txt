@@ -24,6 +24,34 @@ D_Medical_History	clinical	D_Medical_History	character			Specify. This field is 
 D_Family_Cancer_History	clinical	D_Family_Cancer_History	character	Yes; No		Is there a family history of cancer?	STAND_ALONE_FAMHX.FAMHX_ISTHEREAFAMIL	NA		NA	NA	0	1
 D_PrevBoneMarrowTransplant	metadata	D_PrevBoneMarrowTransplant	numeric	0=no; 1=yes		Has a bone marrow transplant been performed before the study day that this’ sample was collected?	PER-PATIENT-VISIT::VISITDY >= min(PER-PATIENT-VISIT::BMT_DAYOFTRANSPL for same PUBLIC_ID)					0	1
 Sample_Study_Day	metadata	Sample_Study_Day	numeric			day of study that the sample was taken						0	1
+TRT_1_trtgroup	clinical	TRT_1_trtgroup	integer			number of treatment groups administered during first line therapy	STAND_ALONE_TRTRESP::trtgroup						
+TRT_1_therstdy	clinical	TRT_1_therstdy	integer		day	Study day of first line therapy start	STAND_ALONE_TRTRESP::trtstdy						
+TRT_1_therendy	clinical	TRT_1_therendy	integer		day	Study day of first line therapy end	STAND_ALONE_TRTRESP::trtendy						
+TRT_1_thername	clinical	TRT_1_thername	character			Systematic therapy name. Individual drugs treatments within a treatment groups are combined by dash symbol. Sequentially administered treatment groups from first line therapy are joined in order of administration by semicolon. 	STAND_ALONE_TRTRESP::thername						
+TRT_1_thershnm	clinical	TRT_1_thershnm	character			Same as TRT_1_thername olumn with abbreviated drug names. For abbreviation mapping see s3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/Resources/drug_name_abbreviation_table.txt	STAND_ALONE_TRTRESP::thershnm						
+TRT_1_therclass	clinical	TRT_1_therclass	character			Therapy class description	STAND_ALONE_TRTRESP::therclass						
+TRT_1_bmtx_rec	clinical	TRT_1_bmtx_rec	integer	0=no; 1=yes		Did the patient receive a bone marrow transplant during first line treatment.	STAND_ALONE_TRTRESP::bmtx_rec						
+TRT_1_bmtx_type	clinical	TRT_1_bmtx_type	character			Description of bone marrow transplant type received during first line therapy. If multiple bmt were performed during first line therapy additional types are appended with semicolon	Simplify(STAND_ALONE_TRTRESP::bmtx_type)						
+TRT_1_bmtx_n	clinical	TRT_1_bmtx_n	integer			Number of bone marrow transplant the patient received during first line therapy.	max(STAND_ALONE_TRTRESP::bmtx_seq, na.rm = T)						
+TRT_1_bmtx_day	clinical	TRT_1_bmtx_day	integer			Study day of the  first bone marrow transplant received during first line therapy	min(STAND_ALONE_TRTRESP::bmtx_day, na.rm = T)						
+TRT_1_bend	clinical	TRT_1_bend	numeric	0=no; 1=yes		Did the patient receive treatment with bendamustine as part of first line therapy. 	STAND_ALONE_TREATMENT_REGIMEN::MMTX_THERAPY						
+TRT_1_bor	clinical	TRT_1_bor	numeric	0=no; 1=yes		Did the patient receive treatment with bortezomib as part of first line therapy. 	STAND_ALONE_TREATMENT_REGIMEN::MMTX_THERAPY						
+TRT_1_car	clinical	TRT_1_car	numeric	0=no; 1=yes		Did the patient receive treatment with carfilzomib as part of first line therapy. 	STAND_ALONE_TREATMENT_REGIMEN::MMTX_THERAPY						
+TRT_1_cyc	clinical	TRT_1_cyc	numeric	0=no; 1=yes		Did the patient receive treatment with cyclophosphamide as part of first line therapy. 	STAND_ALONE_TREATMENT_REGIMEN::MMTX_THERAPY						
+TRT_1_dar	clinical	TRT_1_dar	numeric	0=no; 1=yes		Did the patient receive treatment with daratumumab as part of first line therapy. 	STAND_ALONE_TREATMENT_REGIMEN::MMTX_THERAPY						
+TRT_1_dex	clinical	TRT_1_dex	numeric	0=no; 1=yes		Did the patient receive treatment with dexamethasone as part of first line therapy. 	STAND_ALONE_TREATMENT_REGIMEN::MMTX_THERAPY						
+TRT_1_dox	clinical	TRT_1_dox	numeric	0=no; 1=yes		Did the patient receive treatment with doxorubicin as part of first line therapy. 	STAND_ALONE_TREATMENT_REGIMEN::MMTX_THERAPY						
+TRT_1_doxlip	clinical	TRT_1_doxlip	numeric	0=no; 1=yes		Did the patient receive treatment with liposomal doxorubicin as part of first line therapy.  	STAND_ALONE_TREATMENT_REGIMEN::MMTX_THERAPY						
+TRT_1_ixa	clinical	TRT_1_ixa	numeric	0=no; 1=yes		Did the patient receive treatment with ixazomib as part of first line therapy. 	STAND_ALONE_TREATMENT_REGIMEN::MMTX_THERAPY						
+TRT_1_len	clinical	TRT_1_len	numeric	0=no; 1=yes		Did the patient receive treatment with lenalidomide as part of first line therapy. 	STAND_ALONE_TREATMENT_REGIMEN::MMTX_THERAPY						
+TRT_1_mel	clinical	TRT_1_mel	numeric	0=no; 1=yes		Did the patient receive treatment with melphalan as part of first line therapy. 	STAND_ALONE_TREATMENT_REGIMEN::MMTX_THERAPY						
+TRT_1_pom	clinical	TRT_1_pom	numeric	0=no; 1=yes		Did the patient receive treatment with pomalidomide as part of first line therapy. 	STAND_ALONE_TREATMENT_REGIMEN::MMTX_THERAPY						
+TRT_1_pred	clinical	TRT_1_pred	numeric	0=no; 1=yes		Did the patient receive treatment with prednisone as part of first line therapy. 	STAND_ALONE_TREATMENT_REGIMEN::MMTX_THERAPY						
+TRT_1_thal	clinical	TRT_1_thal	numeric	0=no; 1=yes		Did the patient receive treatment with thalidomide as part of first line therapy. 	STAND_ALONE_TREATMENT_REGIMEN::MMTX_THERAPY						
+TRT_1_vin	clinical	TRT_1_vin	numeric	0=no; 1=yes		Did the patient receive treatment with vincristine as part of first line therapy. 	STAND_ALONE_TREATMENT_REGIMEN::MMTX_THERAPY						
+TRT_1_IMID	clinical	TRT_1_IMID	numeric	0=no; 1=yes		Did the patient receive first line treatment that included Immunomodulatory imide drugs (IMiDs). This class of drugs includes: thalidomide, lenalidomide, pomalidomide and apremilast. This column is derived from as.numeric( TRT_1_thal | TRT_1_len | TRT_1_pom)							
+TRT_1_other	clinical	TRT_1_other	numeric	0=no; 1=yes		Did the patient receive treatment with a drug not specifically classified here (Other) as part of first line therapy. 							
+TRT_1_other_names	clinical	TRT_1_other_names	character			List of other first line drug treatments not specifically classified							
 D_Diagnosis_Date	clinical		date	“YYYY-mm-dd”		YYYY-mm-dd formatted diagnosis date						1	1
 D_Relapse_Date	clinical		date	“YYYY-mm-dd”		YYYY-mm-dd formatted date of first relapse						1	1
 D_Death_Date	clinical		date	“YYYY-mm-dd”								1	1
