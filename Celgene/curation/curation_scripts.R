@@ -318,7 +318,7 @@ get_dict <- function(update = T){
   toolboxR::GetS3Table(file.path(s3, "ClinicalData/ProcessedData/Resources/mgp_dictionary.txt"))
 }
 
-table_flow <- function(write.to.s3 = TRUE){
+table_flow <- function(write.to.s3 = TRUE, just.master = F){
   PRINTING = write.to.s3 # turn off print to S3 when iterating
   
   # import JointData tables ------------------------------------------------------
@@ -356,6 +356,10 @@ table_flow <- function(write.to.s3 = TRUE){
   names(master.dts) <- dt.names
   # count excluded rows removed 
   sapply(dts, dim) - sapply(master.dts, dim)
+  
+  archive(file.path(s3, "ClinicalData/ProcessedData/Master"))
+  
+  if(just.master) return('Only JointData to Master was processed')
   
   ### Filter ND_Tumor_MM files ---------------------------------------------------
   nd.tumor.files <- master.dts$metadata[Disease_Status     == "ND" & 
@@ -400,9 +404,9 @@ table_flow <- function(write.to.s3 = TRUE){
   ### join into unified table -------------------------
   null <- lapply(collapsed.dts, function(dt){
     setkey(dt, Patient)
-    if(File_Name %in% names(dt)) dt[,File_Name.x:=NULL]
+    if("File_Name" %in% names(dt)) dt[,File_Name:=NULL]
     dt
-    })
+  })
   
   dt <- collapsed.dts$metadata
   dt <- merge(dt, collapsed.dts$clinical, all = T)
@@ -421,7 +425,6 @@ table_flow <- function(write.to.s3 = TRUE){
   
   
   # move stale versions to archive subfolder
-  archive(file.path(s3, "ClinicalData/ProcessedData/Master"))
   archive(file.path(s3, "ClinicalData/ProcessedData/ND_Tumor_MM"))
   
   RPushbullet::pbPost("note", "table_flow() has completed")
@@ -531,19 +534,19 @@ run_master_inventory <- function(write.to.s3 = TRUE){
     
     if("File_Name" %in% names(dt)){ 
       dt <- right_join(select(dts$metadata, File_Name, Study), 
-                 dt, by = "File_Name") %>%
+                       dt, by = "File_Name") %>%
         group_by(Study) %>%
         summarise_all( funs(INV = sum(!is.na(.)) ))
     }else{
       dt <- right_join(select(dts$metadata, Patient, Study), 
-                     dt, by = "Patient") %>%
+                       dt, by = "Patient") %>%
         group_by(Study)%>%
         summarise_all( funs(INV = sum(!is.na(.)) ))
     }
     names(dt) <- gsub("(.*)_(INV)", "\\2_\\1", names(dt))
     dt
   })
-   
+  
   df <- do.call(cbind, c(list(per.study.counts), aggs))
   df <- as.data.frame(t(df), stringsAsFactors = F)
   names(df) <- df[1,]
@@ -573,7 +576,7 @@ export_sas <- function(df){
   # strange truncation rules (first lower case letters and then trailing upper case letters?)
   # also, use previsouly established names at all cost, this pisses off Biostats ppl
   # clean table names and dictionary names
-
+  
   dict  <- get_dict() %>% filter( sas.name != "")
   
   name2sasname <- setNames(dict$sas.name, dict$names)
@@ -586,7 +589,7 @@ export_sas <- function(df){
   # select and rename only columns that have sas export names defined in dict
   df <- df[, names(df) %in% names(name2sasname) ]
   names(df) <- name2sasname[names(df)]
- 
+  
   # 
   # # Compare with previous export and add back columns that have no info now but 
   # # might will in future analyses
@@ -638,4 +641,79 @@ export_sas <- function(df){
                '--sse', 
                sep = " "))
   
+}
+
+qc_master_tables <- function(log.path = "tmp.log"){
+  
+  # transfer curated tables from Master directory and test each column 
+  # against specific rules as defined in dictionary
+  
+  
+  CleanLocalScratch()
+  system(paste('aws s3 cp',
+               file.path(s3, "ClinicalData/ProcessedData/Master/"),
+               local,
+               '--recursive --exclude "*" --include "curated*"',
+               '--exclude "archive*"',
+               sep = " "))
+  f        <- list.files(local, full.names = T)
+  dts      <- lapply(f, fread)
+  dt.names <- gsub("curated[_\\.]([a-z]+).*", "\\1", tolower(basename(f)))
+  if( any(duplicated(dt.names)) )stop("multiple file of the same type were imported")
+  names(dts) <- dt.names
+  names(dts)
+  
+  dts <- dts[c(3,5)]
+  
+  # test functions
+  column.exists <- function(x){
+    if( !is.null(x) ){ "PASS"
+    }else "FAIL"
   }
+  
+  required <- function(x){
+    if( !is.null(x) && all(!is.na(x) & x != "") ){ 
+      "PASS"
+    }else "FAIL"
+  }
+  
+  log_result <- function(table, column, test, result){
+    l <- paste(Sys.time(), result, test, table, column, sep = "\t")  
+    write(l, log.path, append = T)
+  }
+  
+  dict <- get_dict()
+  unlink(log.path)
+  # clean logfile
+  lapply(names(dts), function(t){
+    
+    # filter dictionary for fields in this table
+    dict <- dict %>% filter(grepl(t, level))
+    
+    # iterate through each column
+    lapply(dict$names, function(c){
+      
+      # qc tests
+      test.names <- unlist(strsplit(as.character(dict[dict$names == c, "qc.tests"]), 
+                                    split = "; "))
+      lapply(test.names, function(qc){
+        f <- get(qc)
+        log_result(t,c,qc,f(dts[[t]][[c]]))
+        
+      })
+    })
+  })
+  # print FAILED tests
+  failed.results <- read.delim(log.path, header = F) %>% 
+    filter(V2 == "FAIL") %>% 
+    select(-V1) %>%
+    rename(Result = V2,
+           Test   = V3,
+           Table  = V4,
+           Column = V5)
+  
+  # return a table of failed results, make sure any edits are only made to 
+  # original JointData and not the filtered Master tables
+  failed.results
+}
+

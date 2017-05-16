@@ -111,5 +111,7 @@ out <- append_df(clinical, curated.treatment, id = "Patient", mode = "safe")
 PutS3Table(out, 
            file.path(s3, "ClinicalData/ProcessedData/JointData",
                      paste("curated.clinical",d,"txt",sep = ".")))
-archive(file.path(s3, "ClinicalData/ProcessedData/JointData"))
+
+# update downstream tables 
+table_flow()
 
