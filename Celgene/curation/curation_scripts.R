@@ -466,6 +466,14 @@ run_master_inventory <- function(write.to.s3 = TRUE){
   under75   <- dts$clinical[!is.na(D_Age)  & D_Age < 75, .(Patient)]
   has.blood <- dts$blood[File_Name %in% nd][do.call("|", list(!is.na(DIAG_Beta2Microglobulin),      !is.na(DIAG_Albumin))) ,.(Patient)]
   
+  # NOTE: this includes pateints that only had Relapse results, 
+  # you probably want the ND filtered version below
+  has.bi    <- dts$biallelicinactivation[do.call("|", list(!is.na(BI_TP53_Flag), !is.na(BI_NRAS_Flag))) ,.(Patient)]
+  has.cnv   <- dts$cnv[do.call("|", list(!is.na(CNV_TP53_ControlFreec), !is.na(CNV_NRAS_ControlFreec))) ,.(Patient)]
+  has.rna   <- dts$rnaseq[do.call("|", list(!is.na(RNA_ENSG00000141510.16), !is.na(RNA_ENSG00000213281.4))) ,.(Patient)]
+  has.snv   <- dts$snv[do.call("|", list(!is.na(SNV_TP53_BinaryConsensus), !is.na(SNV_NRAS_BinaryConsensus))) ,.(Patient)]
+  has.trsl  <- dts$translocations[CYTO_Translocation_Consensus %in% c("None", "4", "6", "11", "12", "16", "20")  ,.(Patient)]
+  
   has.nd.bi    <- dts$biallelicinactivation[File_Name %in% nd][do.call("|", list(!is.na(BI_TP53_Flag), !is.na(BI_NRAS_Flag))) ,.(Patient)]
   has.nd.cnv   <- dts$cnv[File_Name %in% nd][do.call("|", list(!is.na(CNV_TP53_ControlFreec), !is.na(CNV_NRAS_ControlFreec))) ,.(Patient)]
   has.nd.rna   <- dts$rnaseq[File_Name %in% nd][do.call("|", list(!is.na(RNA_ENSG00000141510.16), !is.na(RNA_ENSG00000213281.4))) ,.(Patient)]
@@ -506,6 +514,11 @@ run_master_inventory <- function(write.to.s3 = TRUE){
       INV_Has.blood          = any(Patient %in% has.blood$Patient ),
       INV_Has.nd.bi             = any(Patient %in% has.nd.bi$Patient    ),
       
+      INV_Has.cnv            = any(Patient %in% has.cnv$Patient   ),
+      INV_Has.rna            = any(Patient %in% has.rna$Patient   ),
+      INV_Has.snv            = any(Patient %in% has.snv$Patient   ),
+      INV_Has.Translocations = any(Patient %in%  has.trsl$Patient ),
+      
       INV_Has.nd.cnv            = any(Patient %in% has.nd.cnv$Patient   ),
       INV_Has.nd.rna            = any(Patient %in% has.nd.rna$Patient   ),
       INV_Has.nd.snv            = any(Patient %in% has.nd.snv$Patient   ),
@@ -520,7 +533,21 @@ run_master_inventory <- function(write.to.s3 = TRUE){
       Cluster.B     = (Cluster.A2 &
                          INV_Has.iss &
                          INV_Under75 & 
-                         INV_Has.blood)  )%>%
+                         INV_Has.blood),
+      
+      
+      # UAMS Cluster.C
+      # > Start with 1313 WES samples
+      # > Keep only samples with copy number data (the ?CopyNumber.Pass? column), which is 1106 samples
+      # > We found that patients aged 75 or older perform poorly, so removed them: 916 samples
+      # > Required ISS stage data: 831 samples
+      # > Survival data required: 800 samples
+      
+      Cluster.C    = (INV_Has.WES & 
+                        INV_Has.nd.cnv &  
+                        INV_Under75 &
+                        INV_Has.iss &
+                        INV_Has.pfsos  ) )%>%
     mutate_if(is.logical, as.numeric)
   
   n <- paste("counts.by.individual", d, "txt", sep = "." )

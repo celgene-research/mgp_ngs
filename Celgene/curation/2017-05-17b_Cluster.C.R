@@ -1,5 +1,5 @@
 
-inventory.file <- "counts.by.individual.2017-05-16.txt"
+inventory.file <- "counts.by.individual.2017-05-17.txt"
 
 
 source("curation_scripts.R")
@@ -22,15 +22,14 @@ names(dts) <- gsub(".*patient\\.([a-z]+)\\..*", "\\1", tolower(basename(files)))
 inv <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData/Reports",
                             inventory.file))
 
-patient.lists <- list(Cluster.A2 = inv[ inv$Cluster.A2 == 1, "Patient" ],
-                      Cluster.B  = inv[ inv$Cluster.B  == 1, "Patient" ] )
+patient.lists <- list(Cluster.C = inv[ inv$Cluster.C == 1, "Patient" ] )
 
 
 out <- lapply(names(patient.lists), function(cluster.name){
   
   PutS3Table(patient.lists[[cluster.name]], file.path(s3,"ClinicalData/ProcessedData", cluster.name,
                                                       paste("patient.list",d, "txt", sep = ".")),
-                                                       col.names = F)
+             col.names = F)
   
   filtered.dts <- lapply(names(dts), function(table.name){
     dt   <- dts[[table.name]][Patient %in% patient.lists[[cluster.name]]$Patient]
@@ -43,17 +42,18 @@ out <- lapply(names(patient.lists), function(cluster.name){
 })
 
 # 
-prev <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData/Cluster.A2",
-                            "archive/metadata.subset.2017-04-18.txt"))
-new  <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData/Cluster.A2",
-                             "metadata.subset.2017-05-16.txt"))
-
-prev$Patient[!prev$Patient %in% new$Patient]
-venn::venn(list(prev$Patient, new$Patient))
-
-joint.metadata  <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData/JointData",
-                             "curated.metadata.2017-05-16.txt"))
-master.metadata  <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData/Master",
-                                        "curated.metadata.2017-05-16.txt"))
-
-
+# prev <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData/Cluster.A2",
+#                             "archive/metadata.subset.2017-04-18.txt"))
+# new  <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData/Cluster.A2",
+#                              "metadata.subset.2017-05-16.txt"))
+# 
+# prev$Patient[!prev$Patient %in% new$Patient]
+# venn::venn(list(prev$Patient, new$Patient))
+# 
+# joint.metadata  <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData/JointData",
+#                              "curated.metadata.2017-05-16.txt"))
+# master.metadata  <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData/Master",
+#                                         "curated.metadata.2017-05-16.txt"))
+# 
+cluster.c.meta <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData/Cluster.C",
+                                       "metadata.subset.2017-05-17.txt"))
