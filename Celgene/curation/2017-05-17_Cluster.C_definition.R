@@ -49,3 +49,19 @@ tmp <- joint.meta %>%
 # 1300 has no ISS score
 # 1332 doesn't have valid cnv info
 # all others are from PCL patients
+# 
+
+
+source("curation_scripts.R")
+inv <- run_master_inventory()
+
+names(inv$per.patient.counts)
+cluster.c.matrix.comparisons <- inv$per.patient.counts %>%
+  ungroup() %>%
+  select(Patient, Cluster.C, Cluster.C2, INV_Has.nd.snv, INV_Has.nd.Translocations) %>%
+  filter(Cluster.C != Cluster.C2) %>%
+  arrange(INV_Has.nd.snv)
+
+knitr::kable(cluster.c.matrix.comparisons, align = "c")
+
+
