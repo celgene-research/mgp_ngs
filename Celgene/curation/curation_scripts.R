@@ -1,27 +1,28 @@
 
-# global vars
-d  <- format(Sys.Date(), "%Y-%m-%d")
-s3 <- "s3://celgene.rnd.combio.mmgp.external"
-
+# vars and import----------------------------------------------------------------
+d           <- format(Sys.Date(), "%Y-%m-%d")
+s3          <- "s3://celgene.rnd.combio.mmgp.external"
+local.cache <- "/tmp/curation"
 options(stringsAsFactors = FALSE)
-# ,
-# error = function() { 
-#   
-#   if(!interactive()) RPushbullet::pbPost("note", "Error", geterrmessage()))
-# })
-
 
 # attach important packages
 # devtools::install_github("dkrozelle/toolboxR", force = TRUE)
 library(toolboxR)
+# devtools::install_github("dkrozelle/s3r")
+library(s3r)
 library(dplyr) # don't load plyr, it will conflict
 library(tidyr)
 library(data.table)
 
+# configure the s3r environment
+s3_set(bucket = "celgene.rnd.combio.mmgp.external",
+       cache = local.cache,
+       sse = T)
+
 # this function does not allow specification of directory to 
 # prevent inadvertant file deletion 
 CleanLocalScratch <- function(){
-  path = "/tmp/curation"
+  path = local.cache
   if(dir.exists(path)){system(paste('rm -r', path, sep = " "))}
   dir.create(path)
   path
@@ -542,12 +543,22 @@ run_master_inventory <- function(write.to.s3 = TRUE){
       # > We found that patients aged 75 or older perform poorly, so removed them: 916 samples
       # > Required ISS stage data: 831 samples
       # > Survival data required: 800 samples
+      # 
+      # in response to presentation, added flags to specifically require
+      # SNV and Translocation data
       
       Cluster.C    = (INV_Has.WES & 
-                        INV_Has.nd.cnv &  
+                        INV_Has.nd.cnv &
                         INV_Under75 &
                         INV_Has.iss &
-                        INV_Has.pfsos  ) )%>%
+                        INV_Has.pfsos  ),
+      Cluster.C2    = (INV_Has.WES & 
+                        INV_Has.nd.cnv & 
+                        INV_Has.nd.snv &
+                        INV_Has.nd.Translocations &
+                        INV_Under75 &
+                        INV_Has.iss &
+                        INV_Has.pfsos  )  )%>%
     mutate_if(is.logical, as.numeric)
   
   n <- paste("counts.by.individual", d, "txt", sep = "." )
@@ -672,37 +683,63 @@ export_sas <- function(df){
 
 qc_master_tables <- function(log.path = "tmp.log"){
   
-  # transfer curated tables from Master directory and test each column 
+  # transfer curated tables from Master directory
+  #  and test each column 
   # against specific rules as defined in dictionary
   
   
   CleanLocalScratch()
-  system(paste('aws s3 cp',
-               file.path(s3, "ClinicalData/ProcessedData/Master/"),
-               local,
-               '--recursive --exclude "*" --include "curated*"',
-               '--exclude "archive*"',
-               sep = " "))
-  f        <- list.files(local, full.names = T)
-  dts      <- lapply(f, fread)
-  dt.names <- gsub("curated[_\\.]([a-z]+).*", "\\1", tolower(basename(f)))
-  if( any(duplicated(dt.names)) )stop("multiple file of the same type were imported")
-  names(dts) <- dt.names
+  
+  s3_cd("/ClinicalData/ProcessedData/Master")
+  master.files <- s3_ls(files.only = T)
+  dts <- lapply(master.files, function(p){
+    s3_get_with(p, FUN = "fread")
+    })
+  
+  names(dts) <- gsub("curated[_\\.]([a-z]+).*", "\\1", tolower(basename(master.files)))
+  if( any(duplicated( names(dts))) )stop("multiple file of the same type were imported")
   names(dts)
   
-  dts <- dts[c(3,5)]
+  dts <- dts[names(dts) %in% c("clinical", "metadata")]
   
   # test functions
-  column.exists <- function(x){
+  column_exists <- function(x){
     if( !is.null(x) ){ "PASS"
     }else "FAIL"
   }
   
-  required <- function(x){
+  all_required <- function(x){
     if( !is.null(x) && all(!is.na(x) & x != "") ){ 
       "PASS"
     }else "FAIL"
   }
+  
+  
+  all_numeric <- function(x){
+
+    if( suppressWarnings(
+      sum(!is.na(as.numeric(x))) == sum(!is.na(x))
+    ) ){ 
+      "PASS"
+    }else "FAIL"
+  }
+  # test_numeric(c(1,2,3)) #PASS
+  # test_numeric(c("1","2","3","4", NA))   #PASS
+  # test_numeric(c("1","2","3","-4", NA))   #PASS
+  # test_numeric(c("1","2","3","4", "NA")) #FAIL
+  # test_numeric(c("1","2","3","4;5", NA)) #FAIL
+
+    
+  all_positive <- function(x){
+    if( (all_numeric(x) == "PASS") && all(as.numeric(x) >= 0 | is.na(x)) ){ 
+      "PASS"
+    }else "FAIL"
+  }
+  
+  # test_positive(c(1,2,3))                #PASS
+  # test_positive(c("1","2","3","4", NA))  #PASS
+  # test_positive(c("1","2","3","-4", NA)) #FAIL
+  
   
   log_result <- function(table, column, test, result){
     l <- paste(Sys.time(), result, test, table, column, sep = "\t")  
