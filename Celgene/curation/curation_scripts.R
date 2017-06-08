@@ -13,6 +13,7 @@ library(s3r)
 library(dplyr) # don't load plyr, it will conflict
 library(tidyr)
 library(data.table)
+library(pbapply)
 
 # configure the s3r environment
 s3_set(bucket = "celgene.rnd.combio.mmgp.external",
@@ -59,6 +60,48 @@ archive <- function(path, aws.args = NULL){
                  '--sse', aws.args))
   })
 }
+
+write_new_version <- function(df, name, dir = NULL){
+  if( !exists("cwd", envir = s3e) ) return('s3e not configured')
+  
+  prev.dir <- s3_cd()
+  if( !is.null(dir) ) s3_cd(dir)
+  
+  prev.path <- s3_ls(pattern = paste0("^",name)) 
+  # print(prev.path)
+  if( length(prev.path) == 0  ){
+    message(paste(name, '; previous version not found with that name'))
+    return(1)
+  }else if( length(prev.path) > 1 ){
+    message(paste(name, '; more than one previous version found'))
+    return(1)
+  }else{
+    prev.df <- s3r::s3_get_table(prev.path)
+  }
+  
+  if( startsWith(as.character(all_equal(prev.df, df)), "TRUE") ){
+    message(paste(name, '; no changes from previous version'))
+    return(1)
+  }else{
+    n    <- paste(name, d, "txt", sep = ".")
+    new.path <- s3r::s3_put_table(df, n)
+    
+    #if successful, archive previous version
+    if( new.path != 1 ){ s3_mv(from = prev.path, 
+                               to   = file.path("archive", prev.path))}
+    print(paste(name, "written"))
+  }
+  
+  # reset cd
+  s3_cd(prev.dir)
+  new.path
+}
+
+
+
+
+
+
 
 order_by_dictionary <- function(df, table = NULL, add.missing.columns = T){
   
@@ -324,41 +367,38 @@ table_flow <- function(write.to.s3 = TRUE, just.master = F){
   
   # import JointData tables ------------------------------------------------------
   CleanLocalScratch()
-  archive(file.path(s3, "ClinicalData/ProcessedData/JointData"))
-  system(paste('aws s3 cp',
-               file.path(s3, "ClinicalData/ProcessedData/JointData/"),
-               local,
-               '--recursive --exclude "*" --include "curated*"',
-               '--exclude "archive*"', 
-               sep = " "))
   
-  files      <- list.files(local, full.names = T)
-  dts        <- lapply(files, fread)
-  dt.names   <- gsub("curated\\.(.*?)[_\\.].*txt", "\\1", tolower(basename(files)))
-  if( any(duplicated(dt.names)) )stop("multiple file of the same type were imported")
+  if( !exists("cwd", envir = s3e) ) return('s3e not configured')
+  prev.dir <- s3_cd()
+  s3_cd("/ClinicalData/ProcessedData/JointData")
+  
+  file.names <- s3_ls(pattern = "^curated") 
+  dts <- lapply(file.names, function(f){
+    s3_get_with(f, FUN = fread)
+  })
+  
+  dt.names   <- gsub("curated\\.(.*?)[_\\.].*txt", "\\1", tolower(file.names))
+  if( any(duplicated(dt.names)) )stop("multiple files of the same type were imported")
   names(dts) <- dt.names
   
   ### Filter excluded files ------------------------------------------------------
   valid.files <- dts$metadata[Excluded_Flag == 0 | is.na(Excluded_Flag) ,
                               .(Patient, File_Name)]
   
-  master.dts <- lapply(names(dts), function(type){
+  print("filtering JointData tables to valid Master tables")
+  master.dts <- pblapply(names(dts), function(type){
     dt <- dts[[type]]
     if("File_Name" %in% names(dt)){dt <- dt[File_Name %in% valid.files$File_Name]
     }else if("Patient" %in% names(dt)){dt <- dt[Patient %in% valid.files$Patient]
     }else{stop("table doesn't have a filterable column")}
     
-    n    <- paste("curated", type, d, "txt", sep = ".")
-    path <- file.path(s3, "ClinicalData/ProcessedData/Master", n)
-    if(PRINTING) PutS3Table(dt, path)
+    if(PRINTING) write_new_version(dt, name = paste("curated", type, sep = "."))
     dt
   })
   
   names(master.dts) <- dt.names
   # count excluded rows removed 
   sapply(dts, dim) - sapply(master.dts, dim)
-  
-  archive(file.path(s3, "ClinicalData/ProcessedData/Master"))
   
   if(just.master) return('Only JointData to Master was processed')
   
@@ -367,7 +407,9 @@ table_flow <- function(write.to.s3 = TRUE, just.master = F){
                                           Sample_Type_Flag == 1    & 
                                           Disease_Type     == "MM" ,
                                         .(Patient, File_Name)]
-  nd.tumor.dts <- lapply(names(master.dts), function(type){
+  
+  print("filtering Master table files to NDMM")
+  nd.tumor.dts <- pblapply(names(master.dts), function(type){
     dt <- master.dts[[type]]
     # if has a file_name use that, else use patient
     if( "File_Name" %in% names(dt) ){
@@ -389,7 +431,8 @@ table_flow <- function(write.to.s3 = TRUE, just.master = F){
   
   
   ### collapse individual tables to per.patient ----------------------------------
-  collapsed.dts <- lapply(names(nd.tumor.dts), function(type){
+  print("Collapsing ndmm tables to per-patient ndmm")
+  collapsed.dts <- pblapply(names(nd.tumor.dts), function(type){
     
     dt <- local_collapse_dt(nd.tumor.dts[[type]], column.names = "Patient") 
     
@@ -403,7 +446,8 @@ table_flow <- function(write.to.s3 = TRUE, just.master = F){
   sapply(master.dts, dim) - sapply(collapsed.dts, dim)
   
   ### join into unified table -------------------------
-  null <- lapply(collapsed.dts, function(dt){
+  print("Joining clinical, blood, translocation to meta unified")
+  null <- pblapply(collapsed.dts, function(dt){
     setkey(dt, Patient)
     if("File_Name" %in% names(dt)) dt[,File_Name:=NULL]
     dt
@@ -423,10 +467,6 @@ table_flow <- function(write.to.s3 = TRUE, just.master = F){
   n    <- paste("per.patient", "unified", "nd.tumor", d, "txt", sep = ".")
   path <- file.path(s3, "ClinicalData/ProcessedData/ND_Tumor_MM", n)
   if(PRINTING) PutS3Table(dt, path)
-  
-  
-  # move stale versions to archive subfolder
-  archive(file.path(s3, "ClinicalData/ProcessedData/ND_Tumor_MM"))
   
   RPushbullet::pbPost("note", "table_flow() has completed")
 }
@@ -553,12 +593,12 @@ run_master_inventory <- function(write.to.s3 = TRUE){
                         INV_Has.iss &
                         INV_Has.pfsos  ),
       Cluster.C2    = (INV_Has.WES & 
-                        INV_Has.nd.cnv & 
-                        INV_Has.nd.snv &
-                        INV_Has.nd.Translocations &
-                        INV_Under75 &
-                        INV_Has.iss &
-                        INV_Has.pfsos  )  )%>%
+                         INV_Has.nd.cnv & 
+                         INV_Has.nd.snv &
+                         INV_Has.nd.Translocations &
+                         INV_Under75 &
+                         INV_Has.iss &
+                         INV_Has.pfsos  )  )%>%
     mutate_if(is.logical, as.numeric)
   
   n <- paste("counts.by.individual", d, "txt", sep = "." )
@@ -694,7 +734,7 @@ qc_master_tables <- function(log.path = "tmp.log"){
   master.files <- s3_ls(files.only = T)
   dts <- lapply(master.files, function(p){
     s3_get_with(p, FUN = "fread")
-    })
+  })
   
   names(dts) <- gsub("curated[_\\.]([a-z]+).*", "\\1", tolower(basename(master.files)))
   if( any(duplicated( names(dts))) )stop("multiple file of the same type were imported")
@@ -716,7 +756,7 @@ qc_master_tables <- function(log.path = "tmp.log"){
   
   
   all_numeric <- function(x){
-
+    
     if( suppressWarnings(
       sum(!is.na(as.numeric(x))) == sum(!is.na(x))
     ) ){ 
@@ -728,8 +768,8 @@ qc_master_tables <- function(log.path = "tmp.log"){
   # test_numeric(c("1","2","3","-4", NA))   #PASS
   # test_numeric(c("1","2","3","4", "NA")) #FAIL
   # test_numeric(c("1","2","3","4;5", NA)) #FAIL
-
-    
+  
+  
   all_positive <- function(x){
     if( (all_numeric(x) == "PASS") && all(as.numeric(x) >= 0 | is.na(x)) ){ 
       "PASS"
