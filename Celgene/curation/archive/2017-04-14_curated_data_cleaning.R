@@ -55,6 +55,10 @@ joint$translocations <- GetS3Table(file.path(s3, "ClinicalData/OriginalData/Join
   select(File_Name, CYTO_Hyperdiploid_CONSENSUS) %>%
   left_join(select(t, -CYTO_Hyperdiploid_CONSENSUS), ., by = "File_Name") %>% as.data.table
 
+
+# revised on 2017-06-12 to place cody's calls into the CYTO_Hyperdiploid_MANTA field
+# instead of directly into the _CONSENSUS var
+
 # # get a list of the nd.tumor File_Names for each patient for summarizing 
 # # ND.tumor-specific translocation consensus
 # # summary table with patient and nd.consensus
