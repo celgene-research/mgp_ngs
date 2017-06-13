@@ -6,7 +6,7 @@ local.cache <- "/tmp/curation"
 options(stringsAsFactors = FALSE)
 
 # attach important packages
-# devtools::install_github("dkrozelle/toolboxR", force = TRUE)
+# devtools::install_github("dkrozelle/toolboxR")
 library(toolboxR)
 # devtools::install_github("dkrozelle/s3r")
 library(s3r)
@@ -66,35 +66,48 @@ write_new_version <- function(df, name, dir = NULL){
   
   prev.dir <- s3_cd()
   if( !is.null(dir) ) s3_cd(dir)
-  
   prev.path <- s3_ls(pattern = paste0("^",name)) 
-  # print(prev.path)
+  
   if( length(prev.path) == 0  ){
     message(paste(name, '; previous version not found with that name'))
+    s3_cd(prev.dir)
     return(1)
   }else if( length(prev.path) > 1 ){
     message(paste(name, '; more than one previous version found'))
+    s3_cd(prev.dir)
     return(1)
   }else{
-    prev.df <- s3r::s3_get_table(prev.path)
+    prev.df <- s3_get_table(prev.path)
   }
   
   if( startsWith(as.character(all_equal(prev.df, df)), "TRUE") ){
-    message(paste(name, '; no changes from previous version'))
-    return(1)
+    print(paste(name, '; no changes from previous version'))
+    s3_cd(prev.dir)
+    return(0)
   }else{
-    n    <- paste(name, d, "txt", sep = ".")
-    new.path <- s3r::s3_put_table(df, n)
     
-    #if successful, archive previous version
-    if( new.path != 1 ){ s3_mv(from = prev.path, 
-                               to   = file.path("archive", prev.path))}
-    print(paste(name, "written"))
+    # archive the previous version first, to prevent archiving 
+    # the new version with the same date
+    s3_mv(from = prev.path, to   = file.path("archive", prev.path))
+    
+    n    <- paste(name, d, "txt", sep = ".")
+    new.path <- s3_put_table(df, dirname(prev.path), n)
+    
+    #if write fails, put back the archived version
+    if( new.path == 1 ){
+      s3_mv(from = file.path("archive", prev.path), to   = prev.path)
+      message(paste(name, '; write failed, old version retained'))
+      s3_cd(prev.dir)
+      return(1)
+      
+    }else{
+      print(paste(name, '; new version written'))
+      s3_cd(prev.dir)
+      return(new.path)
+    }
   }
   
-  # reset cd
-  s3_cd(prev.dir)
-  new.path
+  
 }
 
 
@@ -124,43 +137,81 @@ order_by_dictionary <- function(df, table = NULL, add.missing.columns = T){
 }
 
 
-call_sample_core_translocations     <- function(translocations){}
-call_patient_core_translocations    <- function(translocations, metadata){}
-
-call_secondary_structural_variation <- function(translocations,metadata){
-  #
-  #  non-exclusive deletions and amplifications, call a per-file consensus based
-  #  on multiple possible data sources.
-  #
-  #   amp(1q) | ND=0, R=1 by FISH | ND=NA, R=NA by MANTA | called as ND=0, R=1
-  #   amp(1q) | ND=0, R=1 by FISH | ND=1,  R=NA by MANTA | called as ND=1, R=1
-  # currently we only have FISH calls for these, so I'm going to cheat and just transfer those
-  # values as the de facto consensus. But I do want to see if they'll cause any clashes
-  # then I collapse to nd.tumor patient level
+call_sample_level_consensus     <- function(translocations, metadata){
+  # pass in translocations table, returns same table with 
+  # updated "CONSENSUS" columns
   
-  consensus.data <- right_join(metadata, translocations,
-                               by = c("Patient", "File_Name")) %>%
-    filter(Disease_Status == "ND", Sample_Type_Flag == 1, 
-           (Disease_Type == "MM" | is.na(Disease_Type)) ) %>%
+  new <- metadata %>%
+    select(File_Name, Sample_Name, Study) %>%
+    right_join(.,translocations, by  = "File_Name") %>%
     
-    select(File_Name, Patient, grep("amp|del|MYC|plus", names(.)), -starts_with("Sample")) %>%
-    gather(var, val, -File_Name, -Patient) %>%
-    mutate(type      = gsub("CYTO_(.*)_.*", "\\1", var),
-           technique = gsub("CYTO_.*_(.*)$", "\\1",var)) %>%
+    gather(var, val, -File_Name, -Patient, -Sample_Name, -Study) %>%
+    mutate(type           = gsub("CYTO_(.*)_.*", "\\1", var),
+           technique      = gsub("CYTO_.*_(.*)$", "\\1",var))%>%
+    mutate(sort = case_when(
+      (grepl("MMRF", .$Study)  & grepl("MANTA", .$technique) ) ~ 1,
+      (!grepl("MMRF", .$Study) & grepl("FISH", .$technique) ) ~ 1   ))  %>%
     filter( !is.na(val) )   %>%
+    filter( technique != "CONSENSUS" )   %>%
+    filter( type      != "Karyotype" )   %>%
+    filter( type      != "Translocation" )   %>%
+    filter( type      != "Primary_Etiologic" )   %>%
     
-    # used to identify any conflicted values
-    # group_by(Patient, type) %>%
-    # mutate() %>%
-    # arrange(n)
+    group_by(Sample_Name, type) %>%
+    arrange(sort) %>%
+    
+    summarize(consensus = if_else( length(unique(val))==1, 
+                                   unique(val)[[1]], 
+                                   val[[1]]) ) %>%
     
     mutate(type = paste("CYTO", type, "CONSENSUS", sep = "_")) %>%
-    spread(type,val)
+    right_join(select(metadata, File_Name, Sample_Name),.,by = "Sample_Name") %>%
+    
+    select(-Sample_Name) %>%
+    
+    spread( type, consensus, fill = NA) 
   
-  
-  append_df(translocations, consensus.data, id = "File_Name", mode = "safe")
+  append_df(translocations, new, id = "File_Name")
   
 }
+
+
+call_patient_core_translocations    <- function(translocations, metadata){}
+
+# call_secondary_structural_variation <- function(translocations,metadata){
+#   #
+#   #  non-exclusive deletions and amplifications, call a per-file consensus based
+#   #  on multiple possible data sources.
+#   #
+#   #   amp(1q) | ND=0, R=1 by FISH | ND=NA, R=NA by MANTA | called as ND=0, R=1
+#   #   amp(1q) | ND=0, R=1 by FISH | ND=1,  R=NA by MANTA | called as ND=1, R=1
+#   # currently we only have FISH calls for these, so I'm going to cheat and just transfer those
+#   # values as the de facto consensus. But I do want to see if they'll cause any clashes
+#   # then I collapse to nd.tumor patient level
+#   
+#   consensus.data <- right_join(metadata, translocations,
+#                                by = c("Patient", "File_Name")) %>%
+#     filter(Disease_Status == "ND", Sample_Type_Flag == 1, 
+#            (Disease_Type == "MM" | is.na(Disease_Type)) ) %>%
+#     
+#     select(File_Name, Patient, grep("amp|del|MYC|plus", names(.)), -starts_with("Sample")) %>%
+#     gather(var, val, -File_Name, -Patient) %>%
+#     mutate(type      = gsub("CYTO_(.*)_.*", "\\1", var),
+#            technique = gsub("CYTO_.*_(.*)$", "\\1",var)) %>%
+#     filter( !is.na(val) )   %>%
+#     
+#     # used to identify any conflicted values
+#     # group_by(Patient, type) %>%
+#     # mutate() %>%
+#     # arrange(n)
+#     
+#     mutate(type = paste("CYTO", type, "CONSENSUS", sep = "_")) %>%
+#     spread(type,val)
+#   
+#   
+#   append_df(translocations, consensus.data, id = "File_Name", mode = "safe")
+#   
+# }
 
 
 
@@ -356,19 +407,17 @@ sync_data_desktop <- function(root.path = "s3://celgene.rnd.combio.mmgp.external
 get_dict <- function(update = T){
   if(update) {
     d <- toolboxR::auto_read(file.path("~/mgp_ngs/Celgene/curation/mgp_dictionary.txt"))
-    toolboxR::PutS3Table(object = d, 
-                         s3.path = file.path(s3, "ClinicalData/ProcessedData/Resources/mgp_dictionary.txt"))
+    s3_put_table(d, "/ClinicalData/ProcessedData/Resources/mgp_dictionary.txt")
   }
-  toolboxR::GetS3Table(file.path(s3, "ClinicalData/ProcessedData/Resources/mgp_dictionary.txt"))
+  s3_get_table("/ClinicalData/ProcessedData/Resources/mgp_dictionary.txt")
 }
 
 table_flow <- function(write.to.s3 = TRUE, just.master = F){
-  PRINTING = write.to.s3 # turn off print to S3 when iterating
-  
+  PRINTING <- write.to.s3 # turn off print to S3 when iterating
+
   # import JointData tables ------------------------------------------------------
   CleanLocalScratch()
   
-  if( !exists("cwd", envir = s3e) ) return('s3e not configured')
   prev.dir <- s3_cd()
   s3_cd("/ClinicalData/ProcessedData/JointData")
   
@@ -377,7 +426,7 @@ table_flow <- function(write.to.s3 = TRUE, just.master = F){
     s3_get_with(f, FUN = fread)
   })
   
-  dt.names   <- gsub("curated\\.(.*?)[_\\.].*txt", "\\1", tolower(file.names))
+  dt.names   <- gsub(".*curated\\.(.*?)[_\\.].*txt", "\\1", tolower(file.names))
   if( any(duplicated(dt.names)) )stop("multiple files of the same type were imported")
   names(dts) <- dt.names
   
@@ -386,6 +435,7 @@ table_flow <- function(write.to.s3 = TRUE, just.master = F){
                               .(Patient, File_Name)]
   
   print("filtering JointData tables to valid Master tables")
+  s3_cd("/ClinicalData/ProcessedData/Master")
   master.dts <- pblapply(names(dts), function(type){
     dt <- dts[[type]]
     if("File_Name" %in% names(dt)){dt <- dt[File_Name %in% valid.files$File_Name]
@@ -400,28 +450,29 @@ table_flow <- function(write.to.s3 = TRUE, just.master = F){
   # count excluded rows removed 
   sapply(dts, dim) - sapply(master.dts, dim)
   
-  if(just.master) return('Only JointData to Master was processed')
+  if(just.master){ 
+    s3_cd(prev.dir)
+    return('Only JointData to Master was processed')
+  }
   
   ### Filter ND_Tumor_MM files ---------------------------------------------------
   nd.tumor.files <- master.dts$metadata[Disease_Status     == "ND" & 
                                           Sample_Type_Flag == 1    & 
                                           Disease_Type     == "MM" ,
                                         .(Patient, File_Name)]
-  
+  s3_cd("/ClinicalData/ProcessedData/ND_Tumor_MM")
   print("filtering Master table files to NDMM")
   nd.tumor.dts <- pblapply(names(master.dts), function(type){
     dt <- master.dts[[type]]
+    
     # if has a file_name use that, else use patient
     if( "File_Name" %in% names(dt) ){
-      level <- "per.file"
       dt    <- dt[File_Name %in% nd.tumor.files$File_Name]
-    }else{
-      level <- "per.patient"
-      dt    <- dt[Patient %in% nd.tumor.files$Patient]
+      
+      
+      n <- paste("per.file", type, "nd.tumor", sep = ".")
+      if(PRINTING) write_new_version(dt, name = n)
     }
-    n <- paste(level, type, "nd.tumor", d, "txt", sep = ".")
-    path <- file.path(s3, "ClinicalData/ProcessedData/ND_Tumor_MM", n)
-    if(PRINTING) PutS3Table(dt, path)
     dt
   })
   names(nd.tumor.dts) <- dt.names
@@ -429,16 +480,14 @@ table_flow <- function(write.to.s3 = TRUE, just.master = F){
   # compare changes after removing relapse files/patients
   sapply(master.dts, dim) - sapply(nd.tumor.dts, dim)
   
-  
-  ### collapse individual tables to per.patient ----------------------------------
+  ## collapse individual tables to per.patient ----------------------------------
   print("Collapsing ndmm tables to per-patient ndmm")
   collapsed.dts <- pblapply(names(nd.tumor.dts), function(type){
     
     dt <- local_collapse_dt(nd.tumor.dts[[type]], column.names = "Patient") 
     
-    n    <- paste("per.patient", type, "nd.tumor", d, "txt", sep = ".")
-    path <- file.path(s3, "ClinicalData/ProcessedData/ND_Tumor_MM", n)
-    if(PRINTING) PutS3Table(dt, path)
+    n <- paste("per.patient", type, "nd.tumor", sep = ".")
+    if(PRINTING) write_new_version(dt, name = n)
     dt
   })
   names(collapsed.dts) <- dt.names
@@ -464,10 +513,11 @@ table_flow <- function(write.to.s3 = TRUE, just.master = F){
   unmatched <- names(dt)[!names(dt) %in% dict$names]
   
   setcolorder(dt, c(matched, unmatched))
-  n    <- paste("per.patient", "unified", "nd.tumor", d, "txt", sep = ".")
-  path <- file.path(s3, "ClinicalData/ProcessedData/ND_Tumor_MM", n)
-  if(PRINTING) PutS3Table(dt, path)
   
+  n <- paste("per.patient", "unified", "nd.tumor", sep = ".")
+  if(PRINTING) write_new_version(dt, name = n)
+
+  s3_cd(prev.dir)
   RPushbullet::pbPost("note", "table_flow() has completed")
 }
 
@@ -602,7 +652,7 @@ run_master_inventory <- function(write.to.s3 = TRUE){
     mutate_if(is.logical, as.numeric)
   
   n <- paste("counts.by.individual", d, "txt", sep = "." )
-  if(PRINTING) PutS3Table(inv, file.path(s3, "ClinicalData/ProcessedData/Reports", n))
+  if(PRINTING) s3_put_table(inv, "/ClinicalData/ProcessedData/Reports", n)
   
   # study-level matrix --------------------------------------------------------
   per.study.counts <- inv %>% group_by(Study) %>% summarise_if(is.numeric, sum)
@@ -635,7 +685,7 @@ run_master_inventory <- function(write.to.s3 = TRUE){
   df[['Category']] <- row.names(df)
   
   n <- paste("counts.by.study", d, "txt", sep = "." )
-  if(PRINTING) PutS3Table(df, file.path(s3, "ClinicalData/ProcessedData/Reports", n), row.names = F, quote = F)
+  if(PRINTING) s3_put_table(df, file.path(s3, "/ClinicalData/ProcessedData/Reports", n), row.names = F, quote = F)
   
   # move stale versions to archive subfolder
   archive(file.path(s3, "ClinicalData/ProcessedData/Reports"))
