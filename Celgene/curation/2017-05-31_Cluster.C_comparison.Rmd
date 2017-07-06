@@ -1,0 +1,86 @@
+---
+title: "Cluster C Comparisons"
+author: "Dan Rozelle"
+date: "May 31, 2017"
+output: html_document
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("curation_scripts.R")
+```
+
+Group C2 seems to mostly be a subset of our current train/test set, which is good:
+ 
+764 samples are in both
+1 sample is in C2 only
+23 samples are in UAMS data set only
+ 
+The single sample that is in C2 only is patient UAMS_1014  (full name _EGAR00001321660_EGAS00001001147_C2AK0ACXX_8_716); this patient has two translocations called at the same time (t(11;14)/t(14;20)), so was excluded from our test/train set, but retained in the 1313.
+ 
+The 23 samples in the UAMS data set only confuse me.  I went through the criteria (which are correct) and they seem to pass all of them:
+ 
+INV_Has.WES: yes
+INV_Has.nd.cnv; yes
+INV_Has.nd.snv; yes
+INV_Has.nd.Translocations; yes; 1 x t(4;14), 5 x t(8;14), 17 x NA (meaning no translocation)
+INV_Under75; yes
+INV_Has.iss; yes
+INV_Has.pfsos; yes
+ 
+Can you check which of the tests these 23 samples are failing so I can see where the discrepancy is coming from?
+ 
+```{r} 
+unique.to.800 <- c("UAMS_0216","UAMS_1192","MMRF_1153","MMRF_1300","MMRF_1307","MMRF_1332","MMRF_1365",
+                   "MMRF_1450","MMRF_1531","MMRF_1577","MMRF_1672","MMRF_2014","MMRF_2087","MMRF_2089",
+                   "MMRF_2231","MMRF_2279","MMRF_2288","MMRF_2324","MMRF_2373","MMRF_2377",
+                   "MMRF_2388","MMRF_2459","MMRF_2614") 
+```
+
+Thanks
+Chris
+
+```{r}
+# JointData tables and inventories with cluster designations
+s3_cd("/ClinicalData/ProcessedData/ND_Tumor_MM")
+metadata       <- s3r::s3_get_table("per.patient.metadata.nd.tumor.2017-05-31.txt") %>%
+  select(Patient, Disease_Status) 
+clinical       <- s3r::s3_get_table("per.patient.clinical.nd.tumor.2017-05-31.txt") %>%
+  select(Patient, D_Age, D_ISS, D_OS, D_PFS)
+translocations <- s3r::s3_get_table("per.patient.translocations.nd.tumor.2017-05-31.txt") %>%
+  select(Patient, CYTO_Translocation_Consensus)
+
+s3r::s3_get_table("../Reports/counts.by.individual.2017-05-31.txt") %>%
+  select(Patient, Cluster.C2,
+         INV_Has.WES , 
+           INV_Has.nd.cnv , 
+           INV_Has.nd.snv ,
+           INV_Has.nd.Translocations ,
+           INV_Under75 ,
+           INV_Has.iss ,
+           INV_Has.pfsos  ) %>% 
+  filter(Patient %in% unique.to.800) %>%
+  left_join(metadata, by = "Patient") %>%
+  left_join(clinical, by = "Patient") %>%
+  left_join(translocations, by = "Patient") %>%
+  local_collapse_dt("Patient") %>% knitr::kable()
+```
+
+Looks like I'm a little more stringent than previously advertised. My code does actually enforce a requirement for a valid consensus translocation; e.g. must resolve to a single core translocation: c("None", "4", "6", "11", "12", "16", "20"). 
+
+### 5 patients have a consensus "8" translocation
+MMRF_1307, MMRF_2231, MMRF_2373, MMRF_2388, MMRF_2459. On re-evaluation this cluster should also include "8", because although we wouldn't consider this a disease relevant translocation, the consensus translocation algorithm does report this as a valid consensus which would otherwise be reported as "None". I'll adjust to include them.
+
+### 4 patients have no translocation info 
+MMRF_1153, MMRF_1332, UAMS_0216, UAMS_1192. Did not have enough valid translocation data to make a call. If we'd like to assume "lack of data == no translocations" I can manually adjust this, we should discuss.
+```{r, echo=FALSE}
+s3r::s3_get_table("per.patient.translocations.nd.tumor.2017-05-31.txt") %>% 
+filter(Patient %in% c("MMRF_1153", "MMRF_1332", "UAMS_0216", "UAMS_1192")) %>%
+  t()
+```
+
+### Missing ISS info
+MMRF_1300
+
+### Conflicting Translation Consensus
+The remaining patients had more than one translocation called for their ND sample. 
