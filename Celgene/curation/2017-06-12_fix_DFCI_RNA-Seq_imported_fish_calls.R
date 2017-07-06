@@ -48,14 +48,9 @@ write_new_version(translocations, "curated.translocations", "JointData")
 
 ######################
 # propagate the new table info
+s3_cd("/ClinicalData/ProcessedData")
 table_flow()
-run_master_inventory()
 (results <- qc_master_tables())
+run_master_inventory()
 
-s3_ls("JointData/archive")
-
-
-joint.clin    <- s3r::s3_get_table("JointData/archive/curated.clinical.2017-05-31.txt")
-
-
-
+inv <- s3_get_table("Reports/counts.by.study.2017-06-14.txt")

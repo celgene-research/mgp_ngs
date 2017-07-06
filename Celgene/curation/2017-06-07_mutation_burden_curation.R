@@ -53,8 +53,43 @@ out <- snv[,lapply(.SD, max, na.rm = T), by = metaname, .SDcols = c("SNV_total_n
                                                          "SNV_dbNSFP_Polyphen2_HDIV_pred_deleterious_variants_n",
                                                          "SNV_dbNSFP_Polyphen2_HVAR_pred_deleterious_variants_n",
                                                          "SNV_dbNSFP_Polyphen2_HDIV_pred_deleterious_genes_n",
-                                                         "SNV_dbNSFP_Polyphen2_HVAR_pred_deleterious_genes_n")]
+                                                         "SNV_dbNSFP_Polyphen2_HVAR_pred_deleterious_genes_n")] %>%
+  rename(File_Name = metaname)
 
+# confirm File_Name are in the correct format, and all exist in the metadata table
+# s3_ls("ClinicalData/ProcessedData/JointData/")
 
-s3_ls("ClinicalData/ProcessedData/JointData/")
-s3r::s3_put_table( "ClinicalData/ProcessedData/JointData/curated")
+# write the table to an individual dated table, so we have the original source data saved in one place
+# call it "mutational.burden.2017-07-06.txt"
+# save here:
+# s3_ls("ClinicalData/ProcessedData/Curated_Data_Sources")
+
+# Bind this as new columns onto the metadata table found in JointData
+# meta <- s3_ls("ClinicalData/ProcessedData/JointData/")
+# left_join(meta, out)
+# write_new_version() # please look at this function before running, it's in curation_scripts.R
+
+# Propogate these JointData tables down through other tables
+# Remember: JointData -> (remove excluded files) -> Master -> (filter for NewDiagnosis-Tumor-MM files/patients only) -> (collapse per-file rows to per-patient) -> ND_Tumor_MM -> (filter selected patients) -> ClusterA2/B/C/C2
+# 
+
+# update "Cluster" tables
+# This will involve the most actual coding, but should be reasonable.
+# 
+# Use the flags on the "counts.by.individual" table to identify which patients are included in
+# each "Cluster" subset. Filter per.patient tables from ND_Master_MM folder to include
+# only those patients and write_new_version() into the corresponding folder.
+
+  inv <- s3_get_table("/ClinicalData/ProcessedData/Reports/counts.by.individual.2017-06-14.txt")
+  inv %>% select(Patient, starts_with("Cluster")) %>% sample_n(5)
+  
+  #Example:
+  # Get patients in "A2" cluster
+  inv %>% filter(Cluster.A2 == 1) %>% select(Patient) %>% head()
+  
+  # filter these from per.patient ND_Tumor tables
+  s3_ls("/ClinicalData/ProcessedData/ND_Tumor_MM", pattern = "^per.patient", full.names = T)
+  # to here
+  s3_ls("/ClinicalData/ProcessedData/Cluster.A2") 
+   
+  

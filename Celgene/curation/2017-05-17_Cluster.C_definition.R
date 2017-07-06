@@ -28,7 +28,7 @@ cluster.c <- inv$per.patient.counts %>%
   filter( Cluster.C == 1 )
 
 cluster.800 <- GetS3Table(file.path(s3, "ClinicalData/ProcessedData",
-                        "Cluster800/2017-04-07_TrainTest_from_ChrisWardell.txt")) %>%
+                                    "Cluster800/2017-04-07_TrainTest_from_ChrisWardell.txt")) %>%
   filter(TRAINTEST != "0") 
 
 # compare
@@ -63,5 +63,9 @@ cluster.c.matrix.comparisons <- inv$per.patient.counts %>%
   arrange(INV_Has.nd.snv)
 
 knitr::kable(cluster.c.matrix.comparisons, align = "c")
+
+
+###
+###
 
 
