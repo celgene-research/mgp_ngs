@@ -69,9 +69,19 @@ out <- snv[,lapply(.SD, max, na.rm = T), by = metaname, .SDcols = c("SNV_total_n
 # left_join(meta, out)
 # write_new_version() # please look at this function before running, it's in curation_scripts.R
 
-# Propogate these JointData tables down through other tables
+# if you feel comfortable with how the mutational burden calculations were aggregated,
+# please add to the mgp_dictionary, otherwise I can do it for you.
+# dict <- get_dict()
+# or download and manually edit
+# s3_get_save("../Resources/mgp_dictionary.txt")
+
+# Propagate these JointData tables down through other tables
 # Remember: JointData -> (remove excluded files) -> Master -> (filter for NewDiagnosis-Tumor-MM files/patients only) -> (collapse per-file rows to per-patient) -> ND_Tumor_MM -> (filter selected patients) -> ClusterA2/B/C/C2
-# 
+# This entire process should be facilitated by running these:
+#
+#   table_flow()                    # filters and writes new versions each step
+#   run_master_inventory()          # generates per-patient and per-study counts of all fields at /Reports
+#   (results <- qc_master_tables()) # this should list any major qc issues in Master tables
 
 # update "Cluster" tables
 # This will involve the most actual coding, but should be reasonable.
