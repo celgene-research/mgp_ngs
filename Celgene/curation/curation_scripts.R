@@ -61,13 +61,39 @@ archive <- function(path, aws.args = NULL){
   })
 }
 
+#' Write new dated version of a file
+#' 
+#' Within my S3 data structure all directories contain an "archive" subfolder. 
+#' When a file is processed it may or may not result in an actual difference in
+#' the end file. This function identifies any previous versions of the specified
+#' file within a given directory (format: "name.2017-01-01.txt"), reads them and
+#' compares to the current version. If they are different it moves the previous
+#' version to ./archive and writes the new dated version. 
+#' 
+#' This requires an already configured s3r::s3_set() environment. 
+#' See https://github.com/dkrozelle/s3r for more info.
+#' 
+#' Currently we are only keeping one version per-day, so if new versions are 
+#' written the same day, only the last written version will be maintained.
+#' 
+#'  
+#'  @param df dataframe you want to write to file. Currently this only works with
+#'            dfs that are written as a tab-delimited file.
+#'  @param name character name for the prefix of the file. 
+#'              e.g. "curated.metadata" for the file "curated.metadata.2017-07-06.txt" 
+#'  @param dir character of the parent directory you want to write this to. If 
+#'             not specified it will use the cwd from s3_cd()
 write_new_version <- function(df, name, dir = NULL){
   if( !exists("cwd", envir = s3e) ) return('s3e not configured')
   
+  # capture s3 path info
   prev.dir <- s3_cd()
   if( !is.null(dir) ) s3_cd(dir)
+  
+  # look for a version of the file already saved
   prev.path <- s3_ls(pattern = paste0("^",name)) 
   
+  # logic check workflow
   if( length(prev.path) == 0  ){
     message(paste(name, '; previous version not found with that name'))
     s3_cd(prev.dir)
@@ -80,6 +106,12 @@ write_new_version <- function(df, name, dir = NULL){
     prev.df <- s3_get_table(prev.path)
   }
   
+  # save df to file and read back in for an exact comparison with the S3 version
+  # uses same args as s3_put_table() and s3_get_table() functions
+  write.table(df, file = file.path(s3e$cache, "tmp.txt"), 
+              sep = "\t", quote = F, row.names = F, col.names = T)
+  df <- read.delim(file.path(s3e$cache, "tmp.txt"))
+  
   if( startsWith(as.character(all_equal(prev.df, df)), "TRUE") ){
     print(paste(name, '; no changes from previous version'))
     s3_cd(prev.dir)
@@ -88,7 +120,7 @@ write_new_version <- function(df, name, dir = NULL){
     
     # archive the previous version first, to prevent archiving 
     # the new version with the same date
-    s3_mv(from = prev.path, to   = file.path("archive", prev.path))
+    s3_mv(from = prev.path, to   = file.path("archive", prev.path), allow.overwrite = T)
     
     n    <- paste(name, d, "txt", sep = ".")
     new.path <- s3_put_table(df, dirname(prev.path), n)
@@ -106,8 +138,6 @@ write_new_version <- function(df, name, dir = NULL){
       return(new.path)
     }
   }
-  
-  
 }
 
 
@@ -518,7 +548,7 @@ table_flow <- function(write.to.s3 = TRUE, just.master = F){
   if(PRINTING) write_new_version(dt, name = n)
 
   s3_cd(prev.dir)
-  RPushbullet::pbPost("note", "table_flow() has completed")
+  RPushbullet::pbPost(type = "note", title = "table_flow() has completed")
 }
 
 run_master_inventory <- function(write.to.s3 = TRUE){
@@ -651,8 +681,8 @@ run_master_inventory <- function(write.to.s3 = TRUE){
                          INV_Has.pfsos  )  )%>%
     mutate_if(is.logical, as.numeric)
   
-  n <- paste("counts.by.individual", d, "txt", sep = "." )
-  if(PRINTING) s3_put_table(inv, "/ClinicalData/ProcessedData/Reports", n)
+  n <- paste("counts.by.individual", sep = "." )
+  if(PRINTING) write_new_version(inv, n, "/ClinicalData/ProcessedData/Reports")
   
   # study-level matrix --------------------------------------------------------
   per.study.counts <- inv %>% group_by(Study) %>% summarise_if(is.numeric, sum)
@@ -661,15 +691,28 @@ run_master_inventory <- function(write.to.s3 = TRUE){
     dt <- dts[[type]]
     
     if("File_Name" %in% names(dt)){ 
-      dt <- right_join(select(dts$metadata, File_Name, Study), 
-                       dt, by = "File_Name") %>%
+      dt <- right_join(select(dts$metadata, File_Name, Patient, Study), 
+                       dt, 
+                       by = c("File_Name", "Patient")) %>%
+        select(-File_Name) %>%
+        group_by(Study, Patient) %>%
+        summarise_all( funs(any(!is.na(.)) ) ) %>%
+        select(-Patient) %>%
         group_by(Study) %>%
-        summarise_all( funs(INV = sum(!is.na(.)) ))
+        summarise_all( sum )
+      
+      
+      
+      
     }else{
-      dt <- right_join(select(dts$metadata, Patient, Study), 
-                       dt, by = "Patient") %>%
-        group_by(Study)%>%
-        summarise_all( funs(INV = sum(!is.na(.)) ))
+      
+      dt <- right_join(select(dts$metadata, Patient, Study) %>% unique(), 
+                 dt, 
+                 by = "Patient") %>%
+        group_by(Study) %>%
+        summarise_all( funs(sum(!is.na(.)) )  )
+      
+      
     }
     names(dt) <- gsub("(.*)_(INV)", "\\2_\\1", names(dt))
     dt
@@ -684,12 +727,9 @@ run_master_inventory <- function(write.to.s3 = TRUE){
   
   df[['Category']] <- row.names(df)
   
-  n <- paste("counts.by.study", d, "txt", sep = "." )
-  if(PRINTING) s3_put_table(df, file.path(s3, "/ClinicalData/ProcessedData/Reports", n), row.names = F, quote = F)
-  
-  # move stale versions to archive subfolder
-  archive(file.path(s3, "ClinicalData/ProcessedData/Reports"))
-  
+  n <- paste("counts.by.study", sep = "." )
+  if(PRINTING) write_new_version(df, n, "/ClinicalData/ProcessedData/Reports")
+ 
   list(per.patient.counts = inv, 
        per.study.counts = df)
 }
@@ -790,7 +830,7 @@ qc_master_tables <- function(log.path = "tmp.log"){
   if( any(duplicated( names(dts))) )stop("multiple file of the same type were imported")
   names(dts)
   
-  dts <- dts[names(dts) %in% c("clinical", "metadata")]
+  dts <- dts[names(dts) %in% c("clinical", "metadata", "translocations", "blood")]
   
   # test functions
   column_exists <- function(x){
