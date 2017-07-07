@@ -2,7 +2,7 @@
 # vars and import----------------------------------------------------------------
 d           <- format(Sys.Date(), "%Y-%m-%d")
 s3          <- "s3://celgene.rnd.combio.mmgp.external"
-local.cache <- "/tmp/curation"
+local.cache <- file.path("/tmp", system('echo $USER',intern = T))
 options(stringsAsFactors = FALSE)
 
 # attach important packages
@@ -24,12 +24,15 @@ s3_set(bucket = "celgene.rnd.combio.mmgp.external",
 # prevent inadvertant file deletion 
 CleanLocalScratch <- function(){
   path = local.cache
-  if(dir.exists(path)){system(paste('rm -r', path, sep = " "))}
+  if(dir.exists(path)){
+    system(paste('rm -r', path, sep = " "))
+  }
   dir.create(path)
   path
 }
 # run on source
 local <- CleanLocalScratch()
+
 
 # moves files from an s3 directory that are not the most current to 
 # an /archive subfolder
@@ -444,7 +447,7 @@ get_dict <- function(update = T){
 
 table_flow <- function(write.to.s3 = TRUE, just.master = F){
   PRINTING <- write.to.s3 # turn off print to S3 when iterating
-
+  
   # import JointData tables ------------------------------------------------------
   CleanLocalScratch()
   
@@ -546,7 +549,7 @@ table_flow <- function(write.to.s3 = TRUE, just.master = F){
   
   n <- paste("per.patient", "unified", "nd.tumor", sep = ".")
   if(PRINTING) write_new_version(dt, name = n)
-
+  
   s3_cd(prev.dir)
   RPushbullet::pbPost(type = "note", title = "table_flow() has completed")
 }
@@ -707,8 +710,8 @@ run_master_inventory <- function(write.to.s3 = TRUE){
     }else{
       
       dt <- right_join(select(dts$metadata, Patient, Study) %>% unique(), 
-                 dt, 
-                 by = "Patient") %>%
+                       dt, 
+                       by = "Patient") %>%
         group_by(Study) %>%
         summarise_all( funs(sum(!is.na(.)) )  )
       
@@ -729,7 +732,7 @@ run_master_inventory <- function(write.to.s3 = TRUE){
   
   n <- paste("counts.by.study", sep = "." )
   if(PRINTING) write_new_version(df, n, "/ClinicalData/ProcessedData/Reports")
- 
+  
   list(per.patient.counts = inv, 
        per.study.counts = df)
 }
