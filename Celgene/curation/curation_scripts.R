@@ -690,10 +690,19 @@ run_master_inventory <- function(write.to.s3 = TRUE){
   # study-level matrix --------------------------------------------------------
   per.study.counts <- inv %>% group_by(Study) %>% summarise_if(is.numeric, sum)
   
-  aggs <- lapply(list("blood", "clinical", "translocations"), function(type){
+  aggs <- lapply(list("blood", "clinical", "translocations", "metadata"), function(type){
     dt <- dts[[type]]
     
-    if("File_Name" %in% names(dt)){ 
+    if( type == "metadata" ){ 
+      dt <- dt %>%
+        select(-File_Name) %>%
+        group_by(Study, Patient) %>%
+        summarise_all( funs(any(!is.na(.)) ) ) %>%
+        select(-Patient) %>%
+        group_by(Study) %>%
+        summarise_all( sum )
+      
+    }else if("File_Name" %in% names(dt)){ 
       dt <- right_join(select(dts$metadata, File_Name, Patient, Study), 
                        dt, 
                        by = c("File_Name", "Patient")) %>%
