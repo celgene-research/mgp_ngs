@@ -94,7 +94,7 @@ write_new_version <- function(df, name, dir = NULL){
   if( !is.null(dir) ) s3_cd(dir)
   
   # look for a version of the file already saved
-  prev.path <- s3_ls(pattern = paste0("^",name)) 
+  prev.path <- s3_ls(pattern = paste0("^",name,"\\.")) 
   
   # logic check workflow
   if( length(prev.path) == 0  ){
@@ -476,6 +476,12 @@ table_flow <- function(write.to.s3 = TRUE, just.master = F){
     }else{stop("table doesn't have a filterable column")}
     
     if(PRINTING) write_new_version(dt, name = paste("curated", type, sep = "."))
+    #For new tables
+    prev.path <- s3_ls(pattern = paste0("^",paste("curated", type, sep = "."),"\\.")) 
+    if( length(prev.path) == 0){
+      print("Adding new table:")
+      s3_put_table(dt, paste("curated", type, Sys.Date(), "txt", sep = "."))
+    }
     dt
   })
   
@@ -505,6 +511,12 @@ table_flow <- function(write.to.s3 = TRUE, just.master = F){
       
       n <- paste("per.file", type, "nd.tumor", sep = ".")
       if(PRINTING) write_new_version(dt, name = n)
+      #For new tables
+      prev.path <- s3_ls(pattern = paste0("^",n,"\\.")) 
+      if( length(prev.path) == 0){
+        print("Adding new table:")
+        s3_put_table(dt, paste(n, Sys.Date(), "txt", sep = "."))
+      }
     }
     dt
   })
@@ -521,6 +533,12 @@ table_flow <- function(write.to.s3 = TRUE, just.master = F){
     
     n <- paste("per.patient", type, "nd.tumor", sep = ".")
     if(PRINTING) write_new_version(dt, name = n)
+    #For new tables
+    prev.path <- s3_ls(pattern = paste0("^",n,"\\.")) 
+    if( length(prev.path) == 0){
+      print("Adding new table:")
+      s3_put_table(dt, paste(n, Sys.Date(), "txt", sep = "."))
+    }
     dt
   })
   names(collapsed.dts) <- dt.names
@@ -596,12 +614,14 @@ run_master_inventory <- function(write.to.s3 = TRUE){
   has.cnv   <- dts$cnv[do.call("|", list(!is.na(CNV_TP53_ControlFreec), !is.na(CNV_NRAS_ControlFreec))) ,.(Patient)]
   has.rna   <- dts$rnaseq[do.call("|", list(!is.na(RNA_ENSG00000141510.16), !is.na(RNA_ENSG00000213281.4))) ,.(Patient)]
   has.snv   <- dts$snv[do.call("|", list(!is.na(SNV_TP53_BinaryConsensus), !is.na(SNV_NRAS_BinaryConsensus))) ,.(Patient)]
+  has.snvnonsilent  <- dts$snvnonsilent[do.call("|", list(!is.na(SNV_TP53_BinaryConsensus), !is.na(SNV_NRAS_BinaryConsensus))) ,.(Patient)]
   has.trsl  <- dts$translocations[CYTO_Translocation_Consensus %in% c("None", "4", "6", "11", "12", "16", "20")  ,.(Patient)]
   
   has.nd.bi    <- dts$biallelicinactivation[File_Name %in% nd][do.call("|", list(!is.na(BI_TP53_Flag), !is.na(BI_NRAS_Flag))) ,.(Patient)]
   has.nd.cnv   <- dts$cnv[File_Name %in% nd][do.call("|", list(!is.na(CNV_TP53_ControlFreec), !is.na(CNV_NRAS_ControlFreec))) ,.(Patient)]
   has.nd.rna   <- dts$rnaseq[File_Name %in% nd][do.call("|", list(!is.na(RNA_ENSG00000141510.16), !is.na(RNA_ENSG00000213281.4))) ,.(Patient)]
   has.nd.snv   <- dts$snv[File_Name %in% nd][do.call("|", list(!is.na(SNV_TP53_BinaryConsensus), !is.na(SNV_NRAS_BinaryConsensus))) ,.(Patient)]
+  has.nd.snvnonsilent   <- dts$snvnonsilent[File_Name %in% nd][do.call("|", list(!is.na(SNV_TP53_BinaryConsensus), !is.na(SNV_NRAS_BinaryConsensus))) ,.(Patient)]
   has.nd.trsl  <- dts$translocations[File_Name %in% nd][CYTO_Translocation_Consensus %in% c("None", "4", "6", "11", "12", "16", "20")  ,.(Patient)]
   
   # patient-level inventory table  ---------------------------------------------
@@ -641,11 +661,13 @@ run_master_inventory <- function(write.to.s3 = TRUE){
       INV_Has.cnv            = any(Patient %in% has.cnv$Patient   ),
       INV_Has.rna            = any(Patient %in% has.rna$Patient   ),
       INV_Has.snv            = any(Patient %in% has.snv$Patient   ),
+      INV_Has.snvnonsilent   = any(Patient %in% has.snvnonsilent$Patient   ),
       INV_Has.Translocations = any(Patient %in%  has.trsl$Patient ),
       
       INV_Has.nd.cnv            = any(Patient %in% has.nd.cnv$Patient   ),
       INV_Has.nd.rna            = any(Patient %in% has.nd.rna$Patient   ),
       INV_Has.nd.snv            = any(Patient %in% has.nd.snv$Patient   ),
+      INV_Has.nd.snvnonsilent   = any(Patient %in% has.nd.snvnonsilent$Patient   ),
       INV_Has.nd.Translocations = any(Patient %in%  has.nd.trsl$Patient ),
       
       Cluster.A2    = (INV_Has.ND.TumorSample & 
