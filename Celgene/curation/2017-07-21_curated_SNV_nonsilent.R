@@ -29,7 +29,7 @@ DT$File_Name <- gsub("HUMAN_37_pulldown_", "", DT$File_Name)
 
 #load snv matrix
 snv_matrix <- s3_get_with("ClinicalData/ProcessedData/JointData",
-                          "curated.snvnonsilent.2017-07-24.txt",
+                          "curated.snv.2017-04-17.txt",
                           FUN = fread)
 
 
