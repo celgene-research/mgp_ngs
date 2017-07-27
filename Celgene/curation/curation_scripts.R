@@ -553,10 +553,11 @@ table_flow <- function(write.to.s3 = TRUE, just.master = F){
     dt
   })
   
+  # left join to only retain filtered patients from metadata table
   dt <- collapsed.dts$metadata
-  dt <- merge(dt, collapsed.dts$clinical, all = T)
-  dt <- merge(dt, collapsed.dts$blood, all = T)
-  dt <- merge(dt, collapsed.dts$translocations, all = T)
+  dt <- merge(dt, collapsed.dts$clinical, all.x = T)
+  dt <- merge(dt, collapsed.dts$blood, all.x = T)
+  dt <- merge(dt, collapsed.dts$translocations, all.x = T)
   
   # sort by dictionary
   dict      <- get_dict()
@@ -569,7 +570,7 @@ table_flow <- function(write.to.s3 = TRUE, just.master = F){
   if(PRINTING) write_new_version(dt, name = n)
   
   s3_cd(prev.dir)
-  RPushbullet::pbPost(type = "note", title = "table_flow() has completed")
+ 
 }
 
 run_master_inventory <- function(write.to.s3 = TRUE){
