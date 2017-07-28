@@ -1,0 +1,113 @@
+---
+title: "Dataset comparison"
+author: "Dan Rozelle"
+date: "July 27, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(digits = 2)
+source("curation_scripts.R")
+s3_cd("/ClinicalData/ProcessedData")
+```
+
+#### import data
+We're comparing clinical data from three apparent datasets: 
+
+- MGP integrated cohort with MMRF IA9 clinical data
+- MGP integrated cohort with MMRF IA10 clinical data
+- UAMS derived exome cohort with IA9 clinical data
+
+
+```{r}
+meta <- s3_get_table("JointData/curated.metadata.2017-07-07.txt")
+inv  <- s3_get_table("Reports/counts.by.individual.2017-07-25.txt")
+
+ia9  <- s3_get_table("Integrated/archive/unified.clinical.nd.tumor_IA9_2017-03-23.txt")
+# filter to only include patients with WES results (not just WES files)
+ia9.wes <- ia9 %>% filter( Patient %in% inv[inv$INV_Has.nd.snv == 1,"Patient"]) %>%
+  mutate(set = "ia9")
+
+ia9.qc  <- s3_get_with("/ClinicalData/OriginalData/MMRF_IA9",
+                       "MMRF_CoMMpass_IA9_Seq_QC_Summary.xlsx",
+                       FUN = auto_read) %>%
+  select(QC.Link.SampleName, MMRF_Release_Status)%>%
+  rename(File_Name = QC.Link.SampleName, IA9_Status = MMRF_Release_Status)
+
+ia10 <- s3_get_table("ND_Tumor_MM/per.patient.unified.nd.tumor.2017-07-27.txt")
+ia10.wes <- ia10 %>% filter( Patient %in% inv[inv$INV_Has.nd.snv == 1,"Patient"]) %>%
+  mutate(set = "ia10")
+ia10.qc <- s3_get_with("/ClinicalData/OriginalData/MMRF_IA10c/README_FILES",
+                       "MMRF_CoMMpass_IA10_Seq_QC_Summary.xlsx",
+                       FUN = auto_read) %>%
+  select(QC.Link.SampleName, MMRF_Release_Status) %>%
+  rename(File_Name = QC.Link.SampleName, IA10_Status = MMRF_Release_Status)
+
+u1313 <- auto_read("~/Desktop/1313_samples.csv")%>%
+  mutate(set = "u1313")
+```
+
+#### Comparison of total patient numbers
+This includes all valid NDMM patients, but does not require any data types.  
+```{r}
+venn::venn(list(MGP_IA9  = ia9$Patient, 
+                MGP_IA10 = ia10$Patient, 
+                u1313    = u1313$Patient), 
+           cexsn = 1, cexil = 1, zcolor = "style")
+```
+
+
+#### Comparison of total patient numbers for patients with exome seq
+This is the direct comparison of patients from each dataset where we have valid 
+exome seq results. 
+```{r}
+venn::venn(list(MGP_IA9_WES  = ia9.wes$Patient,
+                MGP_IA10_WES = ia10.wes$Patient, 
+                u1313    = u1313$Patient), 
+           cexsn = 1, cexil = 1, zcolor = "style")
+
+# 40 uniquely in u1313 dataset
+# 
+# 20 of these are  DFCI samples that were reclassified as Relapse
+# 16 MMRF were classified as PCL
+# 4 MMRF were replaced after QC issues, they have newer files in IA10 for future analysis
+fourty <- u1313[!u1313$Patient %in% c(ia9.wes$Patient,ia10.wes$Patient),]
+fourty$Patient
+
+meta %>% filter(File_Name %in% fourty$File_Name) %>%
+  select(Patient, File_Name, Disease_Status, Disease_Type, Excluded_Flag) %>%
+  left_join(., ia10.qc, by = "File_Name") %>%
+  select(-Patient) %>%
+  DT::datatable(options = list(pageLength = 10, dom = 'tip'))
+
+
+```
+
+#### Clinical parameter comparison
+
+```{r}
+extract <- function(df){
+  df %>% 
+    select(set, Study, D_Gender, D_Age, D_OS, D_OS_FLAG, D_PFS, D_PFS_FLAG) %>%
+    mutate(D_Gender = (D_Gender == "Male")) %>%
+    rename(D_Gender_Male = D_Gender) %>%
+    group_by(set, Study) %>%
+    summarise_all(funs(mean = round(mean(., na.rm = T),2),
+                       # sd   = sd(., na.rm = T),
+                       n    = sum(!is.na(.)))) %>%
+    
+    gather(field, value, -set, -Study) %>%
+    mutate(calc  = gsub(".*_", "", field),
+           field = gsub("(.*)_.*$", "\\1", field)) %>%
+    ungroup()
+  
+}
+
+bind_rows(lapply(list(ia10.wes, ia9.wes, u1313), extract)) %>%
+  mutate(c = paste(calc, Study, sep = "_")) %>%
+  mutate(r = paste(field, set, sep = "_")) %>%
+  select(c, r, value) %>%
+  spread(key = c, value = value) %>%
+  DT::datatable()
+```
