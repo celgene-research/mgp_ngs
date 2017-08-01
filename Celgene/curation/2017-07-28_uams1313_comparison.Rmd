@@ -84,7 +84,8 @@ bind_rows(lapply(list(mgp.wes, u1313), extract)) %>%
                 extensions = 'Buttons',
                 options = list(
                   dom = 'Bt', 
-                  buttons = c('csv', 'copy'))
+                  buttons = c('csv', 'copy'),
+                  pageLength = 12)
                 )
 ```
 
