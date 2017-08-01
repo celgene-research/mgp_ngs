@@ -36,7 +36,7 @@ mgp.wes <- s3_get_table("ND_Tumor_MM/per.patient.unified.nd.tumor.2017-07-27.txt
   mutate(set = "MGP")
 
 # spreadsheet of UAMS patients including clinical data emailed by Chris Wardell (2017-07-26)
-u1313 <- auto_read("~/Desktop/1313_samples.csv")%>%
+u1313 <- s3_get_csv("Curated_Data_Sources/2017-07-26_1313_UAMS_WES_Cohort.csv") %>%
   mutate(set = "U1313")
 
 # Import current metadata and MMRF QC tables to facilitate annotation of excluded patients in u1313 cohort
