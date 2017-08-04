@@ -17,85 +17,60 @@ library(survival)
 
 ```{r, read_data}
 #IA10 data
-ia10.all <- s3_get_with("ND_Tumor_MM/per.patient.clinical.nd.tumor.2017-06-14.txt", FUN = fread)
 ia10.cluster.D <- s3_get_with("Cluster.D/clinical.subset.2017-08-01.txt", FUN = fread)
 
 #IA9 data
-ia9.all <- s3_get_with("Integrated/archive/per.patient.clinical_2017-03-09.txt", FUN = fread) %>%
-  filter(Patient %in% ia10.all$Patient)
-ia9.cluster.D <- ia9.all %>% filter(Patient %in% ia10.cluster.D$Patient)
+ia9.cluster.D <- s3_get_with("Integrated/archive/per.patient.clinical_2017-03-09.txt", FUN = fread) %>%
+  filter(Patient %in% ia10.cluster.D$Patient)
 
-#Filter patients that are in both IA10 and IA9
-ia10.all <- ia10.all %>% filter(Patient %in% ia9.all$Patient)
+# all(ia10.cluster.D$Patient == ia9.cluster.D$Patient)
+# [1] TRUE
 
 #Remove patients in IA9 that were removed in IA10
-ia9.all[is.na(ia10.all$D_PFS) & !is.na(ia9.all$D_PFS), "D_PFS"] <- NA
-ia9.all[is.na(ia10.all$D_PFS_FLAG) & !is.na(ia9.all$D_PFS_FLAG), "D_PFS_FLAG"] <- NA
-ia9.all[is.na(ia10.all$D_OS) & !is.na(ia9.all$D_OS), "D_OS"] <- NA
-ia9.all[is.na(ia10.all$D_OS_FLAG) & !is.na(ia9.all$D_OS_FLAG), "D_OS_FLAG"] <- NA
-
 ia9.cluster.D[is.na(ia10.cluster.D$D_PFS) & !is.na(ia9.cluster.D$D_PFS), "D_PFS"] <- NA
 ia9.cluster.D[is.na(ia10.cluster.D$D_PFS_FLAG) & !is.na(ia9.cluster.D$D_PFS_FLAG), "D_PFS_FLAG"] <- NA
 ia9.cluster.D[is.na(ia10.cluster.D$D_OS) & !is.na(ia9.cluster.D$D_OS), "D_OS"] <- NA
 ia9.cluster.D[is.na(ia10.cluster.D$D_OS_FLAG) & !is.na(ia9.cluster.D$D_OS_FLAG), "D_OS_FLAG"] <- NA
 
-all <- data.frame(cbind(ia10.all$Patient, ia10.all$D_OS, ia10.all$D_OS_FLAG, ia10.all$D_PFS, ia10.all$D_PFS_FLAG, ia9.all$D_OS, ia9.all$D_OS_FLAG, ia9.all$D_PFS, ia9.all$D_PFS_FLAG))
-names(all) <- c("Patient", "ia10_D_OS", "ia10_D_OS_FLAG", "ia10_D_PFS", "ia10_D_PFS_FLAG", 
-                "ia9_D_OS", "ia9_D_OS_FLAG", "ia9_D_PFS", "ia9_D_PFS_FLAG")
-
-cluster.D <- data.frame(cbind(ia10.cluster.D$Patient, ia10.cluster.D$D_OS, ia10.cluster.D$D_OS_FLAG, ia10.cluster.D$D_PFS, ia10.cluster.D$D_PFS_FLAG, ia9.cluster.D$D_OS, ia9.cluster.D$D_OS_FLAG, ia9.cluster.D$D_PFS, ia9.cluster.D$D_PFS_FLAG))
-names(cluster.D) <- c("Patient", "ia10_D_OS", "ia10_D_OS_FLAG", "ia10_D_PFS", "ia10_D_PFS_FLAG", 
-                "ia9_D_OS", "ia9_D_OS_FLAG", "ia9_D_PFS", "ia9_D_PFS_FLAG")
-
-write.table(all, "all_OS_PFS.txt", row.names = F, quote = F, sep = "\t")
-write.table(cluster.D, "ClusterD_OS_PFS.txt", row.names = F, quote = F, sep = "\t")
-
+#Filter MMRF patients
+ia10.cluster.D$Study <- ia9.cluster.D$Study
+ia10.cluster.D.MMRF <- ia10.cluster.D %>% filter(Study == "MMRF")
+ia9.cluster.D.MMRF <- ia9.cluster.D %>% filter(Study == "MMRF")
 ```
 
 ### Kaplan-Meier Curves
 
 ```{r, survival_analysis}
-#All patients OS
-ia10.all.km <- survfit(Surv(D_OS, D_OS_FLAG == 1) ~ 1, data = ia10.all)
-ia9.all.km <- survfit(Surv(D_OS, D_OS_FLAG == 1) ~ 1, data = ia9.all)
-
-plot(ia10.all.km, col = "red", xlab = 'Survival (Days)',ylab = 'Proportion of population', main = "All Patients Overall Survival")
-lines(ia9.all.km, col = "blue")
-legend("bottomleft", c("IA10", "IA9"), lty = 1, col = c("red", "blue"))
-
-#All patients PFS
-ia10.all.km <- survfit(Surv(D_PFS, D_PFS_FLAG == 1) ~ 1, data = ia10.all)
-ia9.all.km <- survfit(Surv(D_PFS, D_PFS_FLAG == 1) ~ 1, data = ia9.all)
-
-plot(ia10.all.km, col = "red", xlab = 'Survival (Days)',ylab = 'Proportion of population', main = "All Patients Progression-free Survival")
-lines(ia9.all.km, col = "blue")
-legend("bottomleft", c("IA10", "IA9"), lty = 1, col = c("red", "blue"))
-
 #Cluster.D patients OS
-ia10.cluster.D.km <- survfit(Surv(D_OS, D_OS_FLAG == 1) ~ 1, data = ia10.cluster.D)
-ia9.cluster.D.km <- survfit(Surv(D_OS, D_OS_FLAG == 1) ~ 1, data = ia9.cluster.D)
+ia10.cluster.D.km <- survfit(Surv(D_OS, D_OS_FLAG == 1) ~ 1, data = ia10.cluster.D.MMRF)
+ia9.cluster.D.km <- survfit(Surv(D_OS, D_OS_FLAG == 1) ~ 1, data = ia9.cluster.D.MMRF)
 
-plot(ia10.cluster.D.km, col = "red", xlab = 'Survival (Days)',ylab = 'Proportion of population', main = "Cluster.D Patients Overall Survival")
+plot(ia10.cluster.D.km, col = "red", xlab = 'Survival (Days)',ylab = 'Proportion of population', main = "Cluster.D MMRF Patients Overall Survival")
 lines(ia9.cluster.D.km, col = "blue")
 legend("bottomleft", c("IA10", "IA9"), lty = 1, col = c("red", "blue"))
+ia9.cluster.D.km
+ia10.cluster.D.km
+
 
 #Cluster.D patients PFS
-ia10.cluster.D.km <- survfit(Surv(D_PFS, D_PFS_FLAG == 1) ~ 1, data = ia10.cluster.D)
-ia9.cluster.D.km <- survfit(Surv(D_PFS, D_PFS_FLAG == 1) ~ 1, data = ia9.cluster.D)
+ia10.cluster.D.km <- survfit(Surv(D_PFS, D_PFS_FLAG == 1) ~ 1, data = ia10.cluster.D.MMRF)
+ia9.cluster.D.km <- survfit(Surv(D_PFS, D_PFS_FLAG == 1) ~ 1, data = ia9.cluster.D.MMRF)
 
-plot(ia10.cluster.D.km, col = "red", xlab = 'Survival (Days)',ylab = 'Proportion of population', main = "Cluster.D Patients Progression-free Survival")
+plot(ia10.cluster.D.km, col = "red", xlab = 'Survival (Days)',ylab = 'Proportion of population', main = "Cluster.D MMRF Patients Progression-free Survival")
 lines(ia9.cluster.D.km, col = "blue")
 legend("bottomleft", c("IA10", "IA9"), lty = 1, col = c("red", "blue"))
+ia9.cluster.D.km
+ia10.cluster.D.km
 ```
 
 ### Number of Events Observed
 
 ```{r, number_events}
-data <- list(ia9.all, ia10.all, ia9.cluster.D, ia10.cluster.D)
+data <- list(ia9.cluster.D.MMRF, ia10.cluster.D.MMRF)
 
-df <- data.frame(Dataset = c("All Patients IA9", "All Patients IA10", "Cluster D IA9", "Cluster D IA10"),
-                       OS = sapply(data, function(x) nrow(x[x$D_OS_FLAG == 1,])),
-                       PFS = sapply(data, function(x) nrow(x[x$D_PFS_FLAG == 1,]))
+df <- data.frame(Dataset = c("Cluster D MMRF IA9", "Cluster D MMRF IA10"),
+                       OS = sapply(data, function(x) nrow(x[x$D_OS_FLAG == 1  & !is.na(x$D_OS),])),
+                       PFS = sapply(data, function(x) nrow(x[x$D_PFS_FLAG == 1 & !is.na(x$D_PFS),]))
 )
 DT::datatable(df, class = "compact stripe", rownames = F)
 ```
@@ -103,13 +78,22 @@ DT::datatable(df, class = "compact stripe", rownames = F)
 ### Overall Survival Statistics
 
 ```{r, os_stats}
-df <- data.frame(Dataset = c("All Patients IA9", "All Patients IA10", "Cluster D IA9", "Cluster D IA10"),
+data <- list(ia10.cluster.D %>% filter(Study == "DFCI"),
+             ia9.cluster.D.MMRF,
+             ia10.cluster.D.MMRF,
+             ia10.cluster.D %>% filter(Study == "UAMS")
+)
+df <- data.frame(
+                 n = sapply(data, function(x) length(x$D_OS[!is.na(x$D_OS)])),
                  Mean = sapply(data, function(x) round(mean(x$D_OS, na.rm = T), 2)),
+                 SD = sapply(data, function(x) round(sd(x$D_OS, na.rm = T), 2)),
                  Median = sapply(data, function(x) median(x$D_OS, na.rm = T)),
                  Q1 = sapply(data, function(x) summary(x$D_OS)[2]),
                  Q3 = sapply(data, function(x) summary(x$D_OS)[5]),
-                 Range = sapply(data, function(x) max(x$D_OS, na.rm = T) - min(x$D_OS, na.rm=T)),
-                 n = sapply(data, function(x) length(x$D_OS[!is.na(x$D_OS)]))
+                 Min = sapply(data, function(x) min(x$D_OS, na.rm=T)),
+                 Max = sapply(data, function(x) max(x$D_OS, na.rm = T))
                  )
-DT::datatable(df, class = "compact stripe", rownames = F)
+df <- as.data.frame(t(df))
+names(df) <- c("DFCI", "MMRF.IA9", "MMRF.IA10", "UAMS")
+DT::datatable(df, class = "compact stripe")
 ```
