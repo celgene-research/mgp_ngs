@@ -1,0 +1,115 @@
+---
+title: "Survival Analysis IA9 vs IA10"
+author: "Victoria Zadorozhny, Rancho BioSciences"
+date: "August 2, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+rm(list=ls())
+knitr::opts_chunk$set(echo = TRUE)
+source("curation_scripts.R")
+s3_cd("/ClinicalData/ProcessedData")
+library(survival)
+```
+
+
+
+```{r, read_data}
+#IA10 data
+ia10.all <- s3_get_with("ND_Tumor_MM/per.patient.clinical.nd.tumor.2017-06-14.txt", FUN = fread)
+ia10.cluster.D <- s3_get_with("Cluster.D/clinical.subset.2017-08-01.txt", FUN = fread)
+
+#IA9 data
+ia9.all <- s3_get_with("Integrated/archive/per.patient.clinical_2017-03-09.txt", FUN = fread) %>%
+  filter(Patient %in% ia10.all$Patient)
+ia9.cluster.D <- ia9.all %>% filter(Patient %in% ia10.cluster.D$Patient)
+
+#Filter patients that are in both IA10 and IA9
+ia10.all <- ia10.all %>% filter(Patient %in% ia9.all$Patient)
+
+#Remove patients in IA9 that were removed in IA10
+ia9.all[is.na(ia10.all$D_PFS) & !is.na(ia9.all$D_PFS), "D_PFS"] <- NA
+ia9.all[is.na(ia10.all$D_PFS_FLAG) & !is.na(ia9.all$D_PFS_FLAG), "D_PFS_FLAG"] <- NA
+ia9.all[is.na(ia10.all$D_OS) & !is.na(ia9.all$D_OS), "D_OS"] <- NA
+ia9.all[is.na(ia10.all$D_OS_FLAG) & !is.na(ia9.all$D_OS_FLAG), "D_OS_FLAG"] <- NA
+
+ia9.cluster.D[is.na(ia10.cluster.D$D_PFS) & !is.na(ia9.cluster.D$D_PFS), "D_PFS"] <- NA
+ia9.cluster.D[is.na(ia10.cluster.D$D_PFS_FLAG) & !is.na(ia9.cluster.D$D_PFS_FLAG), "D_PFS_FLAG"] <- NA
+ia9.cluster.D[is.na(ia10.cluster.D$D_OS) & !is.na(ia9.cluster.D$D_OS), "D_OS"] <- NA
+ia9.cluster.D[is.na(ia10.cluster.D$D_OS_FLAG) & !is.na(ia9.cluster.D$D_OS_FLAG), "D_OS_FLAG"] <- NA
+
+all <- data.frame(cbind(ia10.all$Patient, ia10.all$D_OS, ia10.all$D_OS_FLAG, ia10.all$D_PFS, ia10.all$D_PFS_FLAG, ia9.all$D_OS, ia9.all$D_OS_FLAG, ia9.all$D_PFS, ia9.all$D_PFS_FLAG))
+names(all) <- c("Patient", "ia10_D_OS", "ia10_D_OS_FLAG", "ia10_D_PFS", "ia10_D_PFS_FLAG", 
+                "ia9_D_OS", "ia9_D_OS_FLAG", "ia9_D_PFS", "ia9_D_PFS_FLAG")
+
+cluster.D <- data.frame(cbind(ia10.cluster.D$Patient, ia10.cluster.D$D_OS, ia10.cluster.D$D_OS_FLAG, ia10.cluster.D$D_PFS, ia10.cluster.D$D_PFS_FLAG, ia9.cluster.D$D_OS, ia9.cluster.D$D_OS_FLAG, ia9.cluster.D$D_PFS, ia9.cluster.D$D_PFS_FLAG))
+names(cluster.D) <- c("Patient", "ia10_D_OS", "ia10_D_OS_FLAG", "ia10_D_PFS", "ia10_D_PFS_FLAG", 
+                "ia9_D_OS", "ia9_D_OS_FLAG", "ia9_D_PFS", "ia9_D_PFS_FLAG")
+
+write.table(all, "all_OS_PFS.txt", row.names = F, quote = F, sep = "\t")
+write.table(cluster.D, "ClusterD_OS_PFS.txt", row.names = F, quote = F, sep = "\t")
+
+```
+
+### Kaplan-Meier Curves
+
+```{r, survival_analysis}
+#All patients OS
+ia10.all.km <- survfit(Surv(D_OS, D_OS_FLAG == 1) ~ 1, data = ia10.all)
+ia9.all.km <- survfit(Surv(D_OS, D_OS_FLAG == 1) ~ 1, data = ia9.all)
+
+plot(ia10.all.km, col = "red", xlab = 'Survival (Days)',ylab = 'Proportion of population', main = "All Patients Overall Survival")
+lines(ia9.all.km, col = "blue")
+legend("bottomleft", c("IA10", "IA9"), lty = 1, col = c("red", "blue"))
+
+#All patients PFS
+ia10.all.km <- survfit(Surv(D_PFS, D_PFS_FLAG == 1) ~ 1, data = ia10.all)
+ia9.all.km <- survfit(Surv(D_PFS, D_PFS_FLAG == 1) ~ 1, data = ia9.all)
+
+plot(ia10.all.km, col = "red", xlab = 'Survival (Days)',ylab = 'Proportion of population', main = "All Patients Progression-free Survival")
+lines(ia9.all.km, col = "blue")
+legend("bottomleft", c("IA10", "IA9"), lty = 1, col = c("red", "blue"))
+
+#Cluster.D patients OS
+ia10.cluster.D.km <- survfit(Surv(D_OS, D_OS_FLAG == 1) ~ 1, data = ia10.cluster.D)
+ia9.cluster.D.km <- survfit(Surv(D_OS, D_OS_FLAG == 1) ~ 1, data = ia9.cluster.D)
+
+plot(ia10.cluster.D.km, col = "red", xlab = 'Survival (Days)',ylab = 'Proportion of population', main = "Cluster.D Patients Overall Survival")
+lines(ia9.cluster.D.km, col = "blue")
+legend("bottomleft", c("IA10", "IA9"), lty = 1, col = c("red", "blue"))
+
+#Cluster.D patients PFS
+ia10.cluster.D.km <- survfit(Surv(D_PFS, D_PFS_FLAG == 1) ~ 1, data = ia10.cluster.D)
+ia9.cluster.D.km <- survfit(Surv(D_PFS, D_PFS_FLAG == 1) ~ 1, data = ia9.cluster.D)
+
+plot(ia10.cluster.D.km, col = "red", xlab = 'Survival (Days)',ylab = 'Proportion of population', main = "Cluster.D Patients Progression-free Survival")
+lines(ia9.cluster.D.km, col = "blue")
+legend("bottomleft", c("IA10", "IA9"), lty = 1, col = c("red", "blue"))
+```
+
+### Number of Events Observed
+
+```{r, number_events}
+data <- list(ia9.all, ia10.all, ia9.cluster.D, ia10.cluster.D)
+
+df <- data.frame(Dataset = c("All Patients IA9", "All Patients IA10", "Cluster D IA9", "Cluster D IA10"),
+                       OS = sapply(data, function(x) nrow(x[x$D_OS_FLAG == 1,])),
+                       PFS = sapply(data, function(x) nrow(x[x$D_PFS_FLAG == 1,]))
+)
+DT::datatable(df, class = "compact stripe", rownames = F)
+```
+
+### Overall Survival Statistics
+
+```{r, os_stats}
+df <- data.frame(Dataset = c("All Patients IA9", "All Patients IA10", "Cluster D IA9", "Cluster D IA10"),
+                 Mean = sapply(data, function(x) round(mean(x$D_OS, na.rm = T), 2)),
+                 Median = sapply(data, function(x) median(x$D_OS, na.rm = T)),
+                 Q1 = sapply(data, function(x) summary(x$D_OS)[2]),
+                 Q3 = sapply(data, function(x) summary(x$D_OS)[5]),
+                 Range = sapply(data, function(x) max(x$D_OS, na.rm = T) - min(x$D_OS, na.rm=T)),
+                 n = sapply(data, function(x) length(x$D_OS[!is.na(x$D_OS)]))
+                 )
+DT::datatable(df, class = "compact stripe", rownames = F)
+```
