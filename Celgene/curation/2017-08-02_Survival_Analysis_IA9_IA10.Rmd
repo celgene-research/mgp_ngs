@@ -45,8 +45,8 @@ ia9.cluster.D.MMRF <- ia9.cluster.D %>% filter(Study == "MMRF")
 ia10.cluster.D.km <- survfit(Surv(D_OS, D_OS_FLAG == 1) ~ 1, data = ia10.cluster.D.MMRF)
 ia9.cluster.D.km <- survfit(Surv(D_OS, D_OS_FLAG == 1) ~ 1, data = ia9.cluster.D.MMRF)
 
-plot(ia10.cluster.D.km, col = "red", xlab = 'Survival (Days)',ylab = 'Proportion of population', main = "Cluster.D MMRF Patients Overall Survival")
-lines(ia9.cluster.D.km, col = "blue")
+plot(ia10.cluster.D.km, col = "red", xlab = 'Survival (Days)',ylab = 'Proportion of population', main = "Cluster.D MMRF Patients Overall Survival", conf.int = F)
+lines(ia9.cluster.D.km, col = "blue", conf.int = F)
 legend("bottomleft", c("IA10", "IA9"), lty = 1, col = c("red", "blue"))
 ia9.cluster.D.km
 ia10.cluster.D.km
@@ -56,8 +56,8 @@ ia10.cluster.D.km
 ia10.cluster.D.km <- survfit(Surv(D_PFS, D_PFS_FLAG == 1) ~ 1, data = ia10.cluster.D.MMRF)
 ia9.cluster.D.km <- survfit(Surv(D_PFS, D_PFS_FLAG == 1) ~ 1, data = ia9.cluster.D.MMRF)
 
-plot(ia10.cluster.D.km, col = "red", xlab = 'Survival (Days)',ylab = 'Proportion of population', main = "Cluster.D MMRF Patients Progression-free Survival")
-lines(ia9.cluster.D.km, col = "blue")
+plot(ia10.cluster.D.km, col = "red", xlab = 'Survival (Days)',ylab = 'Proportion of population', main = "Cluster.D MMRF Patients Progression-free Survival", conf.int = F)
+lines(ia9.cluster.D.km, col = "blue", conf.int = F)
 legend("bottomleft", c("IA10", "IA9"), lty = 1, col = c("red", "blue"))
 ia9.cluster.D.km
 ia10.cluster.D.km
