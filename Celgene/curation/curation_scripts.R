@@ -704,7 +704,12 @@ run_master_inventory <- function(write.to.s3 = TRUE){
                          INV_Has.nd.Translocations &
                          INV_Under75 &
                          INV_Has.iss &
-                         INV_Has.pfsos  )  )%>%
+                         INV_Has.pfsos  ),
+      Cluster.D = (INV_Has.WES &
+                   INV_Has.nd.snv),
+      Cluster.E = (INV_Has.WES &
+                   INV_Has.nd.snv &
+                   INV_Has.nd.cnv))%>%
     mutate_if(is.logical, as.numeric)
   
   n <- paste("counts.by.individual", sep = "." )
