@@ -86,21 +86,27 @@ archive <- function(path, aws.args = NULL){
 #'              e.g. "curated.metadata" for the file "curated.metadata.2017-07-06.txt" 
 #'  @param dir character of the parent directory you want to write this to. If 
 #'             not specified it will use the cwd from s3_cd()
-write_new_version <- function(df, name, dir = NULL){
+#'  @param denovo boolean should the function write a new table with the supplied name
+write_new_version <- function(df, name, dir = NULL, denovo = T){
   if( !exists("cwd", envir = s3e) ) return('s3e not configured')
-  
+  if(denovo & all(s3_ls(dir) == 1)) s3_put_table(data.frame(), dir, "test")
+ 
   # capture s3 path info
   prev.dir <- s3_cd()
   if( !is.null(dir) ) s3_cd(dir)
   
   # look for a version of the file already saved
   prev.path <- s3_ls(pattern = paste0("^",name,"\\.")) 
-  
+
   # logic check workflow
   if( length(prev.path) == 0  ){
-    message(paste(name, '; previous version not found with that name'))
-    s3_cd(prev.dir)
-    return(1)
+    if(denovo){
+      prev.df <- data.frame()
+    }else{
+      message(paste(name, '; previous version not found with that name'))
+      s3_cd(prev.dir)
+      return(1)
+    }
   }else if( length(prev.path) > 1 ){
     message(paste(name, '; more than one previous version found'))
     s3_cd(prev.dir)
@@ -108,25 +114,26 @@ write_new_version <- function(df, name, dir = NULL){
   }else{
     prev.df <- s3_get_table(prev.path)
   }
-  
+
   # save df to file and read back in for an exact comparison with the S3 version
   # uses same args as s3_put_table() and s3_get_table() functions
   write.table(df, file = file.path(s3e$cache, "tmp.txt"), 
               sep = "\t", quote = F, row.names = F, col.names = T)
   df <- read.delim(file.path(s3e$cache, "tmp.txt"))
-  
+
   if( startsWith(as.character(all_equal(prev.df, df)), "TRUE") ){
     print(paste(name, '; no changes from previous version'))
     s3_cd(prev.dir)
     return(0)
   }else{
-    
-    # archive the previous version first, to prevent archiving 
-    # the new version with the same date
-    s3_mv(from = prev.path, to   = file.path("archive", prev.path), allow.overwrite = T)
-    
-    n    <- paste(name, d, "txt", sep = ".")
-    new.path <- s3_put_table(df, dirname(prev.path), n)
+    # archive the previous version if it exists first, to prevent archiving 
+    # the new version with the same date. 
+    if( length(prev.path) != 0 ){
+      s3_mv(from = prev.path, to   = file.path("archive", prev.path), allow.overwrite = T)
+    }
+
+    n        <- paste(name, d, "txt", sep = ".")
+    new.path <- s3_put_table(df,  n)
     
     #if write fails, put back the archived version
     if( new.path == 1 ){
@@ -142,11 +149,6 @@ write_new_version <- function(df, name, dir = NULL){
     }
   }
 }
-
-
-
-
-
 
 
 order_by_dictionary <- function(df, table = NULL, add.missing.columns = T){
@@ -657,7 +659,7 @@ run_master_inventory <- function(write.to.s3 = TRUE){
       INV_Under75            = any(Patient %in% under75$Patient   ),
       
       INV_Has.blood          = any(Patient %in% has.blood$Patient ),
-      INV_Has.nd.bi             = any(Patient %in% has.nd.bi$Patient    ),
+      INV_Has.nd.bi          = any(Patient %in% has.nd.bi$Patient    ),
       
       INV_Has.cnv            = any(Patient %in% has.cnv$Patient   ),
       INV_Has.rna            = any(Patient %in% has.rna$Patient   ),
@@ -709,7 +711,18 @@ run_master_inventory <- function(write.to.s3 = TRUE){
                    INV_Has.nd.snv),
       Cluster.E = (INV_Has.WES &
                    INV_Has.nd.snv &
-                   INV_Has.nd.cnv))%>%
+                   INV_Has.nd.cnv)  ,
+      
+      # Cluster.F definition from Brian Walker 2017-08-16
+      # We thought that for determining survival curves for sole events e.g delTP53, 
+      #  we should use the largest number possible.  This would mean a cluster for 
+      #  which we have copy number pass, age <75 and survival data.  I think this 
+      #  is 862 (actually 863 as there is one PFS/OS missing from each but not 
+      #  the same patient).
+      Cluster.F = (INV_Has.nd.cnv &
+                     INV_Under75 &
+                     INV_Has.pfsos)   
+      )%>%
     mutate_if(is.logical, as.numeric)
   
   n <- paste("counts.by.individual", sep = "." )
@@ -773,6 +786,89 @@ run_master_inventory <- function(write.to.s3 = TRUE){
   list(per.patient.counts = inv, 
        per.study.counts = df)
 }
+
+cluster_flow <- function(names = NULL){
+  # it is recommended to run_master_inventory() prior to this.
+  prev.dir <- s3_cd()
+  s3_cd("/ClinicalData/ProcessedData")
+  
+  current_inv <- s3_ls("/ClinicalData/ProcessedData/Reports", 
+                       pattern = "counts.by.individual", 
+                       full.names = T)
+  if(length(current_inv) > 1){
+    warning('more than one inventory table discovered')
+    s3_cd(prev.dir)
+    return(1)
+  }
+  
+  if(is.null(names)){
+    inv <- s3_get_table(current_inv) %>%
+      gather(name, value, -Patient) %>%
+      filter(grepl("^Cluster", name)) %>%
+      filter(value == 1) %>%
+      select(-value)
+  
+  }else{
+    inv <- s3_get_table(current_inv) %>%
+      gather(name, value, -Patient) %>%
+      filter(name %in% names) %>%
+      filter(value == 1) %>%
+      select(-value)
+  }
+  
+  file.paths <- s3_ls("/ClinicalData/ProcessedData/ND_Tumor_MM", 
+                      pattern = "^per.patient.[^u]", full.names = T)
+  file.names <- gsub(".*per.patient.(.*).nd.tumor.*$","\\1",file.paths)
+  
+  # check only one of each table type
+  if(any(duplicated(file.names))){
+    warning('duplicate data table discovered')
+    s3_cd(prev.dir)
+    return(1)
+  }
+  
+  # read tables into dts list before subset for clusters
+  dts <- lapply(file.paths, function(f){ s3_get_with(f, FUN = fread) })
+  names(dts) <- file.names
+  
+  # ### Filter dts for each cluster type ---------------------------------------
+  cluster.names <- unique(inv$name)
+  tmp <- lapply(cluster.names, function(cluster.name){
+    print(cluster.name)
+    patient_list <- inv %>% filter(name == cluster.name) %>% .[['Patient']]
+    
+    tmp <- lapply(names(dts), function(table.name){
+      dt <- dts[[table.name]][Patient %in% patient_list]
+      write_new_version(df   = dt, 
+                        name = paste(table.name,"subset", sep = "."),
+                        dir  = cluster.name)
+    })
+    write_new_version(df = data.frame(Patient = patient_list),
+                      name = "patient.list",
+                      dir = cluster.name)
+  })
+  
+  
+  
+  # master.dts <- pblapply(names(dts), function(type){
+  #   dt <- dts[[type]]
+  #   if("File_Name" %in% names(dt)){dt <- dt[File_Name %in% valid.files$File_Name]
+  #   }else if("Patient" %in% names(dt)){dt <- dt[Patient %in% valid.files$Patient]
+  #   }else{stop("table doesn't have a filterable column")}
+  
+  #   if(PRINTING) write_new_version(dt, name = paste("curated", type, sep = "."))
+  #   #For new tables
+  #   prev.path <- s3_ls(pattern = paste0("^",paste("curated", type, sep = "."),"\\.")) 
+  #   if( length(prev.path) == 0){
+  #     print("Adding new table:")
+  #     s3_put_table(dt, paste("curated", type, Sys.Date(), "txt", sep = "."))
+  #   }
+  #   dt
+  # })
+  
+  s3_cd(prev.dir)
+}
+
 export_sas <- function(df){
   
   # this has been adjusted to maintain a very specific export format, edit with care
