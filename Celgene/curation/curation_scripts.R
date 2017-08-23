@@ -721,7 +721,8 @@ run_master_inventory <- function(write.to.s3 = TRUE){
       #  the same patient).
       Cluster.F = (INV_Has.nd.cnv &
                      INV_Under75 &
-                     INV_Has.pfsos)   
+                     INV_Has.pfsos &
+                     INV_Has.nd.snv)   
       )%>%
     mutate_if(is.logical, as.numeric)
   
