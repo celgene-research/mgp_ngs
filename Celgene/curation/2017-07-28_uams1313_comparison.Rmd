@@ -1,0 +1,122 @@
+---
+title: "MGP Dataset comparison"
+author: "Dan Rozelle, PhD. Rancho BioSciences"
+date: "July 28, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(digits = 2)
+source("curation_scripts.R")
+s3_cd("/ClinicalData/ProcessedData")
+```
+
+We're comparing sample inclusion and clinical data between the MGP integrated cohort ("MGP") and a dataset independently maintained by UAMS collaborators ("u1313"). Below follows a general description of each dataset, and comparison table of key variables. Please note that internal code used to generate this report can be found on github, but was not shown to increase clarity.
+
+Summary of significant events in integrated cohort composition: 
+
+- **2017-05-04**, Data delivered to Celgene Biostats group for most recent analysis, only minor corrections since this date.
+
+- **2017-03-23**, 20 ndMM DFCI samples reassign as relapse samples ( [github](https://github.com/celgene-research/mgp_ngs/blob/master/Celgene/curation/archive/2017-03-21_corrected_dfci_Disease_Status.Rmd) )
+
+- **2017-03-14**, Clinical data from MMRF updated to use IA10. ( [github](https://github.com/celgene-research/mgp_ngs/commit/6dad50efa522b0d22d6fa1f1da070a33618bf34c) ). This added updated PFS and OS times for existing patients, but since molecular data was not reprocessed new patients are not included in latest dataset.
+
+- **2017-03-08**, Change MMRF fields used for PFS/OS to align with EMA definitions. ( [github](https://github.com/celgene-research/mgp_ngs/blob/master/Celgene/curation/archive/2017-03-08_PFS_flag_changes.Rmd) ).
+
+- **2017-02-22**, add filter to remove PCL samples from MMRF cohort ( [github](https://github.com/celgene-research/mgp_ngs/commit/2cb2414f7beeaf91107f061093b8a0f97b358674) ). All samples from a timepoint where a  PB_CD138pos sample is found are excluded.
+
+```{r, echo=F, warning=FALSE}
+# current inventory table to identify patients with applicable wes results
+inv  <- s3_get_table("Reports/counts.by.individual.2017-07-25.txt")
+
+# filter the complete mgp dataset to only consider patients with valid exome results.
+mgp.wes <- s3_get_table("ND_Tumor_MM/per.patient.unified.nd.tumor.2017-07-27.txt") %>% 
+  filter( Patient %in% inv[inv$INV_Has.nd.snv == 1,"Patient"]) %>%
+  mutate(set = "MGP")
+
+# spreadsheet of UAMS patients including clinical data emailed by Chris Wardell (2017-07-26)
+u1313 <- s3_get_csv("Curated_Data_Sources/2017-07-26_1313_UAMS_WES_Cohort.csv") %>%
+  mutate(set = "U1313")
+
+# Import current metadata and MMRF QC tables to facilitate annotation of excluded patients in u1313 cohort
+meta <- s3_get_table("JointData/curated.metadata.2017-07-07.txt")
+
+ia10.qc <- s3_get_with("/ClinicalData/OriginalData/MMRF_IA10c/README_FILES",
+                       "MMRF_CoMMpass_IA10_Seq_QC_Summary.xlsx",
+                       FUN = auto_read) %>%
+  select(QC.Link.SampleName, MMRF_Release_Status) %>%
+  rename(File_Name = QC.Link.SampleName, IA10_Status = MMRF_Release_Status)
+
+```
+
+#### Clinical parameter comparison
+
+Values listed in table are "mean (n)" originating from corresponding field_dataset.
+
+```{r, echo=F}
+extract <- function(df){
+ df %>% 
+    select(set, Study, D_Gender, D_Age, D_OS, D_OS_FLAG, D_PFS, D_PFS_FLAG) %>%
+    mutate(D_Gender = as.numeric(D_Gender == "Male")) %>%
+    rename(D_Gender_Male = D_Gender) %>%
+    group_by(set, Study) %>%
+    summarise_all( funs(
+      paste0( 
+        round(mean(., na.rm = T),2), " (", sum(!is.na(.)), ")" 
+              ))
+      
+      ) %>%
+    
+    gather(field, value, -set, -Study) %>%
+    # mutate(calc  = gsub(".*_", "", field),
+    #        field = gsub("(.*)_.*$", "\\1", field)) %>%
+    ungroup()
+  
+}
+
+bind_rows(lapply(list(mgp.wes, u1313), extract)) %>%
+  mutate(c = Study) %>%
+  mutate(Category_Set = paste(field, set, sep = "_")) %>%
+  select(c, Category_Set, value) %>%
+  spread(key = c, value = value) %>%
+  DT::datatable(class = "compact stripe",
+                extensions = 'Buttons',
+                options = list(
+                  dom = 'Bt', 
+                  buttons = c('csv', 'copy'),
+                  pageLength = 12)
+                )
+```
+
+
+#### Comparison of total patient numbers for patients with exome seq results
+
+
+```{r, echo=F}
+venn::venn(list(`MGP WES` = mgp.wes$Patient, 
+                `UAMS 1313`    = u1313$Patient), 
+           cexsn = 1, cexil = 1, zcolor = "style")
+
+fourty <- u1313[!u1313$Patient %in% mgp.wes$Patient,]
+fourty$Patient
+```
+
+\
+
+In addition to changes in PFS and OS durations, 40 patients in the u1313 dataset were previously excluded from the MGP cohort.
+
+- 20 DFCI patients were removed after reclassified as Relapse 
+- 16 MMRF patients are classified as PCL during their diagnosis sample.
+- 4 MMRF patient samples were recently flagged by the MMRF due to QC issues, replacement files are available in IA10 but have not been processed as of yet.
+
+\
+
+```{r, echo=F}
+meta %>% filter(File_Name %in% fourty$File_Name) %>%
+  select(Patient, File_Name, Disease_Status, Disease_Type, Excluded_Flag) %>%
+  left_join(., ia10.qc, by = "File_Name") %>%
+  select(-Patient) %>%
+  DT::datatable(class = "compact", options = list(pageLength = 10))
+```
+
