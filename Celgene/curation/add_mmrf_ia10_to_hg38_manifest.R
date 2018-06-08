@@ -5,30 +5,14 @@ library(tidyverse)
 wes_ia11 <-auto_read("~/rancho/celgene/prismm/data/MGP/ia11.txt")%>%
   mutate(sample_name = sample_from_file(basename(filename)))
 
-# I pulled this from the MGP jointdata/metadata table by filtering for MMRF/WES
-excluded_files <- auto_read("~/rancho/celgene/prismm/data/MGP/mmrf_wes.xlsx") %>%
-  select(File_Name_Actual, Excluded_Flag, Excluded_Specify)
-
-# This is from Kostas from the previous manifest
-#  nice to have but I end up deriving these values again
-processed <- auto_read("~/rancho/celgene/prismm/data/MGP/WES.MMRF.Kostas.20180502.txt", skip = 7) %>%
-  mutate(sample_name = sample_from_file(basename(filename)))
-
-# add back PCL excluded IA10 samples
-df <- tibble(filename = s3_ls("MGP-MMRF/WES/Raw/bam.IA.01232018", pattern = "bam$")) %>%
-  mutate(vendor_id   =  tools::file_path_sans_ext(filename),
-         sample_name = sample_from_file(vendor_id),
-         vendor_project_name = "IA10") %>%
-  filter(!sample_name %in% processed$sample_name) %>%
+# start with the MGP jointdata/metadata table by filtering for MMRF/WES
+df <- auto_read("~/rancho/celgene/prismm/data/MGP/mmrf_wes.xlsx")  %>%
+  mutate(sample_name = sample_from_file(vendor_id)) %>%
   filter(!sample_name %in% wes_ia11$sample_name ) %>%
-  bind_rows(processed) %>%
   select(filename, sample_name, vendor_project_name) %>%
   mutate(filename    = basename(filename)) %>%
   arrange(sample_name) %>%
-  left_join(excluded_files, by = c("filename" = "File_Name_Actual"))
 
-# fix short display names for previous processed, and confirm proper `is_normal`
-df <- df %>%
   # trim off batch barcodes and file extension
   mutate(vendor_id = gsub("(.*)_[TC][0-9]{1,2}_.*", "\\1", filename)) %>%
   separate(vendor_id, into = c("DA_project_id", "celgene_id", "sample_no", "tissue", "cell_type"), remove = F) %>%
