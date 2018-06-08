@@ -2,6 +2,9 @@ library(toolboxR)
 library(tidyverse)
 
 # we don't want IA11 for MGP/PRISMM so capture this to exclude
+# this is just a file list from the mgp s3 bucket under
+ # s3://celgene.rnd.combio.mmgp.external/SeqData/WGS/OriginalData/MMRF/IA11/
+
 wes_ia11 <-auto_read("~/rancho/celgene/prismm/data/MGP/ia11.txt")%>%
   mutate(sample_name = sample_from_file(basename(filename)))
 
