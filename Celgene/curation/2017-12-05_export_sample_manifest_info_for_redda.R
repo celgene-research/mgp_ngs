@@ -1,22 +1,24 @@
 library(toolboxR)
 library(tidyverse)
 
-clinical <- auto_read("../../../data/Master/curated.clinical.2017-08-08.txt")
-metadata <- auto_read("../../../data/Master/curated.metadata.2017-07-07.txt") %>%
-  group_by(Patient) %>%
-  summarise_all(Simplify)
+mgp <- auto_read("../../../data/Master/curated.metadata.2017-07-07.txt") %>%
+  filter(Study == "DFCI.2009") %>%
+  select(Patient, Sequencing_Type, Disease_Status)
 
-df <- clinical %>%
-  left_join(metadata, by = "Patient") %>%
-  select(Patient,
-         Study,
-         D_Gender,
-         D_Age,
-         File_Name_Actual,
-         Sequencing_Type,
-         Disease_Status,
-         Disease_Type,
-         Tissue_Type,
-         Cell_Type)
+dfci2 <- auto_read("../../../../prismm/data/set2-3/2017-12-05_DFCI_Clinical2.txt")
 
-auto_write(df, "~/Downloads/mgp_patient_list.txt")
+df <- auto_read("../../../../prismm/data/set2-3/DA0000435_wgs60_samples.csv") %>%
+  mutate(Sequencing_Type = "WGS",
+         
+         Patient = gsub(" ", "_", celgene_id)) %>%
+  full_join(dfci2, by = c("Patient"="SampleID")) %>%
+  mutate(Disease_Status = if_else(Relapse == 1, "R", "ND")) %>%
+  
+  bind_rows(mgp)  %>%
+  group_by(Patient, Disease_Status) %>%
+  summarise(Sequencing_Types = Simplify(Sequencing_Type)) %>%
+  spread(Disease_Status, Sequencing_Types)
+
+# auto_write(df, "../../../../prismm/data/set2-3/2018-06-18_partial_IFM2009_seq_types_list.csv")
+
+df %>%  filter(!(Patient %in% c(dfci2$SampleID, mgp$Patient)))
