@@ -1,0 +1,69 @@
+---
+title: "manifest updates"
+author: "Dan Rozelle, PhD"
+date: "February 16, 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(toolboxR)
+library(tidyverse)
+p <- "~/rancho/celgene/prismm/data/set4-5-6/"
+
+report <- function(name, new, old){
+
+  print("************************************************", quote = F)
+  print(name, quote = F)
+  print("intersection", quote = F)
+  print(intersect(new$vendor_id, old$vendor_id), quote = F)
+  
+  print("new only", quote = F)
+  print(setdiff(new$vendor_id,   old$vendor_id), quote = F)
+  
+  print("prev only", quote = F)
+  print(setdiff(old$vendor_id,   new$vendor_id), quote = F)
+  venn::venn(list(new = new$vendor_id, prev = old$vendor_id), cexil = 1.2)
+  
+}
+
+```
+
+
+```{r, fig.height=2}
+
+s <- list(
+  DA0000206_WGS = list(
+    new = auto_read(file.path(p, "DA0000206_WGS_sample_manifest.tsv")),
+    old = bind_rows( auto_read(file.path(p, "vz/DA0000206_cohortB_wgs30_samples.txt")),
+                     auto_read(file.path(p, "vz/DA0000206_cohortB_wgs60_samples.txt")))
+  ),
+  `DA0000206_RNA-Seq` = list(
+    new = auto_read(file.path(p, "DA0000206_RNA-Seq_sample_manifest.tsv")),
+    old = auto_read(file.path(p, "vz/DA0000206_rnaseq_samples_01112018.txt"))
+  ),
+  `DA0000253_RNA-Seq` = list(
+    new = auto_read(file.path(p, "DA0000253_RNA-Seq_sample_manifest.tsv")),
+    old = auto_read(file.path(p, "vz/DA0000253_rnaseq_samples_01122018.csv"))
+  ),
+  `DA0000254_RNA-Seq` = list(
+    new = auto_read(file.path(p, "DA0000254_RNA-Seq_sample_manifest.tsv")),
+    old = auto_read(file.path(p, "vz/DA0000254_rnaseq_samples_01122018.csv"))
+  )
+  
+)
+
+for (n in names(s)){
+  
+  report(n, s[[n]]$new, s[[n]]$old)
+}
+```
+
+```{r, fig.height=5}
+
+# confirm than none of the manifests have overlapping samples
+venn::venn(lapply(s, function(foo){foo$new$vendor_id}), cexil = 1.2)
+
+```
+
+```
