@@ -26,9 +26,12 @@ MMRF_CoMMpass_IA11_STAND_ALONE_SURVIVAL.csv
 	D_PD
 	D_PD_FLAG
 
-STAND_ALONE_MEDHX.medx
+STAND_ALONE_MEDHX.csv
 	*Patient
 	D_Medical_History
+
+STAND_ALONE_FAMHX.csv
+	*Patient
 	D_Family_Cancer_History
 
 MMRF_CoMMpass_IA11_STAND_ALONE_TRTRESP.csv
@@ -47,8 +50,6 @@ MMRF_CoMMpass_IA11_STAND_ALONE_TRTRESP.csv
 	TRT_1_bmtx_n
 	TRT_1_bmtx_day
 
-MMRF_CoMMpass_IA11_STAND_ALONE_TREATMENT_REGIMEN.csv
-	*Patient
 	TRT_1_bend
 	TRT_1_bor
 	TRT_1_car
@@ -83,6 +84,7 @@ mmrf inventory
 	Study
 	Tissue_Type
 	Cell_Type
+	Disease_Type
 	Sample_Type_Flag
 	Sample_Type
 
@@ -105,7 +107,6 @@ MMRF_CoMMpass_IA11_PER_PATIENT_VISIT.csv
 	Visit_Time -> Visit_Name
 	Sample_Study_Day
 	Disease_Status
-	Disease_Type
 	D_PrevBoneMarrowTransplant
 
 ClinicalData/OriginalData/Joint/2017-03-08_NMF_mutation_signature.txt
@@ -151,11 +152,6 @@ MMRF_CoMMpass_IA11_PER_PATIENT_VISIT.csv
 	IG_IgL_Lambda
 	IG_IgM
 	IG_IgE
-	FLO_Markers
-	FLO_Percent_Aneuploid
-	FLO_IgH
-	FLO_IgL
-	FLO_DNA_Index
-	MISC_BRAF_V600E
-	MISC_ECOG_Status
+
+
 
