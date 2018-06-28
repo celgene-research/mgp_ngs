@@ -1,0 +1,161 @@
+MMRF clinical table column sources ------------------------------------------
+
+MMRF_CoMMpass_IA11_PER_PATIENT.csv
+	*Patient
+	D_Gender
+	D_Race
+	D_Age
+	D_ISS
+
+	D_Cause_of_Death
+	D_Reason_for_Discontinuation
+	D_Discontinued
+	D_Complete
+
+MMRF_CoMMpass_IA11_PER_PATIENT_VISIT.csv
+	*Patient
+	D_Response_Assessment
+	D_Last_Visit
+
+MMRF_CoMMpass_IA11_STAND_ALONE_SURVIVAL.csv
+	*Patient
+	D_OS
+	D_OS_FLAG
+	D_PFS
+	D_PFS_FLAG
+	D_PD
+	D_PD_FLAG
+
+STAND_ALONE_MEDHX.medx
+	*Patient
+	D_Medical_History
+	D_Family_Cancer_History
+
+MMRF_CoMMpass_IA11_STAND_ALONE_TRTRESP.csv
+	*Patient
+	D_Best_Response_Code
+	D_Best_Response
+
+	TRT_1_trtgroup
+	TRT_1_therstdy
+	TRT_1_therendy
+	TRT_1_thername
+	TRT_1_thershnm
+	TRT_1_therclass
+	TRT_1_bmtx_rec
+	TRT_1_bmtx_type
+	TRT_1_bmtx_n
+	TRT_1_bmtx_day
+
+MMRF_CoMMpass_IA11_STAND_ALONE_TREATMENT_REGIMEN.csv
+	*Patient
+	TRT_1_bend
+	TRT_1_bor
+	TRT_1_car
+	TRT_1_cyc
+	TRT_1_dar
+	TRT_1_dex
+	TRT_1_dox
+	TRT_1_doxlip
+	TRT_1_ixa
+	TRT_1_len
+	TRT_1_mel
+	TRT_1_pom
+	TRT_1_pred
+	TRT_1_thal
+	TRT_1_vin
+	TRT_1_IMID
+	TRT_1_other
+	TRT_1_other_names
+
+* Not available for MMRF
+D_Diagnosis_Date
+D_Relapse_Date
+D_Death_Date
+D_Last_Visit_Date
+
+MMRF metadata table column sources ------------------------------------------
+
+mmrf inventory
+	*File_Name
+	File_Name_Actual
+	File_Path
+	Study
+	Tissue_Type
+	Cell_Type
+	Sample_Type_Flag
+	Sample_Type
+
+MMRF_CoMMpass_IA11_PackageBuildValidator.txt
+	*File_Name
+	Study_Phase
+
+MMRF_CoMMpass_IA11_Seq_QC_Summary.xlsx
+	*File_Name
+	*Sample_Sequence
+	Visit_Name
+	Sample_Name
+	Patient
+	Sequencing_Type
+	Excluded_Flag
+	Excluded_Specify
+
+MMRF_CoMMpass_IA11_PER_PATIENT_VISIT.csv
+	*Sample_Sequence
+	Visit_Time -> Visit_Name
+	Sample_Study_Day
+	Disease_Status
+	Disease_Type
+	D_PrevBoneMarrowTransplant
+
+ClinicalData/OriginalData/Joint/2017-03-08_NMF_mutation_signature.txt
+	*File_Name
+	NMF_Signature_Cluster
+
+ClinicalData/ProcessedData/Curated_Data_Sources/mutational.burden.2017-07-07.txt
+	*File_Name
+	SNV_total_ns_variants_n
+	SNV_ns_mutated_genes_n
+	SNV_dbNSFP_Polyphen2_HDIV_pred_deleterious_variants_n
+	SNV_dbNSFP_Polyphen2_HVAR_pred_deleterious_variants_n
+	SNV_dbNSFP_Polyphen2_HDIV_pred_deleterious_genes_n
+	SNV_dbNSFP_Polyphen2_HVAR_pred_deleterious_genes_n
+
+
+MMRF blood table column sources ------------------------------------
+
+MMRF_CoMMpass_IA11_Seq_QC_Summary.xlsx
+	*File_Name
+	*[Sample_Sequence]
+
+MMRF_CoMMpass_IA11_PER_PATIENT_VISIT.csv
+	*Patient
+	*[Sample_Sequence]
+	CBC_Absolute_Neutrophil
+	CBC_Platelet
+	CBC_WBC
+	DIAG_Hemoglobin
+	DIAG_Albumin
+	DIAG_Calcium
+	DIAG_Creatinine
+	DIAG_LDH
+	DIAG_Beta2Microglobulin
+	CHEM_BUN
+	CHEM_Glucose
+	CHEM_Total_Protein
+	CHEM_CRP
+	IG_IgL_Kappa
+	IG_M_Protein
+	IG_IgA
+	IG_IgG
+	IG_IgL_Lambda
+	IG_IgM
+	IG_IgE
+	FLO_Markers
+	FLO_Percent_Aneuploid
+	FLO_IgH
+	FLO_IgL
+	FLO_DNA_Index
+	MISC_BRAF_V600E
+	MISC_ECOG_Status
+
