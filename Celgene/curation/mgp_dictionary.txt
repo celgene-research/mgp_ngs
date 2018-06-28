@@ -16,7 +16,7 @@ Disease_Status	metadata	Disease_Status	factor	column_exists; all_required	ND=New
 Tissue_Type	metadata	Tissue_Type	character	column_exists; all_required	PB; BM	NA	Source tissue derivation. PB=PeripheralBlood; BM=BoneMarrow	NA	NA	NA	NA	1
 Cell_Type	metadata	Cell_Type	character	column_exists; all_required	CD138pos; PBMC	NA	Sample generated from selected cell type. PBMC=Peripheral Blood Mononuclear Cells; CD138pos=CD138 surface marker positive cells	NA	NA	NA	NA	1
 NMF_Signature_Cluster	metadata	NA	factor	column_exists	A; B	NA	Non-negative matrix factorization (NMF) mutation signature group	NA	NA	NA	NA	0
-Disease_Type	metadata	NA	character	column_exists; all_required	MM; PCL	NA	What disease has this patient been diagnosed with. Patients with CD138 selected cells from Peripheral Blood are considered Plasma Cell Leukemia. Included in file and patient tables for filtering. MM=Multiple Myeloma; PCL=Plasma Cell Leukemia.	NA	NA	NA	NA	1
+Disease_Type	metadata	NA	character	column_exists; all_required	MM=”Multiple Myeloma”; PCL=”Plasma Cell Leukemia”	NA	What disease has this patient been diagnosed with. All samples from a patient are considered PCL if any CD138 selected PBMC samples were collected.	NA	NA	NA	NA	1
 D_Gender	clinical	D_Gender	factor	column_exists	Male; Female	NA	Gender string	"recode(PER_PATIENT::D_PT_gender, ""Male"", ""Female"")"	NA	recode(Sex, 1=Male, 2=Female)	Gender column. M=Male; F=Female	1
 D_Race	clinical	D_Race	factor	column_exists	ASIAN; AMERICANINDIAN; BLACKORAFRICAN; PACIFICISLANDER; WHITE; OTHER	NA	Race	"recode(PER_PATIENT::D_PT_race, ""WHITE"", ""BLACKORAFRICAN"", ""AMERICANINDIAN"", ""ASIAN"", ""NATIVEHAWAIIAN"", ""OTHER"")"	NA	NA	NA	1
 D_Age	clinical	D_Age	numeric	column_exists; all_positive	NA	years	Age at diagnosis	PER_PATIENT.D_PT_age	NA	Age.at.diagnosis	Age column	1
@@ -92,12 +92,12 @@ IG_IgL_Lambda	blood	IG_IgL_Lambda	numeric	column_exists	NA	mg/dL	Serum Lambda	PE
 IG_IgM	blood	IG_IgM	numeric	column_exists	NA	g/L	Serum IgM	PER_PATIENT_VISIT.D_LAB_serum_igm	NA	NA	NA	0
 IG_IgE	blood	IG_IgE	numeric	column_exists	NA	mg/L	Serum IgE	PER_PATIENT_VISIT.D_LAB_serum_ige	NA	NA	NA	0
 FLO_Markers	blood	FLO_Markers	numeric	column_exists	NA	NA	NA	NA	NA	NA	NA	0
-FLO_Percent_Aneuploid	blood	FLO_Percent_Aneuploid	numeric	column_exists	NA	NA	Flow cytometer %aneuploidy population	PER_PATIENT_VISIT.D_IM_FLOWCYT_PCT_ANEUPLOID_POPUL	NA	NA	NA	0
+FLO_Percent_Aneuploid	blood	FLO_Percent_Aneuploid	numeric	column_exists	NA	NA	Flow cytometer %aneuploidy population	NA	NA	NA	NA	0
 FLO_IgH	blood	FLO_IgH	numeric	column_exists	NA	NA	NA	NA	NA	NA	NA	0
-FLO_IgL	blood	FLO_IgL	numeric	column_exists	NA	NA	Light Chain by Flow	PER_PATIENT_VISIT.D_IM_LIGHT_CHAIN_BY_FLOW	NA	NA	NA	0
-FLO_DNA_Index	blood	FLO_DNA_Index	numeric	column_exists	NA	NA	DNA Index. DNA content of cells is measured by the ability of propidium iodide to bind stoichiometrically to DNA.	PER_PATIENT_VISIT.D_IM_DNA_INDEX	NA	NA	NA	0
-MISC_BRAF_V600E	blood	MISC_BRAF_V600E	numeric	column_exists	0=no; 1=yes	NA	BRAF Status	PER_PATIENT_VISIT.D_IM_BRAF_STATUS	NA	NA	NA	0
-MISC_ECOG_Status	blood	MISC_ECOG_Status	numeric	column_exists	0=Fully Active; 1=Restricted in physically strenuous activity; 2=Ambulatory and capable of all selfcare; 3=Capable of only limited selfcare; 4=Completely disabled	NA	Eastern Cooperative Oncology Group (ECOG) standard criteria for measuring how the disease impacts a patient?ˌ_s daily living abilities.	PER_PATIENT_VISIT.ECOG_PERFORMANCEST	NA	NA	NA	0
+FLO_IgL	blood	FLO_IgL	numeric	column_exists	NA	NA	Light Chain by Flow	NA	NA	NA	NA	0
+FLO_DNA_Index	blood	FLO_DNA_Index	numeric	column_exists	NA	NA	DNA Index. DNA content of cells is measured by the ability of propidium iodide to bind stoichiometrically to DNA.	NA	NA	NA	NA	0
+MISC_BRAF_V600E	blood	MISC_BRAF_V600E	numeric	column_exists	0=no; 1=yes	NA	BRAF Status	NA	NA	NA	NA	0
+MISC_ECOG_Status	blood	MISC_ECOG_Status	numeric	column_exists	0=Fully Active; 1=Restricted in physically strenuous activity; 2=Ambulatory and capable of all selfcare; 3=Capable of only limited selfcare; 4=Completely disabled	NA	Eastern Cooperative Oncology Group (ECOG) standard criteria for measuring how the disease impacts a patient?ˌ_s daily living abilities.	NA	NA	NA	NA	0
 CYTO_Karyotype_FISH	translocations	CYTO_Karyotype_FISH	character	column_exists	NA	NA	Text description of karyotype	PER_PATIENT_VISIT.D_CM_KARYOTYPE	Karyotype	NA	NA	1
 CYTO_t_4_14_FISH	translocations	CYTO_t_4_14__FISH	numeric	column_exists	0=no; 1=yes; 2=subclonal	NA	Structural variant observed via FISH	PER_PATIENT_VISIT.D_TRI_CF_ABNORMALITYPR3	4;14 parsed from Karyotype	as.numeric(gsub(9, NA, t_4_14) )	Translocation_consensus == 4	1
 CYTO_t_6_14_FISH	translocations	CYTO_t_6_14__FISH	numeric	column_exists	0=no; 1=yes; 2=subclonal	NA	Structural variant observed via FISH	PER_PATIENT_VISIT.D_TRI_CF_ABNORMALITYPR4	NA	NA	Translocation_consensus == 6	1

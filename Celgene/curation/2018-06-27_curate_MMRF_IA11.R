@@ -2,68 +2,21 @@
 ## MMRF ia11 metadata, clinical, blood table curation
 
 # change log from ia10 curation
-# -------------------------------
 # D_Gender source changed from `DEMOG_GENDER` to the coded field D_PT_gender
 # 
 
- 
 
-# Column sources for MMRF samples 
-# 
-# curated metadata table -----------------------------------------------------
-# mmrf inventory from s3, parsed from File_Name
-# 	*File_Name
-# 	File_Name_Actual
-# 	File_Path
-# 	Study
-# 	Tissue_Type
-# 	Cell_Type
-# 	Sample_Type_Flag
-# 	Sample_Type
-# 
-# MMRF_CoMMpass_IA11_PackageBuildValidator.txt
-# 	*File_Name
-# 	Study_Phase
-# 
-# MMRF_CoMMpass_IA11_Seq_QC_Summary.xlsx
-# 	*File_Name
-# 	*Sample_Sequence
-# 	Visit_Name
-# 	Sample_Name
-# 	Patient
-# 	Sequencing_Type
-# 	Excluded_Flag
-# 	Excluded_Specify
-# 
-# MMRF_CoMMpass_IA11_PER_PATIENT_VISIT.csv
-# 	*Sample_Sequence
-# 	Visit_Time -> Visit_Name
-# 	Sample_Study_Day
-# 	Disease_Status
-# 	Disease_Type
-# 	D_PrevBoneMarrowTransplant
-# 
-# ClinicalData/OriginalData/Joint/2017-03-08_NMF_mutation_signature.txt
-# 	*File_Name
-# 	NMF_Signature_Cluster
-# 
-# ClinicalData/ProcessedData/Curated_Data_Sources/mutational.burden.2017-07-07.txt
-# 	*File_Name
-# 	SNV_total_ns_variants_n
-# 	SNV_ns_mutated_genes_n
-# 	SNV_dbNSFP_Polyphen2_HDIV_pred_deleterious_variants_n
-# 	SNV_dbNSFP_Polyphen2_HVAR_pred_deleterious_variants_n
-# 	SNV_dbNSFP_Polyphen2_HDIV_pred_deleterious_genes_n
-# 	SNV_dbNSFP_Polyphen2_HVAR_pred_deleterious_genes_n
+library(s3r)
+library(tidyverse)
+library(toolboxR)
 
-source("curation_scripts.R")
+s3_set(bucket = "celgene.rnd.combio.mmgp.external", 
+       sse = T, 
+       cwd = "ClinicalData/OriginalData/MMRF_IA11a/clinical_data_tables/CoMMpass_IA11_FlatFiles")
 
-d        <- format(Sys.Date(), "%Y-%m-%d")
-
-
-patient <- auto_read("../../../data/CoMMpass_IA11_FlatFiles/MMRF_CoMMpass_IA11_PER_PATIENT.csv") %>%
+# per-patient ----
+patient <- s3_get_with("MMRF_CoMMpass_IA11_PER_PATIENT.csv", FUN = auto_read) %>%
   transmute(Patient  = PUBLIC_ID,
-            Study    = "MMRF",
             D_Gender = recode(D_PT_gender, "Male", "Female"),
             D_Race   = recode(D_PT_race, "WHITE", "BLACKORAFRICAN", "AMERICANINDIAN", "ASIAN", "NATIVEHAWAIIAN", "OTHER"),
             D_Age    = D_PT_age,
@@ -73,14 +26,19 @@ patient <- auto_read("../../../data/CoMMpass_IA11_FlatFiles/MMRF_CoMMpass_IA11_P
             D_Discontinued               =  D_PT_discont,
             D_Complete                   =  recode(D_PT_complete, "2" = 0)  ) 
 
-visit   <- auto_read("../../../data/CoMMpass_IA11_FlatFiles/MMRF_CoMMpass_IA11_PER_PATIENT_VISIT.csv") %>%
+# per-visit ----
+visit   <- s3_get_with("MMRF_CoMMpass_IA11_PER_PATIENT_VISIT.csv", FUN = auto_read) %>%
   # we only want visit information where a sample was collected
   filter(SPECTRUM_SEQ != "") %>%
   # some entries are duplicated when CMMC adds a comment, not necessary for our study
   filter( !duplicated(SPECTRUM_SEQ)) %>%
   
+  # calculate per-patient values from visit table
   group_by(PUBLIC_ID) %>%
-  mutate( bmt = if_else( suppressWarnings(VISITDY > min(BMT_DAYOFTRANSPL, na.rm = T)), 1,0,0)) %>%
+  mutate(
+    D_Response_Assessment = max(AT_RESPONSEASSES, na.rm = T),
+    D_Last_Visit          = max(VISITDY, na.rm = T),
+    bmt                   = if_else( suppressWarnings(VISITDY > min(BMT_DAYOFTRANSPL, na.rm = T)), 1,0,0)) %>%
   ungroup() %>%
   
   transmute(
@@ -91,7 +49,9 @@ visit   <- auto_read("../../../data/CoMMpass_IA11_FlatFiles/MMRF_CoMMpass_IA11_P
     Disease_Status          = ifelse(grepl("Baseline",  VJ_INTERVAL, ignore.case = T),"ND", "R"),
     Sample_Study_Day        = BA_DAYOFASSESSM,
     
-    D_PrevBoneMarrowTransplant                  = bmt,
+    D_Response_Assessment   = D_Response_Assessment,
+    D_Last_Visit            = D_Last_Visit,
+    D_PrevBoneMarrowTransplant  = bmt,
     
     CYTO_Has_Conventional_Cytogenetics           = as.numeric( D_CM_cm == 1 ),
     CYTO_Has_Conventional_Metaphase_Cytogenetics = as.numeric( D_CM_WASCONVENTION == 1 ),
@@ -135,8 +95,8 @@ visit   <- auto_read("../../../data/CoMMpass_IA11_FlatFiles/MMRF_CoMMpass_IA11_P
     IG_IgE                  = D_LAB_serum_ige ) %>% 
   arrange(Sample_Sequence)
 
-
-surv    <- auto_read("../../../data/CoMMpass_IA11_FlatFiles/MMRF_CoMMpass_IA11_STAND_ALONE_SURVIVAL.csv") %>%
+# survival ----
+surv <- s3_get_with("MMRF_CoMMpass_IA11_STAND_ALONE_SURVIVAL.csv", FUN = auto_read) %>%
   transmute(Patient      = public_id,
             D_OS         = ttcos,
             D_OS_FLAG    = censos,
@@ -145,20 +105,64 @@ surv    <- auto_read("../../../data/CoMMpass_IA11_FlatFiles/MMRF_CoMMpass_IA11_S
             D_PD         = ttfpd,
             D_PD_FLAG    = pdflag)
 
-treat   <- auto_read("../../../data/CoMMpass_IA11_FlatFiles/MMRF_CoMMpass_IA11_STAND_ALONE_TRTRESP.csv")
+# medical history ----
+medhist <- s3_get_with("MMRF_CoMMpass_IA11_STAND_ALONE_MEDHX.csv", FUN = auto_read) %>%
+  transmute(Patient      = public_id,
+            D_Medical_History = medx )
 
-# # filter response table using line =1 (first line treatment only), trtbresp=1 (Treatment best response) then find that response
-# best_response_table <- respo[respo$trtbresp == 1 & respo$line == 1 ,]
-# df[["D_Best_Response_Code"]] <-  unlist(lapply(df$Patient, lookup_by_publicid, dat = best_response_table, field = "bestrespcd"))
-# df[["D_Best_Response"]]      <-  unlist(lapply(df$Patient, lookup_by_publicid, dat = best_response_table, field = "bestresp"))
-# 
+# medical history ----
+famhist <- s3_get_with("MMRF_CoMMpass_IA11_STAND_ALONE_FAMHX.csv", FUN = auto_read) %>%
+  transmute(Patient      = public_id,
+            D_Family_Cancer_History =if_else( FAMHX_ISTHEREAFAMIL %in% c("Yes", "No"), 
+                                              FAMHX_ISTHEREAFAMIL, "") )
 
+# treatment response ----
+treat <- s3_get_with("MMRF_CoMMpass_IA11_STAND_ALONE_TRTRESP.csv", FUN = auto_read) %>%
+  filter(line == 1) %>%
+  group_by(public_id) %>%
+  mutate(bmtx_day = min(bmtx_day, na.rm = T)) %>%
+  mutate(bmtx_seq = max(bmtx_seq, na.rm = T)) %>%
+  ungroup() %>%
+  filter(therbresp == 1 ) %>%
+  # clean up therapy naming
+  mutate(thername  = gsub(" +\\+ +", "; ", thername) ) %>%
+  mutate(thername  = gsub("\\/", "-", thername) ) %>%
+  mutate(thershnm  = gsub(" +\\+ +", "; ", thershnm) ) %>%
+  transmute(Patient           = public_id,
+            TRT_1_trtgroup    = trtgroup,        
+            TRT_1_therstdy    = therstdy,        
+            TRT_1_therendy    = therendy,        
+            TRT_1_thername    = thername,        
+            TRT_1_thershnm    = thershnm,        
+            TRT_1_therclass   = therclass,         
+            TRT_1_bmtx_rec    = bmtx_rec,        
+            TRT_1_bmtx_type   = bmtx_type,         
+            TRT_1_bmtx_n      = if_else( is.na(bmtx_seq), as.integer(0), bmtx_seq ),      
+            TRT_1_bmtx_day    = bmtx_day     ) %>%
+  
+  # split drug tratments into individual binary flag columns
+  mutate(drugs = gsub("[\\(\\)\\.]", "", tolower(TRT_1_thershnm)) ) %>% 
+  mutate(drugs = strsplit(drugs, split = "; |-") ) %>% 
+  unnest(drugs) %>%
+  unique() %>%
+  group_by(drugs) %>%
+  mutate(n    = n(),
+         drug = if_else( n < 5, "other", drugs ),
+         drug = paste0("TRT_1_", drug),
+         val = 1) %>%
+  ungroup() %>%
+  select(-drugs, -n) %>%
+  unique() %>%
+  spread(drug, val, fill=0) %>%
+  mutate(TRT_1_IMID = if_else(TRT_1_thal | TRT_1_len | TRT_1_pom, 1, 0))
+
+# seqqc ----
 seqqc   <- auto_read("../../../data/CoMMpass_IA11_FlatFiles/MMRF_CoMMpass_IA11_Seq_QC_Summary.xlsx", na = "?") %>%
   transmute(File_Name = QC.Link.SampleName,
             Sample_Name      = gsub("^(MMRF.*[BMP]+)_.*", "\\1", File_Name),
             Patient          = Patients..KBase_Patient_ID,
             Visit_Name       = Visits..Reason_For_Collection,
-           
+            
             Sample_Sequence  = gsub("^(MMRF.*)_[BMP]+_.*", "\\1",  File_Name),
             Sequencing_Type  = case_when(
               grepl("^RNA", .$MMRF_Release_Status)   ~ "RNA-Seq",
@@ -173,5 +177,15 @@ seqqc   <- auto_read("../../../data/CoMMpass_IA11_FlatFiles/MMRF_CoMMpass_IA11_S
 if( all(seqqc$Disease_Status %in% c("ND", "R")) )warning("Check Disease_Status mapping, some not matched") 
 if( all(seqqc$Sequencing_Type %in% c("WES", "WGS", "RNA-Seq")) )warning("Check Sequencing_Type mapping, some not matched") 
 
-
 # ClinicalData/OriginalData/Joint/2017-03-08_NMF_mutation_signature.txt
+# *File_Name
+# NMF_Signature_Cluster
+# 
+# ClinicalData/ProcessedData/Curated_Data_Sources/mutational.burden.2017-07-07.txt
+# *File_Name
+# SNV_total_ns_variants_n
+# SNV_ns_mutated_genes_n
+# SNV_dbNSFP_Polyphen2_HDIV_pred_deleterious_variants_n
+# SNV_dbNSFP_Polyphen2_HVAR_pred_deleterious_variants_n
+# SNV_dbNSFP_Polyphen2_HDIV_pred_deleterious_genes_n
+# SNV_dbNSFP_Polyphen2_HVAR_pred_deleterious_genes_n
