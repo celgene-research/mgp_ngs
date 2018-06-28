@@ -1,9 +1,9 @@
 names	level	sas.name	class	qc.tests	restrictions	units	description	MMRF.Source	DFCI_Source	DFCI2009_Source	UAMS_Source	sage.export
-Patient	biallelicinactivation; blood; clinical; cnv; metadata; rnaseq; snv; translocations	Patient	character	column_exists; all_required	NA	NA	Normalized patient identification number. 	PER_PATIENT.PUBLIC_ID (format MMRF_0000)	Example: PD0000	example: DFCI_000_000AA	example: UAMS_0000	1
+Patient	biallelicinactivation; blood; clinical; cnv; metadata; rnaseq; snv; translocations	Patient	character	column_exists; all_required	NA	NA	Normalized patient identification number. 	PER_PATIENT::PUBLIC_ID	Example: PD0000	example: DFCI_000_000AA	example: UAMS_0000	1
 File_Name	biallelicinactivation; blood; cnv; metadata; rnaseq; snv; translocations	NA	character	column_exists; all_required	NA	NA	trimmed filename for uniquely matching study files	NA	NA	NA	NA	1
 Study	metadata	Study	factor	column_exists; all_required	DFCI; DFCI.2009; LOHR; MMRF; UAMS	NA	Study cohort this patient belongs to	MMRF	DFCI	DFCI.2009	UAMS	1
 Study_Phase	metadata	Study_Phase	character	column_exists	NA	NA	Study phase. So far this is only applicable to MMRF (eg. IA8, IA9)	Parsed from IA package structure	NA	NA	NA	1
-Visit_Name	metadata	Visit_Name	character	column_exists	NA	NA	Text description of the visit type e.g. Baseline, Confirm Progression, etc.	NA	NA	NA	NA	1
+Visit_Name	metadata	Visit_Name	character	column_exists	NA	NA	Text description of the visit type e.g. Baseline, Confirm Progression, etc.	Seq_QC_Summary.xlsx::Visits::Reason_For_Collection	NA	NA	NA	1
 Sample_Name	metadata	Sample_Name	character	column_exists	NA	NA	Sample identifier. NOTE: this has been adjusted for MMRF from previous versions (e.g. was MMRF_0000_1). BM/PB was added to clarify ambiguous samples taken at the same visit point.	NA	NA	NA	NA	1
 Sample_Type_Flag	metadata	Sample_Type_Flag	numeric	column_exists; all_required	0=Normal; 1=NotNormal	NA	Flag for Normal vs NotNormal sample type	NA	NA	NA	NA	1
 Sample_Type	metadata	Sample_Type	character	column_exists; all_required	Normal; NotNormal	NA	Text descriptor for sample type	NA	NA	NA	NA	1
@@ -17,16 +17,16 @@ Tissue_Type	metadata	Tissue_Type	character	column_exists; all_required	PB; BM	NA
 Cell_Type	metadata	Cell_Type	character	column_exists; all_required	CD138pos; PBMC	NA	Sample generated from selected cell type. PBMC=Peripheral Blood Mononuclear Cells; CD138pos=CD138 surface marker positive cells	NA	NA	NA	NA	1
 NMF_Signature_Cluster	metadata	NA	factor	column_exists	A; B	NA	Non-negative matrix factorization (NMF) mutation signature group	NA	NA	NA	NA	0
 Disease_Type	metadata	NA	character	column_exists; all_required	MM; PCL	NA	What disease has this patient been diagnosed with. Patients with CD138 selected cells from Peripheral Blood are considered Plasma Cell Leukemia. Included in file and patient tables for filtering. MM=Multiple Myeloma; PCL=Plasma Cell Leukemia.	NA	NA	NA	NA	1
-D_Gender	clinical	D_Gender	factor	column_exists	Male; Female	NA	Gender string	PER_PATIENT. DEMOG_GENDER	NA	recode(Sex, 1=Male, 2=Female)	Gender column. M=Male; F=Female	1
-D_Race	clinical	D_Race	factor	column_exists	ASIAN; AMERICANINDIAN; BLACKORAFRICAN; PACIFICISLANDER; WHITE; OTHER	NA	Race	PER_PATIENT.D_PT_race	NA	NA	NA	1
+D_Gender	clinical	D_Gender	factor	column_exists	Male; Female	NA	Gender string	"recode(PER_PATIENT::D_PT_gender, ""Male"", ""Female"")"	NA	recode(Sex, 1=Male, 2=Female)	Gender column. M=Male; F=Female	1
+D_Race	clinical	D_Race	factor	column_exists	ASIAN; AMERICANINDIAN; BLACKORAFRICAN; PACIFICISLANDER; WHITE; OTHER	NA	Race	"recode(PER_PATIENT::D_PT_race, ""WHITE"", ""BLACKORAFRICAN"", ""AMERICANINDIAN"", ""ASIAN"", ""NATIVEHAWAIIAN"", ""OTHER"")"	NA	NA	NA	1
 D_Age	clinical	D_Age	numeric	column_exists; all_positive	NA	years	Age at diagnosis	PER_PATIENT.D_PT_age	NA	Age.at.diagnosis	Age column	1
 D_Medical_History	clinical	D_Medical_History	character	column_exists	NA	NA	Specify. This field is not restricted to a curated set of responses, however specific values are flagged for an additional column in this table based on <MEDHX_conditions.of.interest.txt>	STAND_ALONE_MEDHX.medx	NA	NA	NA	1
 D_Family_Cancer_History	clinical	D_Family_Cancer_History	character	column_exists	Yes; No	NA	Is there a family history of cancer?	STAND_ALONE_FAMHX.FAMHX_ISTHEREAFAMIL	NA	NA	NA	1
 D_PrevBoneMarrowTransplant	metadata	D_PrevBoneMarrowTransplant	numeric	column_exists	0=no; 1=yes	NA	Has a bone marrow transplant been performed before the study day that this sample was collected?	PER-PATIENT-VISIT::VISITDY >= min(PER-PATIENT-VISIT::BMT_DAYOFTRANSPL for same PUBLIC_ID)	NA	NA	NA	1
 Sample_Study_Day	metadata	Sample_Study_Day	numeric	column_exists; all_numeric	NA	NA	day of study that the sample was taken	NA	NA	NA	NA	1
 TRT_1_trtgroup	clinical	TRT_1_trtgroup	numeric	column_exists	NA	NA	number of treatment groups administered during first line therapy	STAND_ALONE_TRTRESP::trtgroup	NA	NA	NA	0
-TRT_1_therstdy	clinical	TRT_1_therstdy	numeric	column_exists; all_positive	NA	day	Study day of first line therapy start	STAND_ALONE_TRTRESP::trtstdy	NA	NA	NA	0
-TRT_1_therendy	clinical	TRT_1_therendy	numeric	column_exists; all_positive	NA	day	Study day of first line therapy end	STAND_ALONE_TRTRESP::trtendy	NA	NA	NA	0
+TRT_1_therstdy	clinical	TRT_1_therstdy	numeric	column_exists; all_positive	NA	days	Study day of first line therapy start	STAND_ALONE_TRTRESP::trtstdy	NA	NA	NA	0
+TRT_1_therendy	clinical	TRT_1_therendy	numeric	column_exists; all_positive	NA	days	Study day of first line therapy end	STAND_ALONE_TRTRESP::trtendy	NA	NA	NA	0
 TRT_1_thername	clinical	TRT_1_thername	character	column_exists	NA	NA	Systematic therapy name. Individual drugs treatments within a treatment groups are combined by dash symbol. Sequentially administered treatment groups from first line therapy are joined in order of administration by semicolon. 	STAND_ALONE_TRTRESP::thername	NA	NA	NA	0
 TRT_1_thershnm	clinical	TRT_1_thershnm	character	column_exists	NA	NA	Same as TRT_1_thername olumn with abbreviated drug names. For abbreviation mapping see s3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/Resources/drug_name_abbreviation_table.txt	STAND_ALONE_TRTRESP::thershnm	NA	NA	NA	0
 TRT_1_therclass	clinical	TRT_1_therclass	character	column_exists	NA	NA	Therapy class description	STAND_ALONE_TRTRESP::therclass	NA	NA	NA	0
@@ -68,7 +68,7 @@ D_PD_FLAG	clinical	D_PD_FLAG	numeric	column_exists	0=no; 1=yes	NA	Flag if patien
 D_Cause_of_Death	clinical	D_Cause_of_Death	character	column_exists	NA	NA	Cause of death	PER_PATIENT.D_PT_CAUSEOFDEATH	NA	NA	NA	0
 D_Reason_for_Discontinuation	clinical	D_Reason_for_Discontinuation	character	column_exists	NA	NA	Primary Reason for Discontinuation	PER_PATIENT.D_PT_PRIMARYREASON	NA	NA	NA	0
 D_Discontinued	clinical	D_Discontinued	numeric	column_exists	0=no; 1=yes	NA	Study discontinuation flag	PER_PATIENT.D_PT_discont	NA	NA	NA	0
-D_Complete	clinical	D_Complete	numeric	column_exists	0=no; 1=yes	NA	Study complete flag	PER_PATIENT.D_PT_complete	NA	NA	NA	0
+D_Complete	clinical	D_Complete	numeric	column_exists	0=no; 1=yes	NA	Study complete flag. Since the study is ongoing this only captures patients that have exited the study before completion. Those that are still enrolled are all reported as NA.	"recode(D_Complete::D_PT_complete, ""2"" = 0)"	NA	NA	NA	0
 D_Best_Response_Code	clinical	D_Best_Response_Code	numeric	column_exists	1=CR, Complete Response; 2=sCR, Stringent Complete Response; 3=VGPR, Very Good Partial Response; 4=PR, Partial Response; 5=SD, Stable Disease; 6=PD, Progressive Disease	NA	Best observed therapy response from line 1 treatment regimen (numerically coded)	STAND_ALONE_TRTRESP.bestrespcd	NA	NA	NA	1
 D_Best_Response	clinical	D_Best_Response	character	column_exists	NA	NA	Best observed therapy response from line 1 treatment regimen	STAND_ALONE_TRTRESP.bestresp	NA	NA	NA	1
 CBC_Absolute_Neutrophil	blood	CBC_Absolute_Neutrophil	numeric	column_exists	NA	count x10^9/L	Absolute Neutrophil count	PER_PATIENT_VISIT.D_LAB_cbc_abs_neut	NA	NA	NA	1
