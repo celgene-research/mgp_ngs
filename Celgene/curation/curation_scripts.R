@@ -1,3 +1,26 @@
+update_values <- function(new.df, old.df, key){
+  quoted_key <- enquo(key)
+  
+  new.df <- new.df %>%
+    gather(key, val, -(!! quoted_key)) %>%
+    mutate(from = "new")
+  
+  old.column.order <- names(old.df)
+  
+  old.df <- old.df %>%
+    gather(key, val, -(!! quoted_key)) %>%
+    mutate(from = "old")
+  
+  df <- bind_rows(new.df, old.df) %>%
+    group_by(!! quoted_key, key ) %>%
+    arrange(from)  %>%
+    slice(1L) %>%
+    select(-from) %>%
+    ungroup() %>%
+    spread(key, val)
+  
+  df[,old.column.order]
+}
 
 # vars and import----------------------------------------------------------------
 d           <- format(Sys.Date(), "%Y-%m-%d")
@@ -89,7 +112,7 @@ archive <- function(path, aws.args = NULL){
 #'  @param denovo boolean should the function write a new table with the supplied name
 write_new_version <- function(df, name, dir = NULL, denovo = T){
   if( !exists("cwd", envir = s3e) ) return('s3e not configured')
-  if(denovo & all(s3_ls(dir) == 1)) s3_put_table(data.frame(), dir, "test")
+  # if(denovo & all(s3_ls(dir) == 1)) s3_put_table(data.frame(), dir, "test")
  
   # capture s3 path info
   prev.dir <- s3_cd()
@@ -466,7 +489,7 @@ table_flow <- function(write.to.s3 = TRUE, just.master = F){
   names(dts) <- dt.names
   
   ### Filter excluded files ------------------------------------------------------
-  valid.files <- dts$metadata[Excluded_Flag == 0 | is.na(Excluded_Flag) ,
+  valid.files <- dts$metadata[Excluded_Flag == 0 | is.na(Excluded_Flag) | Disease_Type != "PCL",
                               .(Patient, File_Name)]
   
   print("filtering JointData tables to valid Master tables")
