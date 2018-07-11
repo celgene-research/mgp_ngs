@@ -9,6 +9,7 @@
 library(s3r)
 library(tidyverse)
 library(toolboxR)
+source('curation_scripts.R')
 
 s3_set(bucket = "celgene.rnd.combio.mmgp.external", 
        sse = T, 
@@ -26,6 +27,9 @@ patient <- s3_get_with("MMRF_CoMMpass_IA11_PER_PATIENT.csv", FUN = auto_read) %>
             D_Discontinued               =  D_PT_discont,
             D_Complete                   =  recode(D_PT_complete, "2" = 0)  ) 
 
+Curated_Data_Sources <- "s3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/Curated_Data_Sources"
+# s3_put_table(patient, Curated_Data_Sources, 'MMRF_IA11/curated_MMRF_PER_PATIENT.txt')
+
 # per-visit ----
 visit   <- s3_get_with("MMRF_CoMMpass_IA11_PER_PATIENT_VISIT.csv", FUN = auto_read) %>%
   # we only want visit information where a sample was collected
@@ -36,8 +40,8 @@ visit   <- s3_get_with("MMRF_CoMMpass_IA11_PER_PATIENT_VISIT.csv", FUN = auto_re
   # calculate per-patient values from visit table
   group_by(PUBLIC_ID) %>%
   mutate(
-    D_Response_Assessment = max(AT_RESPONSEASSES, na.rm = T),
-    D_Last_Visit          = max(VISITDY, na.rm = T),
+    D_Response_Assessment = max(AT_RESPONSEASSES),
+    D_Last_Visit          = max(VISITDY),
     bmt                   = if_else( suppressWarnings(VISITDY > min(BMT_DAYOFTRANSPL, na.rm = T)), 1,0,0)) %>%
   ungroup() %>%
   
@@ -95,6 +99,23 @@ visit   <- s3_get_with("MMRF_CoMMpass_IA11_PER_PATIENT_VISIT.csv", FUN = auto_re
     IG_IgE                  = D_LAB_serum_ige ) %>% 
   arrange(Sample_Sequence)
 
+if( !all(visit$Disease_Status %in% c("ND", "R")) )warning("Check Disease_Status mapping, some not matched") 
+
+# make a per-patient version of visit to add data from this table to clinical
+visit_p <- visit %>%
+  select(Patient, D_Response_Assessment, D_Last_Visit) %>%
+  unique()
+ 
+# make a per-patient version of visit to add data from this table to clinical
+visit_m <- visit %>%
+  select(Sample_Sequence, Visit_Time, Sample_Study_Day, Disease_Status, D_PrevBoneMarrowTransplant) %>%
+  unique() 
+
+visit_b <- visit %>%
+  select(Patient, Sample_Sequence, CBC_Absolute_Neutrophil:IG_IgE)
+# s3_put_table(visit, Curated_Data_Sources, 'MMRF_IA11/curated_MMRF_PER_PATIENT_VISIT.txt')
+
+  
 # survival ----
 surv <- s3_get_with("MMRF_CoMMpass_IA11_STAND_ALONE_SURVIVAL.csv", FUN = auto_read) %>%
   transmute(Patient      = public_id,
@@ -105,23 +126,34 @@ surv <- s3_get_with("MMRF_CoMMpass_IA11_STAND_ALONE_SURVIVAL.csv", FUN = auto_re
             D_PD         = ttfpd,
             D_PD_FLAG    = pdflag)
 
-# medical history ----
-medhist <- s3_get_with("MMRF_CoMMpass_IA11_STAND_ALONE_MEDHX.csv", FUN = auto_read) %>%
-  transmute(Patient      = public_id,
-            D_Medical_History = medx )
+# s3_put_table(surv, Curated_Data_Sources, 'MMRF_IA11/curated_MMRF_SURVIVAL.txt')
 
 # medical history ----
+medhist <- s3_get_with("MMRF_CoMMpass_IA11_STAND_ALONE_MEDHX.csv", FUN = auto_read) %>%
+  mutate(Patient = public_id) %>%
+  group_by(Patient) %>%
+  summarise(D_Medical_History = Simplify(medx))
+
+# s3_put_table(medhist, Curated_Data_Sources, 'MMRF_IA11/curated_MMRF_MEDHX.txt')
+
+# family history ----
 famhist <- s3_get_with("MMRF_CoMMpass_IA11_STAND_ALONE_FAMHX.csv", FUN = auto_read) %>%
-  transmute(Patient      = public_id,
-            D_Family_Cancer_History =if_else( FAMHX_ISTHEREAFAMIL %in% c("Yes", "No"), 
-                                              FAMHX_ISTHEREAFAMIL, "") )
+  mutate(Patient      = public_id) %>%
+  group_by(Patient) %>%
+  summarize( D_Family_Cancer_History = case_when(
+    "Yes" %in% FAMHX_ISTHEREAFAMIL ~ "Yes",
+    "No" %in% FAMHX_ISTHEREAFAMIL ~ "No",
+    TRUE ~ NA_character_ ) ) 
+
+# s3_put_table(famhist, Curated_Data_Sources, 'MMRF_IA11/curated_MMRF_FAMHX.txt')
+
 
 # treatment response ----
 treat <- s3_get_with("MMRF_CoMMpass_IA11_STAND_ALONE_TRTRESP.csv", FUN = auto_read) %>%
   filter(line == 1) %>%
   group_by(public_id) %>%
-  mutate(bmtx_day = min(bmtx_day, na.rm = T)) %>%
-  mutate(bmtx_seq = max(bmtx_seq, na.rm = T)) %>%
+  mutate(bmtx_day = min(bmtx_day)) %>%
+  mutate(bmtx_seq = max(bmtx_seq)) %>%
   ungroup() %>%
   filter(therbresp == 1 ) %>%
   # clean up therapy naming
@@ -137,8 +169,10 @@ treat <- s3_get_with("MMRF_CoMMpass_IA11_STAND_ALONE_TRTRESP.csv", FUN = auto_re
             TRT_1_therclass   = therclass,         
             TRT_1_bmtx_rec    = bmtx_rec,        
             TRT_1_bmtx_type   = bmtx_type,         
-            TRT_1_bmtx_n      = if_else( is.na(bmtx_seq), as.integer(0), bmtx_seq ),      
-            TRT_1_bmtx_day    = bmtx_day     ) %>%
+            TRT_1_bmtx_n      = if_else( is.na(bmtx_seq), as.numeric(0), bmtx_seq ),      
+            TRT_1_bmtx_day    = bmtx_day,
+            D_Best_Response_Code = bestrespcd,
+            D_Best_Response      = bestresp  ) %>%
   
   # split drug tratments into individual binary flag columns
   mutate(drugs = gsub("[\\(\\)\\.]", "", tolower(TRT_1_thershnm)) ) %>% 
@@ -147,7 +181,7 @@ treat <- s3_get_with("MMRF_CoMMpass_IA11_STAND_ALONE_TRTRESP.csv", FUN = auto_re
   unique() %>%
   group_by(drugs) %>%
   mutate(n    = n(),
-         drug = if_else( n < 5, "other", drugs ),
+         drug = if_else( n < 3, "other", drugs ),
          drug = paste0("TRT_1_", drug),
          val = 1) %>%
   ungroup() %>%
@@ -156,8 +190,13 @@ treat <- s3_get_with("MMRF_CoMMpass_IA11_STAND_ALONE_TRTRESP.csv", FUN = auto_re
   spread(drug, val, fill=0) %>%
   mutate(TRT_1_IMID = if_else(TRT_1_thal | TRT_1_len | TRT_1_pom, 1, 0))
 
+# s3_put_table(treat, Curated_Data_Sources, 'MMRF_IA11/curated_MMRF_TRTRESP.txt')
+
+
 # seqqc ----
-seqqc   <- auto_read("../../../data/CoMMpass_IA11_FlatFiles/MMRF_CoMMpass_IA11_Seq_QC_Summary.xlsx", na = "?") %>%
+s3_cd('s3://celgene.rnd.combio.mmgp.external/ClinicalData/OriginalData')
+seqqc   <- s3_get_with("MMRF_IA11a/README_FILES/MMRF_CoMMpass_IA11_Seq_QC_Summary.xlsx", 
+                       FUN = auto_read, fun.args = list(na = c("", "?"))) %>%
   transmute(File_Name = QC.Link.SampleName,
             Sample_Name      = gsub("^(MMRF.*[BMP]+)_.*", "\\1", File_Name),
             Patient          = Patients..KBase_Patient_ID,
@@ -174,18 +213,72 @@ seqqc   <- auto_read("../../../data/CoMMpass_IA11_FlatFiles/MMRF_CoMMpass_IA11_S
             Excluded_Specify = MMRF_Release_Status) %>%
   arrange(Sample_Name)
 
-if( all(seqqc$Disease_Status %in% c("ND", "R")) )warning("Check Disease_Status mapping, some not matched") 
-if( all(seqqc$Sequencing_Type %in% c("WES", "WGS", "RNA-Seq")) )warning("Check Sequencing_Type mapping, some not matched") 
 
-# ClinicalData/OriginalData/Joint/2017-03-08_NMF_mutation_signature.txt
-# *File_Name
-# NMF_Signature_Cluster
-# 
-# ClinicalData/ProcessedData/Curated_Data_Sources/mutational.burden.2017-07-07.txt
-# *File_Name
-# SNV_total_ns_variants_n
-# SNV_ns_mutated_genes_n
-# SNV_dbNSFP_Polyphen2_HDIV_pred_deleterious_variants_n
-# SNV_dbNSFP_Polyphen2_HVAR_pred_deleterious_variants_n
-# SNV_dbNSFP_Polyphen2_HDIV_pred_deleterious_genes_n
-# SNV_dbNSFP_Polyphen2_HVAR_pred_deleterious_genes_n
+if( !all(filter(seqqc, Excluded_Flag==0)$Sequencing_Type %in% c("WES", "WGS", "RNA-Seq")) ){
+  warning("Check Sequencing_Type mapping, some not matched") }
+
+# s3_put_table(seqqc, Curated_Data_Sources, 'MMRF_IA11/curated_MMRF_Seq_QC_Summary.txt')
+
+
+# NMF_mutation_signature ----
+nmf   <- s3_get_with("Joint/2017-03-08_NMF_mutation_signature.txt", 
+                       FUN = auto_read) %>%
+  rename(File_Name = FullName,
+         NMF_Signature_Cluster= NMF2)
+  
+inv <- s3_get_table(Curated_Data_Sources, 'MMRF_IA11/curated_mmrf-file-inventory.txt')
+# Joint tables to produce JointData versions
+s3_cd('s3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/JointData')
+
+# clinical table ----
+prev.clinical <- s3_get_table("curated.clinical.2017-08-08.txt") 
+
+clinical.mmrf <- patient %>%
+  left_join(visit_p) %>%
+  left_join(surv) %>%
+  left_join(medhist) %>%
+  left_join(famhist) %>%
+  left_join(treat) 
+
+names(prev.clinical)[!(names(prev.clinical) %in% names(clinical.mmrf) )]
+
+# we need to just replace the MMRF portion of each table
+clinical <- update_values(clinical.mmrf, prev.clinical, Patient)
+# what patients are new
+clinical[!clinical$Patient %in% prev.clinical$Patient, "Patient"]
+
+# write_new_version(clinical, name = "curated.clinical", dir = 's3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/JointData')
+
+# metadata table ----
+meta.mmrf <- inv %>%
+  left_join(seqqc) %>%
+  left_join(visit_m) %>%
+  # visit_time from visit_m appended to visit_name from seqqc 
+  # (e.g. "Confirm Progression; Month 3")
+  mutate( Visit_Name = map2_chr(Visit_Name, Visit_Time, function(x,y){Simplify(c(x,y))})) %>%
+  left_join(nmf) 
+
+prev.meta <- s3_get_table("curated.metadata.2017-07-07.txt") 
+names(prev.meta)[!(names(prev.meta) %in% names(meta.mmrf) )]
+meta <- update_values(meta.mmrf, prev.meta, File_Name)
+
+# write_new_version(meta, name = "curated.metadata", dir = 's3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/JointData')
+
+# blood table ----
+# blood is a File_Name based table with Patient column
+blood.mmrf <- seqqc %>%
+  select(File_Name, Sample_Sequence) %>%
+  left_join(visit_b) %>%
+  select(-Sample_Sequence)
+
+prev.blood <- s3_get_table("curated.blood.2017-05-03.txt") 
+names(prev.blood)[!(names(prev.blood) %in% names(blood.mmrf) )]
+blood <- update_values(blood.mmrf, prev.blood, File_Name)
+
+# write_new_version(blood, name = "curated.blood", dir = 's3://celgene.rnd.combio.mmgp.external/ClinicalData/ProcessedData/JointData')
+
+# process table flow to incorporate new IA11 clinical data into Master/NDMM/Cluster tables
+table_flow()
+
+
+

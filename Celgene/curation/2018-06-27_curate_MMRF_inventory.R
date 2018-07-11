@@ -1,8 +1,8 @@
-library(tidyverse)
-library(s3r)
-
-s3_set(bucket = "celgene.rnd.combio.mmgp.external", 
-       sse = T)
+# library(tidyverse)
+# library(s3r)
+# 
+# s3_set(bucket = "celgene.rnd.combio.mmgp.external", 
+#        sse = T)
 
 # we need an srr map for WGS files that aren't self-identified
 srr_map <- s3_get_table("ClinicalData/OriginalData/MMRF_IA10c/data.import.WGS.Kostas.IA3-IA7.txt") %>%
@@ -25,7 +25,7 @@ rna <- s3_ls("SeqData/RNA-Seq/OriginalData/MMRF", recursive = T, full.names = T,
 wgs <- s3_ls("SeqData/WGS/OriginalData/MMRF", recursive = T, full.names = T, pattern = "bam$|1.fastq.gz$")
 inv <- as.tibble(c(wes, rna, wgs))
 
-df <- inv %>%
+inv <- inv %>%
   mutate(File_Name_Actual = basename(value)) %>%
   
   # join File_Name for srrs, derive for remainder
@@ -49,3 +49,4 @@ df <- inv %>%
   ungroup() %>%
   select(-value, -pat, -seq, -typecode, -lane, -group)
 
+s3_put_table(inv, 'ClinicalData/ProcessedData/Curated_Data_Sources/MMRF_IA11/curated_mmrf-file-inventory.txt')

@@ -20,7 +20,7 @@ Disease_Type	metadata	NA	character	column_exists; all_required	MM=”Multiple My
 D_Gender	clinical	D_Gender	factor	column_exists	Male; Female	NA	Gender string	"recode(PER_PATIENT::D_PT_gender, ""Male"", ""Female"")"	NA	recode(Sex, 1=Male, 2=Female)	Gender column. M=Male; F=Female	1
 D_Race	clinical	D_Race	factor	column_exists	ASIAN; AMERICANINDIAN; BLACKORAFRICAN; PACIFICISLANDER; WHITE; OTHER	NA	Race	"recode(PER_PATIENT::D_PT_race, ""WHITE"", ""BLACKORAFRICAN"", ""AMERICANINDIAN"", ""ASIAN"", ""NATIVEHAWAIIAN"", ""OTHER"")"	NA	NA	NA	1
 D_Age	clinical	D_Age	numeric	column_exists; all_positive	NA	years	Age at diagnosis	PER_PATIENT.D_PT_age	NA	Age.at.diagnosis	Age column	1
-D_Medical_History	clinical	D_Medical_History	character	column_exists	NA	NA	Specify. This field is not restricted to a curated set of responses, however specific values are flagged for an additional column in this table based on <MEDHX_conditions.of.interest.txt>	STAND_ALONE_MEDHX.medx	NA	NA	NA	1
+D_Medical_History	clinical	D_Medical_History	character	column_exists	NA	NA	Specify. 	STAND_ALONE_MEDHX.medx	NA	NA	NA	1
 D_Family_Cancer_History	clinical	D_Family_Cancer_History	character	column_exists	Yes; No	NA	Is there a family history of cancer?	STAND_ALONE_FAMHX.FAMHX_ISTHEREAFAMIL	NA	NA	NA	1
 D_PrevBoneMarrowTransplant	metadata	D_PrevBoneMarrowTransplant	numeric	column_exists	0=no; 1=yes	NA	Has a bone marrow transplant been performed before the study day that this sample was collected?	PER-PATIENT-VISIT::VISITDY >= min(PER-PATIENT-VISIT::BMT_DAYOFTRANSPL for same PUBLIC_ID)	NA	NA	NA	1
 Sample_Study_Day	metadata	Sample_Study_Day	numeric	column_exists; all_numeric	NA	NA	day of study that the sample was taken	NA	NA	NA	NA	1
