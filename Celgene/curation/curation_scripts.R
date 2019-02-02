@@ -13,12 +13,18 @@ update_values <- function(new.df, old.df, key){
   
   df <- bind_rows(new.df, old.df) %>%
     group_by(!! quoted_key, key ) %>%
+    filter(!is.na(val)) %>% 
     arrange(from)  %>%
     slice(1L) %>%
     select(-from) %>%
     ungroup() %>%
     spread(key, val)
   
+  # some unpopulated columns may now be missing, add them back
+  missing_cols <- old.column.order[!old.column.order %in% names(df)]
+  df[,missing_cols] <- NA
+  
+  # return a well sorted table
   df[,old.column.order]
 }
 
