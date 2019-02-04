@@ -362,6 +362,6 @@ blood <- update_values(blood.mmrf, prev.blood, File_Name)
 
 # process table flow to incorporate new IA11 clinical data into Master/NDMM/Cluster tables
 table_flow()
-
-
+run_master_inventory()
+cluster_flow()
 
