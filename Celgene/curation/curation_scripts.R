@@ -1077,3 +1077,33 @@ qc_master_tables <- function(log.path = "tmp.log"){
   failed.results
 }
 
+compare_versions <- function(new.df, old.df, key){
+  quoted_key <- enquo(key)
+  
+  new.df <- new.df %>%
+    gather(key, new, -(!! quoted_key)) %>% 
+    mutate(new = if_else(is.na(new),"NA",as.character(new)))
+  
+  old.column.order <- names(old.df)
+  
+  old.df <- old.df %>%
+    gather(key, old, -(!! quoted_key))%>% 
+    mutate(old = if_else(is.na(old),"NA",as.character(old)))
+  
+  df <- new.df %>% 
+    left_join(old.df) %>% 
+    rowwise() %>% 
+    mutate(joined = if_else(new!=old,paste0(c(old,new),collapse = "|"),as.character(NA))) %>% 
+    filter(!is.na(joined)) %>% 
+    select(-new,-old) %>%
+    ungroup() %>%
+    spread(key, joined,fill = "")
+  # 
+  # # some unpopulated columns may now be missing, add them back
+  # missing_cols <- old.column.order[!old.column.order %in% names(df)]
+  # df[,missing_cols] <- NA
+  # 
+  # # return a well sorted table
+  # df[,old.column.order]
+  df
+}
