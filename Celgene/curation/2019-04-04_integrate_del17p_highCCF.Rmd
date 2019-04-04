@@ -1,0 +1,60 @@
+---
+title: "incorporate del17p high CCF calls into IFM-2009"
+author: "Dan Rozelle"
+date: "April 4, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Dan Rozelle
+# Rancho BioSciences
+# 
+# devtools::install_github('dkrozelle/toolboxR')
+library(toolboxR)
+library(tidyverse)
+library(s3r)
+
+s3r::s3_set(bucket = "celgene-rnd-riku-prismm", profile = "celgene-rnd-riku-prismm")
+
+```
+
+## del17p_IFM table notes from conv with Maria
+
+This analysis integrated a table of PRISMM IFM-2009 genomic samples processed with SClust. Maria has only included samples that have a deletion of del17p where CNA=1 is a single deletion and CNA=0 is biallelic deletion. Since clone fraction cannot be acurately interpreted from a biallelic deletion we don't want to incorporate CCF for this sample (15356_R).
+
+CN results from Sclust should be maintained distinctly from controlfreec results. Sclust is the preferred method for this cohort since sequencing quality was lower than previous MGP samples. Despite this deficiency, all samples are showing that the deletion is present in the majority clonal call fraction (>55%). 
+
+This data should be incorporated into the PRISMM master dataset as del17p_highCCF, where CNA=1 and =0 for corresponding samples on this table and del17p_highCCF=2 (no deletion) for all other IFM-2009 genomic samples. 
+
+We may also add the fractional CCF value, however we will likely only want the integer value. We aren't doing this today but data is still available for future incorporation.
+
+```{r import}
+
+new <- s3r::s3_get_with("Metadata/incoming/2019-03-28_Sclust-del17p-IFM_Maria-Ortiz.xlsx", FUN = readxl::read_xlsx) 
+
+# looks like we have two samples with multiple CN calls
+new %>% group_by(filename) %>% filter(n()>1) %>% select(-file) %>% knitr::kable()
+
+meta <- s3r::s3_get_table("Metadata/metadata.tsv") %>%
+  mutate(
+    
+    # Set all IFM-2009 WGS samples to default del17p_highCCF=0
+    CYTO_del17p_highCCF_Sclust = if_else(study_name == "IFM-2009" & 
+                                           experiment_type == "WGS",
+                                         0, as.numeric(NA)     ),
+    
+    # and flag filenames from the file as del17p_highCCF=1
+    CYTO_del17p_highCCF_Sclust = if_else(filename %in% new$filename,1,CYTO_del17p_highCCF_Sclust)
+    )
+
+
+# check that all are already in the metadata table
+all(new$filename %in% meta$filename)
+
+# check the frequency
+table(select(meta, study_name, CYTO_del17p_highCCF_Sclust), useNA = 'always') %>% knitr::kable()
+
+s3r::s3_put_table(meta, "Metadata/metadata.tsv")
+```
